@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { doc, getDoc } from "firebase/firestore";
 import type { AgeGroup, Product, ProductInput, Section } from "@/lib/types";
+import { auth, db, storage } from "@/lib/firebase/config";
 import { createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
 import { uploadProductImage } from "@/lib/firebase/storage";
-
-const AGE_GROUPS: AgeGroup[] = ["0-12m", "1-3y", "4-6y", "7-12y"];
+import { useAdminLanguage } from "@/context/AdminLanguageContext";
 
 type Props = {
   product: Product | null;
@@ -14,7 +15,19 @@ type Props = {
 };
 
 export default function ProductFormModal({ product, onClose, onSaved }: Props) {
+  const { t, dir } = useAdminLanguage();
   const isEdit = Boolean(product);
+
+  const SECTIONS: { value: Section; label: string }[] = [
+    { value: "boys", label: t.products.sectionBoys },
+    { value: "girls", label: t.products.sectionGirls },
+    { value: "hospital", label: t.products.sectionHospital },
+  ];
+  const AGE_GROUPS: { value: AgeGroup; label: string }[] = [
+    { value: "0-3m", label: t.products.age0to3m },
+    { value: "3-24m", label: t.products.age3to24m },
+    { value: "2-10y", label: t.products.age2to10y },
+  ];
 
   const [nameEn, setNameEn] = useState(product?.name.en ?? "");
   const [nameAr, setNameAr] = useState(product?.name.ar ?? "");
@@ -23,8 +36,8 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [descAr, setDescAr] = useState(product?.description.ar ?? "");
   const [descHe, setDescHe] = useState(product?.description.he ?? "");
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
-  const [section, setSection] = useState<Section>(product?.section ?? "girls");
-  const [ageGroup, setAgeGroup] = useState<AgeGroup | "">(product?.ageGroup ?? "");
+  const [sections, setSections] = useState<Section[]>(product?.sections ?? []);
+  const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
   const [category, setCategory] = useState(product?.category ?? "");
   const [tags, setTags] = useState(product?.tags.join(", ") ?? "");
   const [stock, setStock] = useState(product?.stock?.toString() ?? "");
@@ -33,18 +46,44 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hospitalOnly = sections.length === 1 && sections[0] === "hospital";
+
+  const toggleSection = (value: Section) => {
+    setSections((prev) => (prev.includes(value) ? prev.filter((s) => s !== value) : [...prev, value]));
+  };
+
+  const toggleAgeGroup = (value: AgeGroup) => {
+    setAgeGroups((prev) => (prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!nameEn || !price || !category || !stock) {
-      setError("Please fill in all required fields.");
+    if (!nameEn || !price || !category || !stock || sections.length === 0) {
+      setError(t.products.errorRequiredFields);
       return;
     }
 
     setSaving(true);
     try {
       const id = product?.id ?? newProductRef().id;
+
+      // Temporary diagnostics for storage/unauthorized — remove once resolved.
+      const currentUser = auth.currentUser;
+      console.log("[debug] auth.currentUser.uid:", currentUser?.uid ?? null);
+      if (currentUser) {
+        const adminSnap = await getDoc(doc(db, "admins", currentUser.uid));
+        console.log("[debug] admins/{uid} exists:", adminSnap.exists(), "data:", adminSnap.data());
+      }
+      console.log("[debug] storage.app === auth.app:", storage.app === auth.app);
+      console.log("[debug] storage bucket:", storage.app.options.storageBucket);
+      console.log("[debug] auth app name:", auth.app.name, "storage app name:", storage.app.name);
+      if (currentUser) {
+        const idTokenResult = await currentUser.getIdTokenResult(true);
+        console.log("[debug] fresh ID token obtained, length:", idTokenResult.token.length, "expires:", idTokenResult.expirationTime);
+      }
+
       const uploadedUrls = await Promise.all(newFiles.map((file) => uploadProductImage(id, file)));
       const images = [...existingImages, ...uploadedUrls];
 
@@ -53,8 +92,8 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         description: { en: descEn, ar: descAr, he: descHe },
         price: Number(price),
         images,
-        section,
-        ageGroup: section === "hospital" ? null : (ageGroup || null),
+        sections,
+        ageGroups: hospitalOnly ? [] : ageGroups,
         category,
         tags: tags
           .split(",")
@@ -70,17 +109,20 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       }
       onSaved();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save product.");
+      setError(err instanceof Error ? err.message : t.products.errorGeneric);
       setSaving(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-gutter overflow-y-auto">
+    <div
+      dir={dir}
+      className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-gutter overflow-y-auto"
+    >
       <div className="bg-surface rounded-[2rem] cloud-shadow w-full max-w-2xl my-lg max-h-[90vh] overflow-y-auto p-lg">
         <div className="flex items-center justify-between mb-md">
           <h2 className="font-headline-sm text-headline-sm text-on-surface">
-            {isEdit ? "Edit Product" : "New Product"}
+            {isEdit ? t.products.modalTitleEdit : t.products.modalTitleNew}
           </h2>
           <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors">
             <span className="material-symbols-outlined">close</span>
@@ -95,57 +137,77 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-md">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
-            <Field label="Name (English) *" value={nameEn} onChange={setNameEn} />
-            <Field label="Name (Arabic)" value={nameAr} onChange={setNameAr} dir="rtl" />
-            <Field label="Name (Hebrew)" value={nameHe} onChange={setNameHe} dir="rtl" />
+            <Field label={t.products.nameEn} value={nameEn} onChange={setNameEn} />
+            <Field label={t.products.nameAr} value={nameAr} onChange={setNameAr} dir="rtl" />
+            <Field label={t.products.nameHe} value={nameHe} onChange={setNameHe} dir="rtl" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
-            <TextAreaField label="Description (English)" value={descEn} onChange={setDescEn} />
-            <TextAreaField label="Description (Arabic)" value={descAr} onChange={setDescAr} dir="rtl" />
-            <TextAreaField label="Description (Hebrew)" value={descHe} onChange={setDescHe} dir="rtl" />
+            <TextAreaField label={t.products.descriptionEn} value={descEn} onChange={setDescEn} />
+            <TextAreaField label={t.products.descriptionAr} value={descAr} onChange={setDescAr} dir="rtl" />
+            <TextAreaField label={t.products.descriptionHe} value={descHe} onChange={setDescHe} dir="rtl" />
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-sm">
-            <Field label="Price (₪) *" value={price} onChange={setPrice} type="number" />
-            <Field label="Stock *" value={stock} onChange={setStock} type="number" />
+          <div className="grid grid-cols-2 gap-sm">
+            <Field label={t.products.price} value={price} onChange={setPrice} type="number" />
+            <Field label={t.products.stock} value={stock} onChange={setStock} type="number" />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-sm">
             <div>
-              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">Section *</label>
-              <select
-                value={section}
-                onChange={(e) => setSection(e.target.value as Section)}
-                className="w-full bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface"
-              >
-                <option value="girls">Girls</option>
-                <option value="boys">Boys</option>
-                <option value="hospital">Hospital Bag</option>
-              </select>
+              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.sections}</label>
+              <div className="flex flex-col gap-1.5 bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2.5">
+                {SECTIONS.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-2 font-body-md text-on-surface cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={sections.includes(value)}
+                      onChange={() => toggleSection(value)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
             </div>
             <div>
-              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">Age Group</label>
-              <select
-                value={ageGroup}
-                disabled={section === "hospital"}
-                onChange={(e) => setAgeGroup(e.target.value as AgeGroup)}
-                className="w-full bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface disabled:opacity-50"
+              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.ageGroups}</label>
+              <div
+                className={`flex flex-col gap-1.5 rounded-xl border border-outline-variant px-3 py-2.5 ${
+                  hospitalOnly ? "bg-surface-container-low/50 opacity-50" : "bg-surface-container-low"
+                }`}
               >
-                <option value="">—</option>
-                {AGE_GROUPS.map((age) => (
-                  <option key={age} value={age}>
-                    {age}
-                  </option>
+                {AGE_GROUPS.map(({ value, label }) => (
+                  <label
+                    key={value}
+                    className={`flex items-center gap-2 font-body-md text-on-surface ${
+                      hospitalOnly ? "cursor-not-allowed" : "cursor-pointer"
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      disabled={hospitalOnly}
+                      checked={ageGroups.includes(value)}
+                      onChange={() => toggleAgeGroup(value)}
+                      className="w-4 h-4 accent-primary disabled:opacity-50"
+                    />
+                    {label}
+                  </label>
                 ))}
-              </select>
+                {hospitalOnly && (
+                  <p className="font-label-sm text-label-sm text-on-surface-variant mt-1">{t.products.ageGroupsHiddenNote}</p>
+                )}
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-sm">
-            <Field label="Category *" value={category} onChange={setCategory} placeholder="e.g. blouses, pants" />
-            <Field label="Tags (comma-separated)" value={tags} onChange={setTags} placeholder="e.g. organic, bestseller" />
+            <Field label={t.products.category} value={category} onChange={setCategory} placeholder={t.products.categoryPlaceholder} />
+            <Field label={t.products.tags} value={tags} onChange={setTags} placeholder={t.products.tagsPlaceholder} />
           </div>
 
           <div>
-            <label className="block font-label-sm text-label-sm text-on-surface-variant mb-2">Images</label>
+            <label className="block font-label-sm text-label-sm text-on-surface-variant mb-2">{t.products.images}</label>
             <div className="flex flex-wrap gap-sm mb-sm">
               {existingImages.map((url) => (
                 <div key={url} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container-low">
@@ -154,7 +216,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                   <button
                     type="button"
                     onClick={() => setExistingImages((prev) => prev.filter((u) => u !== url))}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
+                    className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
                   >
                     <span className="material-symbols-outlined text-[14px]">close</span>
                   </button>
@@ -167,7 +229,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                   <button
                     type="button"
                     onClick={() => setNewFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                    className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
+                    className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
                   >
                     <span className="material-symbols-outlined text-[14px]">close</span>
                   </button>
@@ -189,14 +251,14 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
               onClick={onClose}
               className="px-lg py-3 rounded-full font-label-md text-label-md text-on-surface-variant hover:bg-surface-container-low transition-colors"
             >
-              Cancel
+              {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={saving}
               className="px-lg py-3 bg-primary text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all active:scale-95 disabled:opacity-70"
             >
-              {saving ? "Saving..." : "Save Product"}
+              {saving ? t.common.saving : t.products.saveProduct}
             </button>
           </div>
         </form>

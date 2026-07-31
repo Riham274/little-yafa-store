@@ -17,14 +17,27 @@ import type { AgeGroup, Product, ProductInput, Section } from "@/lib/types";
 const PRODUCTS_COLLECTION = "products";
 
 function toProduct(id: string, data: Record<string, unknown>): Product {
+  // Legacy single-value fields — kept as a defensive fallback in case any
+  // doc predates the sections[]/ageGroups[] migration.
+  const legacySection = data.section as Section | undefined;
+  const legacyAgeGroup = data.ageGroup as AgeGroup | null | undefined;
+
   return {
     id,
     name: data.name as Product["name"],
     description: data.description as Product["description"],
     price: Number(data.price) || 0,
     images: Array.isArray(data.images) ? (data.images as string[]) : [],
-    section: data.section as Section,
-    ageGroup: (data.ageGroup ?? null) as AgeGroup | null,
+    sections: Array.isArray(data.sections)
+      ? (data.sections as Section[])
+      : legacySection
+        ? [legacySection]
+        : [],
+    ageGroups: Array.isArray(data.ageGroups)
+      ? (data.ageGroups as AgeGroup[])
+      : legacyAgeGroup
+        ? [legacyAgeGroup]
+        : [],
     category: (data.category as string) ?? "",
     tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],
     stock: Number(data.stock) || 0,
@@ -32,7 +45,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
 }
 
 export async function getProductsBySection(section: Section): Promise<Product[]> {
-  const q = query(collection(db, PRODUCTS_COLLECTION), where("section", "==", section));
+  const q = query(collection(db, PRODUCTS_COLLECTION), where("sections", "array-contains", section));
   const snap = await getDocs(q);
   return snap.docs.map((d) => toProduct(d.id, d.data()));
 }

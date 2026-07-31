@@ -71,3 +71,26 @@ body {
 html[dir="rtl"] .flip-rtl {
   transform: scaleX(-1);
 }
+
+/* Arabic uses IBM Plex Sans Arabic everywhere; English and Hebrew keep the
+   default Playfair/Inter pairing. All heading/body/label Tailwind font
+   utilities resolve through these two variables, so overriding them here is
+   enough to retarget the whole site without touching every component.
+   Targeting body (not just html) is required: next/font's `.variable` class
+   sets --font-playfair/--font-inter directly on body, and a same-element
+   declaration always wins over one inherited from an ancestor like html. */
+html[lang="ar"] body {
+  --font-playfair: var(--font-arabic);
+  --font-inter: var(--font-arabic);
+}
+
+/* Admin panel has its own, separate Arabic/English toggle (AdminLanguageContext)
+   that intentionally does not touch html.lang, to avoid racing the customer
+   LanguageProvider that also wraps admin routes from the root layout. The
+   admin shell instead carries its own [data-admin-locale] attribute, which
+   this rule targets directly — no "beat body's own declaration" problem here
+   since this element is a descendant of body, not body itself. */
+[data-admin-locale="ar"] {
+  --font-playfair: var(--font-arabic);
+  --font-inter: var(--font-arabic);
+}

@@ -8,8 +8,7 @@ import { getAllProducts } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 
-const HERO_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuCOp75RuQMAWcBsp6mmmBQ_N3a_oDMz8QKKpzgn9cWqVlYMEsvNY-r4UjxvQS91jbq_kZr8LpxInfGYY6ncV17aJbvx7pg3N3oGSvGmfZxFuUClH_ZbU_Ua5vDh6ifFDoACFI88DMIJqGB7cnYleqcTtfriO3BVMCYxO0PdOQ3-1YrGX4hciml8N_ldeLwXDKYbxMCi6fWHURa9ogmw9jxfu7nDLhQ-SfplBpcg8FXpEoEuQ5wH1GX3T1imBpmy_hvetgDNt0XsfNg";
+const HERO_IMAGE = "/hero-banner.png";
 
 const BOYS_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCw-8wAN2T20nFJ1grl-j4owyAT2g-xuS1ibbHmK-G2SCJEAGWrvhi729EYPCqIJhGvgUXEOE09jBXMqfLGxwjvGz5mWorEOCXnaEcmvfdSCq8eUm-pRCchi-6gaZopvqjL_W4DumsrSmblUUGuGsHEmrTZdYUWdpBod25GzYVU8SjoV0RyzzZO8VZH0IuA9Vab0eTcEcdK1a7lPGro5tiEAfpO-Ton4o8j1bq-F-_C88QcL_S4FbX7H4YBUhwfvs_VHgED5xUh0Oc";
@@ -37,11 +36,36 @@ export default function HomePage() {
   return (
     <>
       {/* Hero */}
-      <section className="px-gutter mb-xl">
-        <div className="max-w-container-max mx-auto overflow-hidden rounded-[2rem] relative min-h-[600px] flex items-center fade-in-up">
+      <section className="px-gutter mb-lg">
+        <div className="group max-w-container-max mx-auto overflow-hidden rounded-[2rem] relative min-h-[360px] md:min-h-[440px] flex items-center fade-in-up">
           <div className="absolute inset-0 z-0">
-            <Image src={HERO_IMAGE} alt="" fill priority className="object-cover" />
+            <Image
+              src={HERO_IMAGE}
+              alt=""
+              fill
+              priority
+              className="object-cover transition duration-300 ease-in-out group-hover:brightness-105"
+            />
             <div className="absolute inset-0 bg-gradient-to-r from-surface-bright/80 via-surface-bright/20 to-transparent" />
+          </div>
+          {/* Welcome caption — mobile: compact corner badge, opposite side from the hero badge pill */}
+          <div className="md:hidden absolute top-3 end-3 z-10 pointer-events-none">
+            <span
+              className="inline-block px-3 py-1 rounded-full bg-on-surface/25 backdrop-blur-sm text-surface-bright text-[11px] italic tracking-wide whitespace-nowrap"
+              style={{ fontFamily: "var(--font-playfair), serif", textShadow: "0 1px 3px rgba(0,0,0,0.35)" }}
+            >
+              {t.home.welcomeText}
+            </span>
+          </div>
+
+          {/* Welcome caption — desktop: vertically centered in the image's open space */}
+          <div className="hidden md:flex absolute inset-y-0 end-8 lg:end-12 items-center justify-end z-10 pointer-events-none">
+            <span
+              className="inline-block max-w-xs text-center px-5 py-2 rounded-full bg-on-surface/25 backdrop-blur-sm text-surface-bright text-base italic tracking-wide leading-snug"
+              style={{ fontFamily: "var(--font-playfair), serif", textShadow: "0 1px 3px rgba(0,0,0,0.35)" }}
+            >
+              {t.home.welcomeText}
+            </span>
           </div>
           <div className="relative z-10 px-lg md:px-xl max-w-2xl">
             <span className="inline-block px-4 py-1 rounded-full bg-primary-container/20 text-primary font-label-md text-label-md mb-md fade-in-up delay-100">
@@ -107,9 +131,9 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-md">
           {[
             { icon: "spa", title: t.home.organic, desc: t.home.organicDesc },
-            { icon: "handshake", title: t.home.artisan, desc: t.home.artisanDesc },
-            { icon: "local_shipping", title: t.home.freeShipping, desc: t.home.freeShippingDesc },
-            { icon: "autorenew", title: t.home.easyReturns, desc: t.home.easyReturnsDesc },
+            { icon: "workspace_premium", title: t.home.premiumPieces, desc: t.home.premiumPiecesDesc },
+            { icon: "local_shipping", title: t.home.shipping, desc: t.home.shippingDesc },
+            { icon: "swap_horiz", title: t.home.exchange, desc: t.home.exchangeDesc },
           ].map((badge) => (
             <div key={badge.icon} className="flex flex-col items-center text-center p-md rounded-[2rem] bg-surface-container-low">
               <span className="material-symbols-outlined text-primary text-[40px] mb-sm" style={{ fontVariationSettings: "'FILL' 1" }}>

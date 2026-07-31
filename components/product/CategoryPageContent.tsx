@@ -34,7 +34,7 @@ export default function CategoryPageContent({
 
   const filtered = useMemo(() => {
     if (!showAgeFilter || !activeAge) return products;
-    return products.filter((p) => p.ageGroup === activeAge);
+    return products.filter((p) => p.ageGroups.includes(activeAge));
   }, [products, activeAge, showAgeFilter]);
 
   const handleAgeChange = (age: AgeGroup | null) => {

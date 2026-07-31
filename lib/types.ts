@@ -8,7 +8,7 @@ export type LocalizedText = {
 
 export type Section = "boys" | "girls" | "hospital";
 
-export type AgeGroup = "0-12m" | "1-3y" | "4-6y" | "7-12y";
+export type AgeGroup = "0-3m" | "3-24m" | "2-10y";
 
 export type Product = {
   id: string;
@@ -16,8 +16,8 @@ export type Product = {
   description: LocalizedText;
   price: number;
   images: string[];
-  section: Section;
-  ageGroup: AgeGroup | null;
+  sections: Section[];
+  ageGroups: AgeGroup[];
   category: string;
   tags: string[];
   stock: number;

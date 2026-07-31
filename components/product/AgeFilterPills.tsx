@@ -3,7 +3,7 @@
 import { useLanguage } from "@/context/LanguageContext";
 import type { AgeGroup } from "@/lib/types";
 
-const AGE_GROUPS: AgeGroup[] = ["0-12m", "1-3y", "4-6y", "7-12y"];
+const AGE_GROUPS: AgeGroup[] = ["0-3m", "3-24m", "2-10y"];
 
 export default function AgeFilterPills({
   active,
@@ -13,6 +13,12 @@ export default function AgeFilterPills({
   onChange: (age: AgeGroup | null) => void;
 }) {
   const { t } = useLanguage();
+
+  const ageLabels: Record<AgeGroup, string> = {
+    "0-3m": t.category.age0to3m,
+    "3-24m": t.category.age3to24m,
+    "2-10y": t.category.age2to10y,
+  };
 
   const pillClass = (isActive: boolean) =>
     `px-4 py-2 rounded-full font-label-md text-label-md whitespace-nowrap transition-colors border ${
@@ -28,7 +34,7 @@ export default function AgeFilterPills({
       </button>
       {AGE_GROUPS.map((age) => (
         <button key={age} className={pillClass(active === age)} onClick={() => onChange(age)}>
-          {age}
+          {ageLabels[age]}
         </button>
       ))}
     </div>

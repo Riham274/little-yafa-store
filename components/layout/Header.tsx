@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
@@ -19,7 +20,7 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 flex flex-col pt-10" id="site-header">
+    <header className="fixed top-0 left-0 w-full z-50 flex flex-col" id="site-header">
       <nav
         className={`bg-surface/80 backdrop-blur-md border-b border-secondary-container/30 shadow-[0px_10px_30px_rgba(74,74,74,0.05)] transition-all duration-300 ease-in-out ${
           scrolled ? "py-2 shadow-lg" : "py-4"
@@ -31,12 +32,15 @@ export default function Header() {
             <SearchOverlay />
           </div>
           <div className="absolute left-1/2 -translate-x-1/2">
-            <Link
-              href="/"
-              className="block font-display-lg-mobile text-display-lg-mobile text-primary tracking-tight font-bold"
-              style={{ fontFamily: "var(--font-playfair), serif" }}
-            >
-              Little Yafa
+            <Link href="/" className="block" aria-label="Little Yafa">
+              <Image
+                src="/logo-header.png"
+                alt="Little Yafa"
+                width={1201}
+                height={677}
+                priority
+                className="h-10 w-auto"
+              />
             </Link>
           </div>
           <div className="flex items-center gap-md">

@@ -1,4 +1,7 @@
+"use client";
+
 import type { OrderStatus } from "@/lib/types";
+import { useAdminLanguage } from "@/context/AdminLanguageContext";
 
 const STYLES: Record<OrderStatus, string> = {
   new: "bg-secondary-container text-on-secondary-container",
@@ -6,16 +9,17 @@ const STYLES: Record<OrderStatus, string> = {
   delivered: "bg-surface-variant text-on-surface-variant",
 };
 
-const LABELS: Record<OrderStatus, string> = {
-  new: "New",
-  processing: "Processing",
-  delivered: "Delivered",
-};
-
 export default function StatusBadge({ status }: { status: OrderStatus }) {
+  const { t } = useAdminLanguage();
+  const labels: Record<OrderStatus, string> = {
+    new: t.orders.statusNew,
+    processing: t.orders.statusProcessing,
+    delivered: t.orders.statusDelivered,
+  };
+
   return (
     <span className={`inline-flex px-3 py-1 rounded-full font-label-sm text-label-sm font-bold ${STYLES[status]}`}>
-      {LABELS[status]}
+      {labels[status]}
     </span>
   );
 }

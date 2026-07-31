@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Inter } from "next/font/google";
+import { Playfair_Display, Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { CartProvider } from "@/context/CartContext";
@@ -14,6 +14,12 @@ const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600"],
+});
+
+const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
+  variable: "--font-arabic",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -37,7 +43,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         />
       </head>
       <body
-        className={`${playfair.variable} ${inter.variable} bg-surface text-on-surface font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed`}
+        className={`${playfair.variable} ${inter.variable} ${ibmPlexSansArabic.variable} bg-surface text-on-surface font-body-md selection:bg-primary-fixed selection:text-on-primary-fixed`}
       >
         <LanguageProvider>
           <CartProvider>{children}</CartProvider>
