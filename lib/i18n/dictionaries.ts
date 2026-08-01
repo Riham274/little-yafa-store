@@ -27,7 +27,7 @@ const en = {
     heroSubtitle:
       "Crafted with love for your little ones, our latest collection features the softest fibers for delicate skin.",
     heroCta: "Shop New Collection",
-    welcomeText: "Welcome to Little Yafa",
+    beautifulClothes: "Beautiful Clothes for your little ones.",
     exploreCollections: "Explore Collections",
     viewAll: "View All",
     hospitalBag: "Hospital Kits",
@@ -169,7 +169,7 @@ const ar: Dictionary = {
     heroSubtitle:
       "مصنوعة بحب لأطفالكم، تضم مجموعتنا الأحدث أنعم الألياف للبشرة الحساسة.",
     heroCta: "تسوقي المجموعة الجديدة",
-    welcomeText: "أهلاً بكم في Little Yafa",
+    beautifulClothes: "لأن طفولتهم تستحق أجمل التفاصيل… وليتل يافا موجودة لترافق كل لحظة مميزة.",
     exploreCollections: "استكشفي المجموعات",
     viewAll: "عرض الكل",
     hospitalBag: "أطقم مشفى",
@@ -310,7 +310,7 @@ const he: Dictionary = {
     heroTitle: "חיוני לעונה החדשה",
     heroSubtitle: "נוצר באהבה עבור הקטנטנים שלכם, הקולקציה החדשה שלנו כוללת את הסיבים הרכים ביותר לעור עדין.",
     heroCta: "לקולקציה החדשה",
-    welcomeText: "ברוכים הבאים ל-Little Yafa",
+    beautifulClothes: "בגדים יפים לקטנים שלכם.",
     exploreCollections: "גלו את הקולקציות",
     viewAll: "לכל המוצרים",
     hospitalBag: "ערכות לבית החולים",

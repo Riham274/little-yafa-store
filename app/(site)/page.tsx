@@ -35,6 +35,32 @@ export default function HomePage() {
 
   return (
     <>
+      {/* Logo showcase */}
+      <section className="bg-[#8C916F] px-gutter pt-md pb-sm md:pt-[40px] md:pb-md flex justify-center fade-in-up">
+        <Image
+          src="/logo-hero.png"
+          alt="Little Yafa — Baby & Kids Store"
+          width={628}
+          height={397}
+          priority
+          className="w-24 sm:w-28 md:w-36 lg:w-40 h-auto"
+        />
+      </section>
+
+      {/* Pattern banner with arched caption */}
+      <section className="bg-[url('/olive-pattern.jpeg')] bg-cover bg-center px-gutter py-8 md:py-12 fade-in-up">
+        <div className="max-w-container-max mx-auto flex justify-start">
+          <div className="w-[38%] sm:w-[27%] md:w-[24%] lg:w-[20%] rounded-t-full bg-[#EFE5DC] border border-[#8C916F]/60 cloud-shadow px-4 sm:px-5 md:px-6 pt-9 sm:pt-11 md:pt-16 lg:pt-20 pb-4 sm:pb-5 md:pb-6 text-center">
+            <p
+              className="font-headline-sm text-[9.5px] sm:text-[10.5px] md:text-[12px] lg:text-[13px] leading-snug"
+              style={{ color: "#8C916F", fontWeight: 300 }}
+            >
+              {t.home.beautifulClothes}
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Hero */}
       <section className="px-gutter mb-lg">
         <div className="group max-w-container-max mx-auto overflow-hidden rounded-[2rem] relative min-h-[360px] md:min-h-[440px] flex items-center fade-in-up">
@@ -46,26 +72,13 @@ export default function HomePage() {
               priority
               className="object-cover transition duration-300 ease-in-out group-hover:brightness-105"
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-surface-bright/80 via-surface-bright/20 to-transparent" />
-          </div>
-          {/* Welcome caption — mobile: compact corner badge, opposite side from the hero badge pill */}
-          <div className="md:hidden absolute top-3 end-3 z-10 pointer-events-none">
-            <span
-              className="inline-block px-3 py-1 rounded-full bg-on-surface/25 backdrop-blur-sm text-surface-bright text-[11px] italic tracking-wide whitespace-nowrap"
-              style={{ fontFamily: "var(--font-playfair), serif", textShadow: "0 1px 3px rgba(0,0,0,0.35)" }}
-            >
-              {t.home.welcomeText}
-            </span>
-          </div>
-
-          {/* Welcome caption — desktop: vertically centered in the image's open space */}
-          <div className="hidden md:flex absolute inset-y-0 end-8 lg:end-12 items-center justify-end z-10 pointer-events-none">
-            <span
-              className="inline-block max-w-xs text-center px-5 py-2 rounded-full bg-on-surface/25 backdrop-blur-sm text-surface-bright text-base italic tracking-wide leading-snug"
-              style={{ fontFamily: "var(--font-playfair), serif", textShadow: "0 1px 3px rgba(0,0,0,0.35)" }}
-            >
-              {t.home.welcomeText}
-            </span>
+            {/* Mobile: the text block spans nearly the full width and wraps to
+                several lines, so a directional fade leaves later lines sitting
+                right on the raw photo with poor contrast — use a flat, even
+                scrim instead. Desktop keeps the original directional fade
+                since the text column there only occupies the left portion. */}
+            <div className="md:hidden absolute inset-0 bg-surface-bright/75" />
+            <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-surface-bright/80 via-surface-bright/20 to-transparent" />
           </div>
           <div className="relative z-10 px-lg md:px-xl max-w-2xl">
             <span className="inline-block px-4 py-1 rounded-full bg-primary-container/20 text-primary font-label-md text-label-md mb-md fade-in-up delay-100">

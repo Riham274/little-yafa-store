@@ -23,7 +23,7 @@ export default function LanguageSwitcher() {
   return (
     <div className="relative" ref={ref}>
       <button
-        className="text-on-surface-variant hover:text-secondary transition-all active:scale-95"
+        className="p-2 -m-2 rounded-full text-surface-bright hover:text-secondary-container transition-all active:scale-95"
         title={t.nav.language}
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="listbox"
@@ -34,7 +34,7 @@ export default function LanguageSwitcher() {
       {open && (
         <div
           role="listbox"
-          className="absolute top-full mt-3 left-1/2 -translate-x-1/2 md:left-auto md:translate-x-0 bg-surface-container-lowest rounded-2xl cloud-shadow border gold-border p-2 min-w-[160px] z-50"
+          className="absolute top-full mt-3 start-0 bg-surface-container-lowest rounded-2xl cloud-shadow border gold-border p-2 min-w-[160px] z-50"
         >
           {LOCALES.map((l) => (
             <button

@@ -28,15 +28,19 @@ export default function AgeFilterPills({
     }`;
 
   return (
-    <div className="flex gap-sm overflow-x-auto hide-scrollbar pb-1" id="filter-pills">
-      <button className={pillClass(active === null)} onClick={() => onChange(null)}>
-        {t.category.allAges}
-      </button>
-      {AGE_GROUPS.map((age) => (
-        <button key={age} className={pillClass(active === age)} onClick={() => onChange(age)}>
-          {ageLabels[age]}
+    <div className="relative">
+      <div className="flex gap-sm overflow-x-auto hide-scrollbar pb-1" id="filter-pills">
+        <button className={pillClass(active === null)} onClick={() => onChange(null)}>
+          {t.category.allAges}
         </button>
-      ))}
+        {AGE_GROUPS.map((age) => (
+          <button key={age} className={pillClass(active === age)} onClick={() => onChange(age)}>
+            {ageLabels[age]}
+          </button>
+        ))}
+      </div>
+      {/* Hints that the pill row scrolls further when it overflows the viewport */}
+      <div className="md:hidden pointer-events-none absolute inset-y-0 end-0 w-8 bg-gradient-to-l rtl:bg-gradient-to-r from-surface to-transparent" />
     </div>
   );
 }

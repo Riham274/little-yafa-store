@@ -34,7 +34,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
             <button
               onClick={() => setQty(item.productId, item.qty - 1)}
               disabled={item.qty <= 1}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
             >
               <span className="material-symbols-outlined text-[18px]">remove</span>
             </button>
@@ -42,14 +42,14 @@ export default function CartItemRow({ item }: { item: CartItem }) {
             <button
               onClick={() => setQty(item.productId, item.qty + 1)}
               disabled={item.qty >= item.stock}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
+              className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
             </button>
           </div>
           <button
             onClick={() => removeItem(item.productId)}
-            className="text-on-surface-variant hover:text-error transition-colors"
+            className="p-2 -m-2 rounded-full text-on-surface-variant hover:text-error transition-colors"
             title={t.cart.remove}
           >
             <span className="material-symbols-outlined">delete</span>

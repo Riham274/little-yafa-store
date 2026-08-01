@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import LanguageSwitcher from "./LanguageSwitcher";
-import SearchOverlay from "./SearchOverlay";
+import SearchBar from "./SearchBar";
 
 export default function Header() {
   const { t } = useLanguage();
@@ -22,51 +21,28 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 flex flex-col" id="site-header">
       <nav
-        className={`bg-surface/80 backdrop-blur-md border-b border-secondary-container/30 shadow-[0px_10px_30px_rgba(74,74,74,0.05)] transition-all duration-300 ease-in-out ${
+        className={`bg-[#8C916F] shadow-[0px_10px_30px_rgba(74,74,74,0.05)] transition-all duration-300 ease-in-out ${
           scrolled ? "py-2 shadow-lg" : "py-4"
         }`}
       >
-        <div className="max-w-container-max mx-auto px-gutter flex items-center justify-between">
-          <div className="flex items-center gap-md">
+        <div className="max-w-container-max mx-auto px-gutter grid grid-cols-[1fr_auto_1fr] items-center gap-sm md:gap-md">
+          <div className="justify-self-start">
             <LanguageSwitcher />
-            <SearchOverlay />
           </div>
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <Link href="/" className="block" aria-label="Little Yafa">
-              <Image
-                src="/logo-header.png"
-                alt="Little Yafa"
-                width={1201}
-                height={677}
-                priority
-                className="h-10 w-auto"
-              />
-            </Link>
-          </div>
-          <div className="flex items-center gap-md">
-            <Link
-              href="/cart"
-              className="text-on-surface-variant hover:text-secondary transition-all active:scale-95 relative"
-              title={t.nav.cart}
-            >
+          <SearchBar className="justify-self-center w-[62vw] max-w-[220px] sm:w-64 md:w-72 lg:w-80" />
+          <Link
+            href="/cart"
+            className="justify-self-end p-2 -m-2 rounded-full text-surface-bright hover:text-secondary-container transition-all active:scale-95"
+            title={t.nav.cart}
+          >
+            <span className="relative inline-flex">
               <span className="material-symbols-outlined">shopping_bag</span>
               {count > 0 && (
                 <span className="absolute -top-1 -right-1 bg-secondary text-on-secondary text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
                   {count}
                 </span>
               )}
-            </Link>
-          </div>
-        </div>
-        <div className="hidden md:flex justify-center gap-lg mt-3 pt-3 border-t gold-border">
-          <Link href="/boys" className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest">
-            {t.nav.boys}
-          </Link>
-          <Link href="/girls" className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest">
-            {t.nav.girls}
-          </Link>
-          <Link href="/hospital-bag" className="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest">
-            {t.nav.hospitalBag}
+            </span>
           </Link>
         </div>
       </nav>

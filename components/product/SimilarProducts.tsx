@@ -10,7 +10,7 @@ export default function SimilarProducts({ products }: { products: Product[] }) {
 
   return (
     <section className="max-w-container-max mx-auto px-gutter py-xl">
-      <h2 className="font-headline-md text-headline-md text-on-surface mb-lg">{t.product.similar}</h2>
+      <h2 className="font-headline-sm text-headline-sm md:font-headline-md md:text-headline-md text-on-surface mb-lg">{t.product.similar}</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-md">
         {products.map((p) => (
           <ProductCard key={p.id} product={p} />
