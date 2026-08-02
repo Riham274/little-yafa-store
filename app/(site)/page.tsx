@@ -8,8 +8,6 @@ import { getAllProducts } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 
-const HERO_IMAGE = "/hero-banner.png";
-
 const BOYS_IMAGE =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuCw-8wAN2T20nFJ1grl-j4owyAT2g-xuS1ibbHmK-G2SCJEAGWrvhi729EYPCqIJhGvgUXEOE09jBXMqfLGxwjvGz5mWorEOCXnaEcmvfdSCq8eUm-pRCchi-6gaZopvqjL_W4DumsrSmblUUGuGsHEmrTZdYUWdpBod25GzYVU8SjoV0RyzzZO8VZH0IuA9Vab0eTcEcdK1a7lPGro5tiEAfpO-Ton4o8j1bq-F-_C88QcL_S4FbX7H4YBUhwfvs_VHgED5xUh0Oc";
 
@@ -48,54 +46,15 @@ export default function HomePage() {
       </section>
 
       {/* Pattern banner with arched caption */}
-      <section className="bg-[url('/olive-pattern.jpeg')] bg-cover bg-center px-gutter py-8 md:py-12 fade-in-up">
+      <section className="bg-[url('/olive-pattern.jpeg')] bg-cover bg-center px-gutter py-[46px] md:py-[69px] fade-in-up">
         <div className="max-w-container-max mx-auto flex justify-start">
-          <div className="w-[38%] sm:w-[27%] md:w-[24%] lg:w-[20%] rounded-t-full bg-[#EFE5DC] border border-[#8C916F]/60 cloud-shadow px-4 sm:px-5 md:px-6 pt-9 sm:pt-11 md:pt-16 lg:pt-20 pb-4 sm:pb-5 md:pb-6 text-center">
+          <div className="w-[54%] sm:w-[39%] md:w-[34%] lg:w-[28%] min-h-[135px] sm:min-h-[160px] md:min-h-[200px] lg:min-h-[229px] rounded-t-full bg-[#EFE5DC] border border-[#8C916F]/60 cloud-shadow px-6 sm:px-7 md:px-[34px] flex items-center justify-center text-center">
             <p
-              className="font-headline-sm text-[9.5px] sm:text-[10.5px] md:text-[12px] lg:text-[13px] leading-snug"
+              className="font-headline-sm text-[12px] sm:text-[14px] md:text-[16px] lg:text-[17px] leading-snug"
               style={{ color: "#8C916F", fontWeight: 300 }}
             >
               {t.home.beautifulClothes}
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Hero */}
-      <section className="px-gutter mb-lg">
-        <div className="group max-w-container-max mx-auto overflow-hidden rounded-[2rem] relative min-h-[360px] md:min-h-[440px] flex items-center fade-in-up">
-          <div className="absolute inset-0 z-0">
-            <Image
-              src={HERO_IMAGE}
-              alt=""
-              fill
-              priority
-              className="object-cover transition duration-300 ease-in-out group-hover:brightness-105"
-            />
-            {/* Mobile: the text block spans nearly the full width and wraps to
-                several lines, so a directional fade leaves later lines sitting
-                right on the raw photo with poor contrast — use a flat, even
-                scrim instead. Desktop keeps the original directional fade
-                since the text column there only occupies the left portion. */}
-            <div className="md:hidden absolute inset-0 bg-surface-bright/75" />
-            <div className="hidden md:block absolute inset-0 bg-gradient-to-r from-surface-bright/80 via-surface-bright/20 to-transparent" />
-          </div>
-          <div className="relative z-10 px-lg md:px-xl max-w-2xl">
-            <span className="inline-block px-4 py-1 rounded-full bg-primary-container/20 text-primary font-label-md text-label-md mb-md fade-in-up delay-100">
-              {t.home.heroBadge}
-            </span>
-            <h1 className="font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface mb-sm leading-tight fade-in-up delay-200">
-              {t.home.heroTitle}
-            </h1>
-            <p className="font-body-lg text-body-lg text-on-surface-variant mb-lg max-w-lg fade-in-up delay-300">
-              {t.home.heroSubtitle}
-            </p>
-            <Link
-              href="/girls"
-              className="inline-flex items-center justify-center px-lg py-4 bg-primary text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 fade-in-up delay-300"
-            >
-              {t.home.heroCta}
-            </Link>
           </div>
         </div>
       </section>
