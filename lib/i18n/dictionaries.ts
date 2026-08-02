@@ -36,8 +36,6 @@ const en = {
     shippingDesc: "Free delivery to West Bank areas on orders over ₪500. Jerusalem ₪10, Inside the Green Line ₪50",
     exchange: "Exchange",
     exchangeDesc: "Items can be exchanged within 24 hours of receipt. Returns are not available.",
-    quote: "Because every first moment deserves the softest touch.",
-    quoteSub: "Ethically sourced, sustainably crafted.",
   },
   product: {
     new: "New",
@@ -173,8 +171,6 @@ const ar: Dictionary = {
     shippingDesc: "عند تجاوز قيمة الطلب ٥٠٠₪، يكون التوصيل مجاني لمناطق الضفة، أما القدس فـ ١٠₪ والداخل ٥٠₪",
     exchange: "الاستبدال",
     exchangeDesc: "يمكن استبدال القطعة خلال ٢٤ ساعة من الاستلام، الإرجاع غير متاح",
-    quote: "لأن كل لحظة أولى تستحق ألطف لمسة.",
-    quoteSub: "مصادر أخلاقية، وصناعة مستدامة.",
   },
   product: {
     new: "جديد",
@@ -310,8 +306,6 @@ const he: Dictionary = {
     shippingDesc: "משלוח חינם לאזורי הגדה המערבית בהזמנות מעל ₪500. ירושלים ₪10, תוך הקו הירוק ₪50",
     exchange: "החלפה",
     exchangeDesc: "ניתן להחליף פריט תוך 24 שעות מקבלת ההזמנה. החזרה אינה אפשרית.",
-    quote: "כי לכל רגע ראשון מגיע המגע הרך ביותר.",
-    quoteSub: "מקורות אתיים, ייצור בר-קיימא.",
   },
   product: {
     new: "חדש",

@@ -4,9 +4,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 
-const QUOTE_IMAGE =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuDpKk6LTJaRXDsU8wX9FOWZgQw--NqF3dmYs3RbBuhV0zLICMR3prXrTdcjerSIhW0x_25n6rZlU607UcWt83Z3uIhzvbO6pfi0QJiCNUsQ7Ym7TqiBG9Z4GyPdmP-ajS0udKJNXf_pWHz8lCpN8VTIJZxbanZe7Q_3ep8UhoRzA_BuhYITNRnuFUYaXuCn2esaolNnDRvpizVXyZxekCIdh4swi3VHjPVpTyC7wHA2OV49zPTeBu5PyRBNEqep_PtQ3HlOkC02pyE";
-
 export default function HomePage() {
   const { t } = useLanguage();
   const categories = [
@@ -86,21 +83,16 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Quote */}
-      <section className="max-w-container-max mx-auto px-gutter pb-xl">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-md">
-          <div className="md:col-span-2 bg-primary-container/10 p-lg rounded-[2.5rem] flex flex-col justify-center items-center text-center">
-            <span className="material-symbols-outlined text-primary text-4xl mb-4" style={{ fontVariationSettings: "'FILL' 1" }}>
-              spa
-            </span>
-            <h3 className="font-headline-md text-headline-md text-primary max-w-xl">&ldquo;{t.home.quote}&rdquo;</h3>
-            <p className="mt-4 text-on-surface-variant font-label-md">{t.home.quoteSub}</p>
-          </div>
-          <div className="aspect-square md:aspect-auto rounded-[2.5rem] overflow-hidden cloud-shadow relative">
-            <Image src={QUOTE_IMAGE} alt="" fill className="object-cover" />
-          </div>
-        </div>
-      </section>
+      {/* Stripe Divider */}
+      <section
+        className="w-full h-[192px] sm:h-[240px] md:h-[288px]"
+        style={{
+          backgroundImage: "url('/stripe-divider.jpeg')",
+          backgroundRepeat: "no-repeat",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
     </>
   );
 }
