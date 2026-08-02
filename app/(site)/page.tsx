@@ -70,8 +70,8 @@ export default function HomePage() {
         <div className="max-w-[640px] mx-auto grid grid-cols-4 gap-3 sm:gap-4 md:gap-6">
           {categories.map((cat) => (
             <Link key={cat.href + cat.label} href={cat.href} className="group flex flex-col items-center">
-              <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-1 sm:gap-1.5 px-1 pb-1 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                <Image src={cat.icon} alt={cat.label} width={96} height={96} className="w-[74%] h-auto object-contain" />
+              <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
+                <Image src={cat.icon} alt={cat.label} width={96} height={96} className="w-[84%] h-auto object-contain" />
                 <span
                   className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
                   style={{ color: "#8C916F", fontWeight: 500 }}
