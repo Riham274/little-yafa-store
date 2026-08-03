@@ -12,7 +12,7 @@ const headingClass = "font-label-md text-label-md uppercase tracking-widest font
 export default function Footer() {
   const { t } = useLanguage();
   return (
-    <footer className="w-full pt-lg pb-20 sm:pt-xl md:pb-xl px-gutter" style={{ backgroundColor: "#EFE5DC", color: OLIVE }}>
+    <footer className="w-full pt-lg pb-lg sm:pt-xl sm:pb-xl px-gutter" style={{ backgroundColor: "#EFE5DC", color: OLIVE }}>
       <div className="max-w-container-max mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-lg gap-x-lg md:gap-x-xl">
           {/* Brand */}

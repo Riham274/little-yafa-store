@@ -139,11 +139,6 @@ const en = {
     shippingReturns: "Shipping & Returns",
     privacyPolicy: "Privacy Policy",
   },
-  mobileNav: {
-    shop: "Shop",
-    browse: "Browse",
-    cart: "Cart",
-  },
 };
 
 const ar: Dictionary = {
@@ -277,11 +272,6 @@ const ar: Dictionary = {
     shippingReturns: "الشحن والإرجاع",
     privacyPolicy: "سياسة الخصوصية",
   },
-  mobileNav: {
-    shop: "تسوقي",
-    browse: "تصفحي",
-    cart: "السلة",
-  },
 };
 
 const he: Dictionary = {
@@ -414,11 +404,6 @@ const he: Dictionary = {
     policiesTerms: "מדיניות ותנאים",
     shippingReturns: "משלוח והחזרות",
     privacyPolicy: "מדיניות פרטיות",
-  },
-  mobileNav: {
-    shop: "חנות",
-    browse: "עיון",
-    cart: "עגלה",
   },
 };
 
