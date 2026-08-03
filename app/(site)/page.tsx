@@ -124,6 +124,17 @@ export default function HomePage() {
         {/* Hint that the row scrolls further when it overflows the viewport */}
         <div className="sm:hidden pointer-events-none absolute inset-y-0 end-0 w-10 bg-gradient-to-l rtl:bg-gradient-to-r from-[#EFE5DC] to-transparent" />
       </section>
+
+      {/* Clothesline Banner */}
+      <section className="w-full fade-in-up">
+        <Image
+          src="/clothesline-banner.jpeg"
+          alt="Baby clothes hanging on a clothesline"
+          width={1600}
+          height={834}
+          className="w-full h-auto block"
+        />
+      </section>
     </>
   );
 }
