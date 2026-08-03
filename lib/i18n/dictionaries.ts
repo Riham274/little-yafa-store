@@ -129,17 +129,15 @@ const en = {
   },
   footer: {
     brandDescription:
-      "We offer modern, high-quality baby clothing at fair prices. Shop with confidence and enjoy a delightful shopping experience.",
+      "Soft fabrics, timeless style, and carefully selected pieces for your little one.",
     categories: "Categories",
     contactUs: "Contact Us",
     location: "Jenin, Palestine",
-    usefulLinks: "Useful Links",
     specialOffers: "Special Offers",
     editOrder: "Edit Order",
     policiesTerms: "Policies & Terms",
     shippingReturns: "Shipping & Returns",
     privacyPolicy: "Privacy Policy",
-    rights: "Crafted with love.",
   },
   mobileNav: {
     shop: "Shop",
@@ -269,17 +267,15 @@ const ar: Dictionary = {
   },
   footer: {
     brandDescription:
-      "نقدم لكم أزياء أطفال عصرية بجودة عالية وأسعار مناسبة. تسوقوا بثقة واستمتعوا بتجربة تسوق مميزة.",
-    categories: "التصنيفات",
+      "أقمشة ناعمة، تصميم أنيق يدوم، وقطع مختارة بعناية لطفلك.",
+    categories: "الأقسام",
     contactUs: "تواصل معنا",
     location: "جنين، فلسطين",
-    usefulLinks: "روابط مفيدة",
     specialOffers: "العروض الخاصة",
     editOrder: "تعديل الطلبية",
     policiesTerms: "السياسات والشروط",
     shippingReturns: "الشحن والإرجاع",
     privacyPolicy: "سياسة الخصوصية",
-    rights: "صُنع بحب.",
   },
   mobileNav: {
     shop: "تسوقي",
@@ -409,17 +405,15 @@ const he: Dictionary = {
   },
   footer: {
     brandDescription:
-      "אנו מציעים בגדי תינוקות מודרניים באיכות גבוהה ובמחירים הוגנים. קנו בביטחון וההנו מחוויית קנייה מיוחדת.",
+      "בדים רכים, סגנון נצחי ופריטים שנבחרו בקפידה לקטנטן שלכם.",
     categories: "קטגוריות",
     contactUs: "צור קשר",
     location: "ג'נין, פלסטין",
-    usefulLinks: "קישורים שימושיים",
     specialOffers: "מבצעים מיוחדים",
     editOrder: "עריכת הזמנה",
     policiesTerms: "מדיניות ותנאים",
     shippingReturns: "משלוח והחזרות",
     privacyPolicy: "מדיניות פרטיות",
-    rights: "נוצר באהבה.",
   },
   mobileNav: {
     shop: "חנות",
