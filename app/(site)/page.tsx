@@ -35,12 +35,12 @@ export default function HomePage() {
       </section>
 
       {/* Pattern banner with arched caption */}
-      <section className="bg-[url('/olive-pattern.jpeg')] bg-cover bg-center px-gutter py-[46px] md:py-[69px] fade-in-up">
+      <section className="bg-[url('/olive-pattern.jpeg')] bg-cover bg-center px-gutter py-[27px] md:py-[39px] fade-in-up">
         <div className="max-w-container-max mx-auto flex justify-start">
-          <div className="w-[54%] sm:w-[39%] md:w-[34%] lg:w-[28%] min-h-[135px] sm:min-h-[160px] md:min-h-[200px] lg:min-h-[229px] rounded-t-full bg-[#EFE5DC] border border-[#8C916F]/60 cloud-shadow px-6 sm:px-7 md:px-[34px] flex items-center justify-center text-center">
+          <div className="w-[38%] sm:w-[24%] md:w-[22%] lg:w-[14%] aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow px-3 sm:px-4 md:px-5 flex items-center justify-center text-center">
             <p
-              className="font-headline-sm text-[12px] sm:text-[14px] md:text-[16px] lg:text-[17px] leading-snug"
-              style={{ color: "#8C916F", fontWeight: 300 }}
+              className="font-headline-sm text-[13px] sm:text-[15px] md:text-[17px] lg:text-[18px] leading-snug font-bold"
+              style={{ color: "#8C916F" }}
             >
               {t.home.beautifulClothes}
             </p>
