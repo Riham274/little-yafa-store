@@ -6,15 +6,9 @@ import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import CartItemRow from "@/components/cart/CartItemRow";
 
-const SHIPPING = 15;
-const FREE_SHIPPING_THRESHOLD = 200;
-
 export default function CartPage() {
   const { t } = useLanguage();
   const { items, subtotal } = useCart();
-
-  const shipping = items.length === 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING;
-  const total = subtotal + shipping;
 
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
@@ -40,17 +34,9 @@ export default function CartPage() {
           <aside className="md:col-span-4">
             <div className="bg-surface-container-low rounded-[2rem] p-lg cloud-shadow sticky top-36">
               <h2 className="font-headline-sm text-headline-sm text-on-surface mb-md">{t.checkout.orderSummary}</h2>
-              <div className="flex justify-between font-body-md text-on-surface-variant mb-2">
-                <span>{t.cart.subtotal}</span>
-                <span>{formatPrice(subtotal)}</span>
-              </div>
-              <div className="flex justify-between font-body-md text-on-surface-variant mb-4">
-                <span>{t.cart.shipping}</span>
-                <span>{shipping === 0 ? "—" : formatPrice(shipping)}</span>
-              </div>
               <div className="flex justify-between font-headline-sm text-headline-sm text-on-surface border-t gold-border pt-4 mb-lg">
-                <span>{t.cart.total}</span>
-                <span className="text-secondary">{formatPrice(total)}</span>
+                <span>{t.cart.subtotal}</span>
+                <span className="text-secondary">{formatPrice(subtotal)}</span>
               </div>
               <Link
                 href="/checkout"

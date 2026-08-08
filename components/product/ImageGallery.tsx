@@ -24,9 +24,8 @@ export default function ImageGallery({ images, alt }: { images: string[]; alt: s
             <button
               key={i}
               onClick={() => setActive(i)}
-              className={`relative aspect-square w-20 rounded-xl overflow-hidden border-2 transition-colors ${
-                active === i ? "border-primary" : "border-transparent"
-              }`}
+              className="relative aspect-square w-20 rounded-xl overflow-hidden border-2 transition-colors"
+              style={{ borderColor: active === i ? "#8C916F" : "transparent" }}
             >
               {pic && <Image src={pic} alt="" fill className="object-cover" />}
             </button>

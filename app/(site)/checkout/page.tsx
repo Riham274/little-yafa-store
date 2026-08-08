@@ -7,9 +7,9 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { placeOrder, InsufficientStockError } from "@/lib/firebase/orders";
+import { SHIPPING_RATES } from "@/lib/shipping";
+import type { ShippingRegion } from "@/lib/types";
 
-const SHIPPING = 15;
-const FREE_SHIPPING_THRESHOLD = 200;
 const LAST_ORDER_KEY = "little-yafa-last-order";
 
 export default function CheckoutPage() {
@@ -20,17 +20,27 @@ export default function CheckoutPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [notes, setNotes] = useState("");
+  const [region, setRegion] = useState<ShippingRegion | null>(null);
+  const [regionError, setRegionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING;
+  const REGIONS: { value: ShippingRegion; label: string }[] = [
+    { value: "westBank", label: t.checkout.regionWestBank },
+    { value: "jerusalem", label: t.checkout.regionJerusalem },
+    { value: "inside", label: t.checkout.regionInside },
+  ];
+
+  const shipping = region ? SHIPPING_RATES[region] : 0;
   const total = subtotal + shipping;
+  const canSubmit = Boolean(fullName.trim() && phone.trim() && address.trim() && region);
 
   if (items.length === 0) {
     return (
       <div className="max-w-3xl mx-auto px-gutter py-xl text-center">
         <p className="font-body-lg text-on-surface-variant mb-md">{t.cart.empty}</p>
-        <Link href="/" className="text-primary underline">
+        <Link href="/" className="underline" style={{ color: "#8C916F" }}>
           {t.cart.continueShopping}
         </Link>
       </div>
@@ -40,12 +50,21 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!region) {
+      setRegionError(t.checkout.regionRequired);
+      return;
+    }
+    setRegionError(null);
     setSubmitting(true);
     try {
       const orderId = await placeOrder(items, {
         customerName: fullName,
         customerPhone: phone,
         customerAddress: address,
+        customerNotes: notes,
+        shippingRegion: region,
+        shippingCost: SHIPPING_RATES[region],
       });
 
       window.sessionStorage.setItem(
@@ -78,99 +97,145 @@ export default function CheckoutPage() {
     <div className="max-w-3xl mx-auto px-gutter pb-xl">
       <h1 className="font-headline-md text-headline-md text-on-surface mb-lg">{t.checkout.title}</h1>
 
-      <div className="bg-surface-container-low rounded-[2rem] p-lg mb-lg">
-        <h2 className="font-headline-sm text-headline-sm text-on-surface mb-md">{t.checkout.orderSummary}</h2>
-        <div className="flex flex-col gap-4 mb-md">
-          {items.map((item) => (
-            <div key={item.productId} className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0">
-                {item.image && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.image} alt={item.name[locale]} className="w-full h-full object-cover" />
-                )}
-              </div>
-              <div className="flex-1">
-                <p className="font-label-md text-label-md text-on-surface">{item.name[locale]}</p>
-                <p className="font-body-md text-[14px] text-on-surface-variant">Qty: {item.qty}</p>
-              </div>
-              <p className="font-body-md text-on-surface">{formatPrice(item.price * item.qty)}</p>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-lg">
+        <div className="bg-surface-container-lowest rounded-[2rem] p-lg cloud-shadow">
+          <h2 className="font-headline-sm text-headline-sm text-on-surface mb-md">{t.checkout.deliveryDetails}</h2>
+
+          {error && (
+            <div className="bg-error-container text-on-error-container rounded-xl px-4 py-3 mb-md font-label-md text-label-md">
+              {error}
             </div>
-          ))}
+          )}
+
+          <div className="flex flex-col gap-md">
+            <div>
+              <label htmlFor="fullName" className="block font-label-md text-label-md text-on-surface-variant mb-2">
+                {t.checkout.fullName}
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder={t.checkout.fullNamePlaceholder}
+                className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+              />
+            </div>
+            <div>
+              <label htmlFor="phone" className="block font-label-md text-label-md text-on-surface-variant mb-2">
+                {t.checkout.phone}
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder={t.checkout.phonePlaceholder}
+                className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+              />
+            </div>
+            <div>
+              <label htmlFor="address" className="block font-label-md text-label-md text-on-surface-variant mb-2">
+                {t.checkout.address}
+              </label>
+              <textarea
+                id="address"
+                required
+                rows={4}
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder={t.checkout.addressPlaceholder}
+                className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="notes" className="block font-label-md text-label-md text-on-surface-variant mb-2">
+                {t.checkout.additionalNotes}
+              </label>
+              <textarea
+                id="notes"
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t.checkout.additionalNotesPlaceholder}
+                className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none"
+              />
+            </div>
+          </div>
+
+          <div className="mt-lg">
+            <label className="block font-label-md text-label-md text-on-surface-variant mb-2">
+              {t.checkout.deliveryRegion}
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm">
+              {REGIONS.map(({ value, label }) => {
+                const active = region === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setRegion(value);
+                      setRegionError(null);
+                    }}
+                    className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 px-4 py-3 font-label-md text-label-md transition-all active:scale-95 ${
+                      active ? "text-white" : "bg-surface border-outline-variant text-on-surface hover:border-[#8C916F]/50"
+                    }`}
+                    style={active ? { backgroundColor: "#8C916F", borderColor: "#8C916F" } : undefined}
+                  >
+                    <span>{label}</span>
+                    <span className={active ? "text-white/90" : "text-on-surface-variant"}>
+                      {formatPrice(SHIPPING_RATES[value])}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {regionError && <p className="font-label-sm text-label-sm text-error mt-2">{regionError}</p>}
+          </div>
         </div>
-        <div className="border-t gold-border pt-4 flex flex-col gap-2">
-          <div className="flex justify-between font-body-md text-on-surface-variant">
-            <span>{t.checkout.subtotal}</span>
-            <span>{formatPrice(subtotal)}</span>
-          </div>
-          <div className="flex justify-between font-body-md text-on-surface-variant">
-            <span>{t.checkout.shipping}</span>
-            <span>{shipping === 0 ? "—" : formatPrice(shipping)}</span>
-          </div>
-          <div className="flex justify-between font-headline-sm text-headline-sm text-on-surface">
-            <span>{t.checkout.total}</span>
-            <span className="text-secondary">{formatPrice(total)}</span>
-          </div>
-        </div>
-      </div>
 
-      <form onSubmit={handleSubmit} className="bg-surface-container-lowest rounded-[2rem] p-lg cloud-shadow">
-        <h2 className="font-headline-sm text-headline-sm text-on-surface mb-md">{t.checkout.deliveryDetails}</h2>
-
-        {error && (
-          <div className="bg-error-container text-on-error-container rounded-xl px-4 py-3 mb-md font-label-md text-label-md">
-            {error}
+        <div className="bg-surface-container-low rounded-[2rem] p-lg">
+          <h2 className="font-headline-sm text-headline-sm text-on-surface mb-md">{t.checkout.orderSummary}</h2>
+          <div className="flex flex-col gap-4 mb-md">
+            {items.map((item) => (
+              <div key={item.productId} className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0">
+                  {item.image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={item.image} alt={item.name[locale]} className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-label-md text-label-md text-on-surface">{item.name[locale]}</p>
+                  <p className="font-body-md text-[14px] text-on-surface-variant">Qty: {item.qty}</p>
+                </div>
+                <p className="font-body-md text-on-surface">{formatPrice(item.price * item.qty)}</p>
+              </div>
+            ))}
           </div>
-        )}
-
-        <div className="flex flex-col gap-md">
-          <div>
-            <label htmlFor="fullName" className="block font-label-md text-label-md text-on-surface-variant mb-2">
-              {t.checkout.fullName}
-            </label>
-            <input
-              id="fullName"
-              type="text"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder={t.checkout.fullNamePlaceholder}
-              className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-            />
-          </div>
-          <div>
-            <label htmlFor="phone" className="block font-label-md text-label-md text-on-surface-variant mb-2">
-              {t.checkout.phone}
-            </label>
-            <input
-              id="phone"
-              type="tel"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder={t.checkout.phonePlaceholder}
-              className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-            />
-          </div>
-          <div>
-            <label htmlFor="address" className="block font-label-md text-label-md text-on-surface-variant mb-2">
-              {t.checkout.address}
-            </label>
-            <textarea
-              id="address"
-              required
-              rows={4}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              placeholder={t.checkout.addressPlaceholder}
-              className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors resize-none"
-            />
+          <div className="border-t gold-border pt-4 flex flex-col gap-2">
+            <div className="flex justify-between font-body-md text-on-surface-variant">
+              <span>{t.checkout.subtotal}</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex justify-between font-body-md text-on-surface-variant">
+              <span>{t.checkout.shipping}</span>
+              <span>{region ? formatPrice(shipping) : "—"}</span>
+            </div>
+            <div className="flex justify-between font-headline-sm text-headline-sm text-on-surface">
+              <span>{t.checkout.total}</span>
+              <span className="text-secondary">{formatPrice(total)}</span>
+            </div>
           </div>
         </div>
 
         <button
           type="submit"
-          disabled={submitting}
-          className="w-full mt-lg flex items-center justify-center gap-2 px-lg py-4 bg-primary text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-70"
+          disabled={submitting || !canSubmit}
+          className="w-full flex items-center justify-center gap-2 px-lg py-4 bg-primary text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
         >
           {submitting ? (
             <>
@@ -180,7 +245,7 @@ export default function CheckoutPage() {
           ) : (
             <>
               <span className="material-symbols-outlined">lock</span>
-              {t.checkout.placeOrder}
+              {t.cart.confirmOrder}
             </>
           )}
         </button>

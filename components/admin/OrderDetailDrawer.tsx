@@ -12,6 +12,13 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [saving, setSaving] = useState(false);
 
+  const regionLabels: Record<string, string> = {
+    westBank: t.orders.regionWestBank,
+    jerusalem: t.orders.regionJerusalem,
+    inside: t.orders.regionInside,
+  };
+  const subtotal = order.total - order.shippingCost;
+
   const handleStatusChange = async (next: OrderStatus) => {
     setStatus(next);
     setSaving(true);
@@ -46,6 +53,18 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           <p className="font-body-md text-on-surface">{order.customerName}</p>
           <p className="font-body-md text-on-surface-variant">{order.customerPhone}</p>
           <p className="font-body-md text-on-surface-variant">{order.customerAddress}</p>
+          {order.shippingRegion && (
+            <p className="font-body-md text-on-surface-variant mt-2">
+              <span className="text-on-surface-variant/70">{t.orders.deliveryRegion}: </span>
+              {regionLabels[order.shippingRegion]}
+            </p>
+          )}
+          {order.customerNotes && (
+            <p className="font-body-md text-on-surface-variant mt-2">
+              <span className="text-on-surface-variant/70">{t.orders.notes}: </span>
+              {order.customerNotes}
+            </p>
+          )}
         </div>
 
         <div className="bg-surface-container-low rounded-2xl p-md mb-md">
@@ -60,9 +79,19 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between font-headline-sm text-headline-sm text-on-surface border-t gold-border mt-3 pt-3">
-            <span>{t.orders.total}</span>
-            <span className="text-secondary">{formatPrice(order.total)}</span>
+          <div className="border-t gold-border mt-3 pt-3 flex flex-col gap-1">
+            <div className="flex items-center justify-between font-body-md text-on-surface-variant">
+              <span>{t.orders.subtotal}</span>
+              <span>{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between font-body-md text-on-surface-variant">
+              <span>{t.orders.shipping}</span>
+              <span>{formatPrice(order.shippingCost)}</span>
+            </div>
+            <div className="flex items-center justify-between font-headline-sm text-headline-sm text-on-surface">
+              <span>{t.orders.total}</span>
+              <span className="text-secondary">{formatPrice(order.total)}</span>
+            </div>
           </div>
         </div>
 

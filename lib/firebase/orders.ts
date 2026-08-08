@@ -10,7 +10,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { CartItem, Order, OrderStatus } from "@/lib/types";
+import type { CartItem, Order, OrderStatus, ShippingRegion } from "@/lib/types";
 
 const ORDERS_COLLECTION = "orders";
 const PRODUCTS_COLLECTION = "products";
@@ -31,6 +31,9 @@ export type CustomerDetails = {
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  customerNotes: string;
+  shippingRegion: ShippingRegion;
+  shippingCost: number;
 };
 
 /**
@@ -63,12 +66,16 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       transaction.update(productRefs[index], { stock: stock - item.qty });
     });
 
-    const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    const total = subtotal + customer.shippingCost;
 
     transaction.set(orderRef, {
       customerName: customer.customerName,
       customerPhone: customer.customerPhone,
       customerAddress: customer.customerAddress,
+      customerNotes: customer.customerNotes,
+      shippingRegion: customer.shippingRegion,
+      shippingCost: customer.shippingCost,
       items: items.map((item) => ({
         productId: item.productId,
         name: item.name.en,
@@ -91,6 +98,9 @@ function toOrder(id: string, data: Record<string, unknown>): Order {
     customerName: (data.customerName as string) ?? "",
     customerPhone: (data.customerPhone as string) ?? "",
     customerAddress: (data.customerAddress as string) ?? "",
+    customerNotes: (data.customerNotes as string) ?? "",
+    shippingRegion: (data.shippingRegion as Order["shippingRegion"]) ?? null,
+    shippingCost: Number(data.shippingCost) || 0,
     items: (data.items as Order["items"]) ?? [],
     total: Number(data.total) || 0,
     status: (data.status as OrderStatus) ?? "new",

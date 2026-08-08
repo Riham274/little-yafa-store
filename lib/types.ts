@@ -18,14 +18,14 @@ export type Product = {
   images: string[];
   sections: Section[];
   ageGroups: AgeGroup[];
-  category: string;
-  tags: string[];
   stock: number;
 };
 
 export type ProductInput = Omit<Product, "id">;
 
 export type OrderStatus = "new" | "processing" | "delivered";
+
+export type ShippingRegion = "westBank" | "jerusalem" | "inside";
 
 export type OrderItem = {
   productId: string;
@@ -39,6 +39,9 @@ export type Order = {
   customerName: string;
   customerPhone: string;
   customerAddress: string;
+  customerNotes: string;
+  shippingRegion: ShippingRegion | null;
+  shippingCost: number;
   items: OrderItem[];
   total: number;
   status: OrderStatus;

@@ -38,8 +38,6 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : legacyAgeGroup
         ? [legacyAgeGroup]
         : [],
-    category: (data.category as string) ?? "",
-    tags: Array.isArray(data.tags) ? (data.tags as string[]) : [],
     stock: Number(data.stock) || 0,
   };
 }
@@ -63,18 +61,21 @@ export async function getProductById(id: string): Promise<Product | null> {
 }
 
 export async function getSimilarProducts(product: Product, limitCount = 4): Promise<Product[]> {
-  const q = query(collection(db, PRODUCTS_COLLECTION), where("category", "==", product.category));
+  if (product.sections.length === 0) return [];
+
+  const q = query(collection(db, PRODUCTS_COLLECTION), where("sections", "array-contains-any", product.sections));
   const snap = await getDocs(q);
   const candidates = snap.docs
     .map((d) => toProduct(d.id, d.data()))
     .filter((p) => p.id !== product.id);
 
   const scored = candidates.map((p) => {
-    const overlap = p.tags.filter((tag) => product.tags.includes(tag)).length;
-    return { product: p, overlap };
+    const sectionOverlap = p.sections.filter((s) => product.sections.includes(s)).length;
+    const ageOverlap = p.ageGroups.filter((age) => product.ageGroups.includes(age)).length;
+    return { product: p, score: sectionOverlap * 10 + ageOverlap };
   });
 
-  scored.sort((a, b) => b.overlap - a.overlap);
+  scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, limitCount).map((s) => s.product);
 }
 

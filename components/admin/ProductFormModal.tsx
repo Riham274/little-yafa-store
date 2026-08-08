@@ -38,8 +38,6 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
   const [sections, setSections] = useState<Section[]>(product?.sections ?? []);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
-  const [category, setCategory] = useState(product?.category ?? "");
-  const [tags, setTags] = useState(product?.tags.join(", ") ?? "");
   const [stock, setStock] = useState(product?.stock?.toString() ?? "");
   const [existingImages, setExistingImages] = useState<string[]>(product?.images ?? []);
   const [newFiles, setNewFiles] = useState<File[]>([]);
@@ -60,7 +58,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     e.preventDefault();
     setError(null);
 
-    if (!nameEn || !price || !category || !stock || sections.length === 0) {
+    if (!nameEn || !price || !stock || sections.length === 0) {
       setError(t.products.errorRequiredFields);
       return;
     }
@@ -94,11 +92,6 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         images,
         sections,
         ageGroups: hospitalOnly ? [] : ageGroups,
-        category,
-        tags: tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
         stock: Number(stock),
       };
 
@@ -199,11 +192,6 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                 )}
               </div>
             </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-sm">
-            <Field label={t.products.category} value={category} onChange={setCategory} placeholder={t.products.categoryPlaceholder} />
-            <Field label={t.products.tags} value={tags} onChange={setTags} placeholder={t.products.tagsPlaceholder} />
           </div>
 
           <div>
