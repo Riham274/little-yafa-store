@@ -94,7 +94,7 @@ export default function HomePage() {
       <section
         className="w-full h-[192px] sm:h-[240px] md:h-[288px]"
         style={{
-          backgroundImage: "url('/stripe-divider.jpeg')",
+          backgroundImage: "url('/stripe-divider.jpg')",
           backgroundRepeat: "no-repeat",
           backgroundSize: "cover",
           backgroundPosition: "center",
