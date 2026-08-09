@@ -10,7 +10,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { CartItem, Order, OrderStatus, ShippingRegion } from "@/lib/types";
+import type { CartItem, Order, OrderStatus, ProductSize, ShippingRegion } from "@/lib/types";
 
 const ORDERS_COLLECTION = "orders";
 const PRODUCTS_COLLECTION = "products";
@@ -37,33 +37,54 @@ export type CustomerDetails = {
 };
 
 /**
- * Places an order and decrements product stock atomically. Reads every
- * product doc inside the transaction so concurrent checkouts can never push
- * stock below zero; aborts (no writes at all) if any line item can't be
- * fulfilled at the moment the transaction runs.
+ * Places an order and decrements the ordered size's stock atomically. Reads
+ * every product doc inside the transaction so concurrent checkouts can never
+ * push stock below zero; aborts (no writes at all) if any line item can't be
+ * fulfilled at the moment the transaction runs. Each product's `sizes` array
+ * is rewritten in full (Firestore has no per-element array update), with only
+ * the ordered size's `stock` entry decremented — every other size is carried
+ * over unchanged.
  */
 export async function placeOrder(items: CartItem[], customer: CustomerDetails): Promise<string> {
   const orderRef = doc(collection(db, ORDERS_COLLECTION));
 
   await runTransaction(db, async (transaction) => {
-    const productRefs = items.map((item) => doc(db, PRODUCTS_COLLECTION, item.productId));
+    // De-duplicated by product, not by line item — the same product can
+    // appear twice in the cart with two different sizes, and both
+    // decrements must land on one consolidated `sizes` array before a
+    // single `update()` per product is issued (Firestore has no
+    // per-element array update, and two separate `update()` calls on the
+    // same doc within one transaction would just overwrite each other).
+    const productIds = [...new Set(items.map((item) => item.productId))];
+    const productRefs = productIds.map((id) => doc(db, PRODUCTS_COLLECTION, id));
     const productSnaps = await Promise.all(productRefs.map((ref) => transaction.get(ref)));
 
+    const sizesByProductId = new Map<string, ProductSize[]>();
     productSnaps.forEach((snap, index) => {
-      const item = items[index];
-      if (!snap.exists()) {
-        throw new InsufficientStockError(item.name.en, 0);
-      }
-      const stock = Number(snap.data().stock) || 0;
-      if (stock < item.qty) {
-        throw new InsufficientStockError(item.name.en, stock);
-      }
+      if (!snap.exists()) return;
+      const sizes = Array.isArray(snap.data().sizes) ? (snap.data().sizes as ProductSize[]).map((s) => ({ ...s })) : [];
+      sizesByProductId.set(productIds[index], sizes);
     });
 
-    productSnaps.forEach((snap, index) => {
-      const item = items[index];
-      const stock = Number(snap.data()!.stock) || 0;
-      transaction.update(productRefs[index], { stock: stock - item.qty });
+    for (const item of items) {
+      const sizes = sizesByProductId.get(item.productId);
+      if (!sizes) {
+        throw new InsufficientStockError(item.name.en, 0);
+      }
+      const sizeIndex = sizes.findIndex((s) => s.label === item.size);
+      if (sizeIndex === -1) {
+        throw new InsufficientStockError(item.name.en, 0);
+      }
+      const available = Number(sizes[sizeIndex].stock) || 0;
+      if (available < item.qty) {
+        throw new InsufficientStockError(item.name.en, available);
+      }
+      sizes[sizeIndex] = { ...sizes[sizeIndex], stock: available - item.qty };
+    }
+
+    productRefs.forEach((ref, index) => {
+      const sizes = sizesByProductId.get(productIds[index]);
+      if (sizes) transaction.update(ref, { sizes });
     });
 
     const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -79,6 +100,7 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       items: items.map((item) => ({
         productId: item.productId,
         name: item.name.en,
+        size: item.size,
         qty: item.qty,
         price: item.price,
       })),

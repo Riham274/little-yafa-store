@@ -4,11 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatPrice } from "@/lib/format";
+import { getTotalStock } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { locale, t } = useLanguage();
-  const outOfStock = product.stock <= 0;
+  const outOfStock = getTotalStock(product) <= 0;
   const image = product.images[0];
 
   return (

@@ -12,7 +12,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { AgeGroup, Product, ProductInput, Section } from "@/lib/types";
+import type { AgeGroup, Product, ProductInput, ProductSize, Section } from "@/lib/types";
 
 const PRODUCTS_COLLECTION = "products";
 
@@ -21,6 +21,11 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
   // doc predates the sections[]/ageGroups[] migration.
   const legacySection = data.section as Section | undefined;
   const legacyAgeGroup = data.ageGroup as AgeGroup | null | undefined;
+
+  // Legacy single `stock` number — docs that predate the sizes[] migration
+  // are collapsed into a single "One Size" entry so they keep working until
+  // the one-time migration script (or an admin edit) converts them properly.
+  const legacyStock = data.stock as number | undefined;
 
   return {
     id,
@@ -38,22 +43,63 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : legacyAgeGroup
         ? [legacyAgeGroup]
         : [],
-    stock: Number(data.stock) || 0,
+    sizes: Array.isArray(data.sizes)
+      ? (data.sizes as ProductSize[])
+      : legacyStock !== undefined
+        ? [{ label: "One Size", stock: Number(legacyStock) || 0 }]
+        : [],
+    // Missing field == visible, so products created before this field
+    // existed keep showing up on the storefront exactly as before.
+    isVisible: data.isVisible !== false,
   };
 }
+
+/** Sum of stock across all sizes — the closest equivalent to the old
+ * single `stock` field, used anywhere the app needs one aggregate number
+ * (out-of-stock checks, admin stat cards, low-stock lists). */
+export function getTotalStock(product: Pick<Product, "sizes">): number {
+  return product.sizes.reduce((sum, s) => sum + s.stock, 0);
+}
+
+/** Per-size stock status, used by the admin Stock filter — distinct from
+ * getTotalStock's sum-based threshold, since a product can have plenty of
+ * total stock while one specific size is nearly gone. */
+export function isProductLowStock(product: Pick<Product, "sizes">): boolean {
+  return product.sizes.some((s) => s.stock >= 1 && s.stock <= 3);
+}
+
+export function isProductOutOfStock(product: Pick<Product, "sizes">): boolean {
+  return product.sizes.every((s) => s.stock <= 0);
+}
+
+// Firestore can't query "isVisible == true OR field missing" in one
+// constraint (an equality filter never matches an absent field), so
+// customer-facing reads fetch normally and filter client-side after
+// toProduct() has already applied the missing-field-means-visible fallback.
 
 export async function getProductsBySection(section: Section): Promise<Product[]> {
   const q = query(collection(db, PRODUCTS_COLLECTION), where("sections", "array-contains", section));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => toProduct(d.id, d.data()));
+  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
 }
 
 export async function getAllProducts(): Promise<Product[]> {
   const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
-  return snap.docs.map((d) => toProduct(d.id, d.data()));
+  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
+  const ref = doc(db, PRODUCTS_COLLECTION, id);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const product = toProduct(snap.id, snap.data());
+  return product.isVisible ? product : null;
+}
+
+/** Admin-only lookup — unlike getProductById, does not hide products with
+ * isVisible: false. Used where a hidden-but-still-existing product must be
+ * distinguished from a genuinely deleted one (e.g. rendering past orders). */
+export async function getProductByIdForAdmin(id: string): Promise<Product | null> {
   const ref = doc(db, PRODUCTS_COLLECTION, id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return null;
@@ -67,7 +113,7 @@ export async function getSimilarProducts(product: Product, limitCount = 4): Prom
   const snap = await getDocs(q);
   const candidates = snap.docs
     .map((d) => toProduct(d.id, d.data()))
-    .filter((p) => p.id !== product.id);
+    .filter((p) => p.id !== product.id && p.isVisible);
 
   const scored = candidates.map((p) => {
     const sectionOverlap = p.sections.filter((s) => product.sections.includes(s)).length;
@@ -97,6 +143,10 @@ export async function createProduct(id: string, input: ProductInput): Promise<vo
 
 export async function updateProduct(id: string, input: Partial<ProductInput>): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), input);
+}
+
+export async function setProductVisibility(id: string, isVisible: boolean): Promise<void> {
+  await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { isVisible });
 }
 
 export async function deleteProduct(id: string): Promise<void> {

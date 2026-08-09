@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
-import { getProductById, getSimilarProducts } from "@/lib/firebase/products";
+import { getProductById, getSimilarProducts, getTotalStock } from "@/lib/firebase/products";
 import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import ImageGallery from "@/components/product/ImageGallery";
@@ -20,6 +20,7 @@ export default function ProductDetailPage() {
   const [similar, setSimilar] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
@@ -54,17 +55,27 @@ export default function ProductDetailPage() {
     );
   }
 
-  const outOfStock = product.stock <= 0;
-  const lowStock = !outOfStock && product.stock <= 3;
+  const totalStock = getTotalStock(product);
+  const outOfStock = totalStock <= 0;
+  const selectedSizeEntry = product.sizes.find((s) => s.label === selectedSize) ?? null;
+  const selectedSizeStock = selectedSizeEntry?.stock ?? 0;
+  const canAddToCart = !outOfStock && selectedSizeEntry !== null && selectedSizeStock > 0;
+  const lowStock = canAddToCart && selectedSizeStock <= 3;
   const lowStockText =
-    product.stock === 1
+    selectedSizeStock === 1
       ? t.product.lowStockOne
-      : product.stock === 2
+      : selectedSizeStock === 2
         ? t.product.lowStockTwo
-        : t.product.lowStockMany.replace("{count}", String(product.stock));
+        : t.product.lowStockMany.replace("{count}", String(selectedSizeStock));
+
+  const handleSelectSize = (label: string) => {
+    setSelectedSize(label);
+    setQty(1);
+  };
 
   const handleAddToCart = () => {
-    addItem(product, qty);
+    if (!selectedSize) return;
+    addItem(product, qty, selectedSize);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -89,6 +100,36 @@ export default function ProductDetailPage() {
           ) : null}
 
           {!outOfStock && (
+            <div className="mb-lg">
+              <p className="font-label-md text-label-md text-on-surface-variant mb-2">{t.product.selectSize}</p>
+              <div className="flex flex-wrap gap-2">
+                {product.sizes.map((size) => {
+                  const sizeOut = size.stock <= 0;
+                  const active = selectedSize === size.label;
+                  return (
+                    <button
+                      key={size.label}
+                      type="button"
+                      onClick={() => !sizeOut && handleSelectSize(size.label)}
+                      disabled={sizeOut}
+                      className={`px-4 py-2 rounded-full border font-label-md text-label-md transition-all active:scale-95 ${
+                        sizeOut
+                          ? "opacity-40 cursor-not-allowed line-through bg-surface-container-low border-outline-variant text-on-surface-variant"
+                          : active
+                            ? "text-white"
+                            : "bg-surface border-outline-variant text-on-surface hover:border-[#8C916F]/50"
+                      }`}
+                      style={active && !sizeOut ? { backgroundColor: "#8C916F", borderColor: "#8C916F" } : undefined}
+                    >
+                      {size.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {canAddToCart && (
             <div className="flex items-center gap-3 bg-surface-container rounded-full px-2 py-1 w-fit mb-lg">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -99,8 +140,8 @@ export default function ProductDetailPage() {
               </button>
               <span className="font-label-md text-label-md w-8 text-center">{qty}</span>
               <button
-                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-                disabled={qty >= product.stock}
+                onClick={() => setQty((q) => Math.min(selectedSizeStock, q + 1))}
+                disabled={qty >= selectedSizeStock}
                 className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
               >
                 <span className="material-symbols-outlined">add</span>
@@ -110,12 +151,18 @@ export default function ProductDetailPage() {
 
           <button
             onClick={handleAddToCart}
-            disabled={outOfStock}
+            disabled={outOfStock || !selectedSize}
             className="w-full flex items-center justify-center gap-2 px-lg py-4 text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none mb-lg"
             style={{ backgroundColor: "#8C916F" }}
           >
             <span className="material-symbols-outlined">shopping_bag</span>
-            {added ? t.product.addedToCart : outOfStock ? t.product.outOfStock : t.product.addToCart}
+            {added
+              ? t.product.addedToCart
+              : outOfStock
+                ? t.product.outOfStock
+                : !selectedSize
+                  ? t.product.selectSizeFirst
+                  : t.product.addToCart}
           </button>
         </div>
       </div>

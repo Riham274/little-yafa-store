@@ -29,10 +29,13 @@ export default function CartItemRow({ item }: { item: CartItem }) {
           </p>
         </div>
         <p className="font-body-md text-[14px] text-on-surface-variant mt-1">{formatPrice(item.price)} / {t.product.quantity.toLowerCase()}</p>
+        <p className="font-body-md text-[14px] text-on-surface-variant mt-0.5">
+          {t.product.size}: <span className="text-on-surface">{item.size}</span>
+        </p>
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center gap-3 bg-surface-container rounded-full px-2 py-1">
             <button
-              onClick={() => setQty(item.productId, item.qty - 1)}
+              onClick={() => setQty(item.productId, item.size, item.qty - 1)}
               disabled={item.qty <= 1}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
             >
@@ -40,7 +43,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
             </button>
             <span className="font-label-md text-label-md w-6 text-center">{item.qty}</span>
             <button
-              onClick={() => setQty(item.productId, item.qty + 1)}
+              onClick={() => setQty(item.productId, item.size, item.qty + 1)}
               disabled={item.qty >= item.stock}
               className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors disabled:opacity-40"
             >
@@ -48,7 +51,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
             </button>
           </div>
           <button
-            onClick={() => removeItem(item.productId)}
+            onClick={() => removeItem(item.productId, item.size)}
             className="p-2 -m-2 rounded-full text-on-surface-variant hover:text-error transition-colors"
             title={t.cart.remove}
           >

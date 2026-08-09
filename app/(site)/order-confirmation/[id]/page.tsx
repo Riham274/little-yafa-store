@@ -33,9 +33,6 @@ export default function OrderConfirmationPage() {
     }
   }, [params.id]);
 
-  const previewItems = order?.items.slice(0, 2) ?? [];
-  const remaining = order ? Math.max(0, order.items.length - previewItems.length) : 0;
-
   return (
     <div className="flex-1 flex items-center justify-center px-gutter py-xl">
       <div className="max-w-md w-full text-center">
@@ -62,20 +59,21 @@ export default function OrderConfirmationPage() {
             </div>
           )}
 
-          {previewItems.length > 0 && (
-            <div className="flex gap-2 mt-md justify-center">
-              {previewItems.map((item) =>
-                item.image ? (
-                  <div key={item.productId} className="relative w-20 h-20 rounded-xl overflow-hidden">
-                    <Image src={item.image} alt={item.name[locale]} fill className="object-cover" />
+          {order && order.items.length > 0 && (
+            <div className="flex flex-col gap-2 mt-md">
+              {order.items.map((item) => (
+                <div key={`${item.productId}-${item.size}`} className="flex items-center gap-3 text-start">
+                  <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-surface-container-lowest shrink-0">
+                    {item.image && <Image src={item.image} alt={item.name[locale]} fill className="object-cover" />}
                   </div>
-                ) : null
-              )}
-              {remaining > 0 && (
-                <div className="w-20 h-20 rounded-xl bg-primary-fixed flex items-center justify-center font-label-md text-label-md text-on-primary-fixed">
-                  +{remaining}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-label-md text-label-md text-on-surface truncate">{item.name[locale]}</p>
+                    <p className="font-label-sm text-label-sm text-on-surface-variant">
+                      {t.product.size}: {item.size} · × {item.qty}
+                    </p>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
           )}
         </div>

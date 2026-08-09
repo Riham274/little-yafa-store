@@ -201,7 +201,7 @@ export default function CheckoutPage() {
           <h2 className="font-headline-sm text-headline-sm text-on-surface mb-md">{t.checkout.orderSummary}</h2>
           <div className="flex flex-col gap-4 mb-md">
             {items.map((item) => (
-              <div key={item.productId} className="flex items-center gap-4">
+              <div key={`${item.productId}-${item.size}`} className="flex items-center gap-4">
                 <div className="w-16 h-16 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0">
                   {item.image && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -210,7 +210,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex-1">
                   <p className="font-label-md text-label-md text-on-surface">{item.name[locale]}</p>
-                  <p className="font-body-md text-[14px] text-on-surface-variant">Qty: {item.qty}</p>
+                  <p className="font-body-md text-[14px] text-on-surface-variant">
+                    {t.product.size}: {item.size} · Qty: {item.qty}
+                  </p>
                 </div>
                 <p className="font-body-md text-on-surface">{formatPrice(item.price * item.qty)}</p>
               </div>

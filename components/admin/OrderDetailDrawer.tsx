@@ -1,16 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatPrice } from "@/lib/format";
 import { updateOrderStatus } from "@/lib/firebase/orders";
-import type { Order, OrderStatus } from "@/lib/types";
+import { getProductByIdForAdmin } from "@/lib/firebase/products";
+import type { Order, OrderStatus, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatusBadge from "./StatusBadge";
 
+// undefined = still loading, null = deleted/not found
+type ProductLookup = Record<string, Product | null | undefined>;
+
 export default function OrderDetailDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
-  const { t } = useAdminLanguage();
+  const { t, locale } = useAdminLanguage();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [saving, setSaving] = useState(false);
+  const [productsById, setProductsById] = useState<ProductLookup>({});
+
+  useEffect(() => {
+    const ids = [...new Set(order.items.map((item) => item.productId))];
+    ids.forEach((id) => {
+      getProductByIdForAdmin(id).then((product) => {
+        setProductsById((prev) => ({ ...prev, [id]: product }));
+      });
+    });
+  }, [order.items]);
 
   const regionLabels: Record<string, string> = {
     westBank: t.orders.regionWestBank,
@@ -69,15 +83,38 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
 
         <div className="bg-surface-container-low rounded-2xl p-md mb-md">
           <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-2">{t.orders.items}</h3>
-          <div className="flex flex-col gap-2">
-            {order.items.map((item, i) => (
-              <div key={i} className="flex items-center justify-between font-body-md">
-                <span className="text-on-surface">
-                  {item.name} <span className="text-on-surface-variant">× {item.qty}</span>
-                </span>
-                <span className="text-on-surface">{formatPrice(item.price * item.qty)}</span>
-              </div>
-            ))}
+          <div className="flex flex-col gap-3">
+            {order.items.map((item, i) => {
+              const product = productsById[item.productId];
+              const image = product?.images[0];
+              const description = product ? product.description[locale] : null;
+              return (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-14 h-14 rounded-lg bg-surface-container overflow-hidden shrink-0">
+                    {image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={image} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
+                        <span className="material-symbols-outlined">image_not_supported</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body-md text-on-surface">{item.name}</p>
+                    <p className="font-label-sm text-label-sm text-on-surface-variant">
+                      ({t.orders.size}: {item.size}) × {item.qty}
+                    </p>
+                    {product === null ? (
+                      <p className="font-label-sm text-label-sm text-error mt-0.5">{t.orders.productUnavailable}</p>
+                    ) : description ? (
+                      <p className="font-label-sm text-label-sm text-on-surface-variant/80 mt-0.5 line-clamp-2">{description}</p>
+                    ) : null}
+                  </div>
+                  <span className="text-on-surface font-body-md shrink-0">{formatPrice(item.price * item.qty)}</span>
+                </div>
+              );
+            })}
           </div>
           <div className="border-t gold-border mt-3 pt-3 flex flex-col gap-1">
             <div className="flex items-center justify-between font-body-md text-on-surface-variant">

@@ -1,25 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { subscribeToProducts, deleteProduct } from "@/lib/firebase/products";
+import { useEffect, useMemo, useState } from "react";
+import {
+  subscribeToProducts,
+  deleteProduct,
+  getTotalStock,
+  isProductLowStock,
+  isProductOutOfStock,
+  setProductVisibility,
+} from "@/lib/firebase/products";
 import { formatPrice } from "@/lib/format";
-import type { Product } from "@/lib/types";
+import type { AgeGroup, Product, Section } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatCard from "@/components/admin/StatCard";
 import ProductFormModal from "@/components/admin/ProductFormModal";
 
 const LOW_STOCK_THRESHOLD = 10;
 
+type StockFilter = "all" | "low" | "out";
+
 export default function AdminProductsPage() {
   const { t } = useAdminLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [sectionFilter, setSectionFilter] = useState<Section | "all">("all");
+  const [ageGroupFilter, setAgeGroupFilter] = useState<AgeGroup | "all">("all");
+  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
   useEffect(() => subscribeToProducts(setProducts), []);
 
-  const lowStock = products.filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length;
-  const outOfStock = products.filter((p) => p.stock <= 0).length;
+  const lowStock = products.filter((p) => getTotalStock(p) > 0 && getTotalStock(p) <= LOW_STOCK_THRESHOLD).length;
+  const outOfStock = products.filter((p) => getTotalStock(p) <= 0).length;
+
+  const ageFilterDisabled = sectionFilter === "hospital";
+
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSection = sectionFilter === "all" || p.sections.includes(sectionFilter);
+      const matchesAge = ageFilterDisabled || ageGroupFilter === "all" || p.ageGroups.includes(ageGroupFilter);
+      const matchesStock =
+        stockFilter === "all" ||
+        (stockFilter === "low" && isProductLowStock(p)) ||
+        (stockFilter === "out" && isProductOutOfStock(p));
+      return matchesSection && matchesAge && matchesStock;
+    });
+  }, [products, sectionFilter, ageGroupFilter, ageFilterDisabled, stockFilter]);
+
+  const handleSectionFilterChange = (value: Section | "all") => {
+    setSectionFilter(value);
+    if (value === "hospital") setAgeGroupFilter("all");
+  };
 
   const openCreate = () => {
     setEditingProduct(null);
@@ -35,6 +66,21 @@ export default function AdminProductsPage() {
     if (!window.confirm(t.products.deleteConfirm.replace("{name}", product.name.en))) return;
     await deleteProduct(product.id);
   };
+
+  const handleToggleVisibility = async (product: Product) => {
+    await setProductVisibility(product.id, !product.isVisible);
+  };
+
+  const SECTIONS: { value: Section; label: string }[] = [
+    { value: "boys", label: t.products.sectionBoys },
+    { value: "girls", label: t.products.sectionGirls },
+    { value: "hospital", label: t.products.sectionHospital },
+  ];
+  const AGE_GROUPS: { value: AgeGroup; label: string }[] = [
+    { value: "0-3m", label: t.products.age0to3m },
+    { value: "3-24m", label: t.products.age3to24m },
+    { value: "2-10y", label: t.products.age2to10y },
+  ];
 
   return (
     <div>
@@ -55,10 +101,56 @@ export default function AdminProductsPage() {
         <StatCard label={t.products.statOutOfStock} value={outOfStock} icon="error" tone="error" />
         <StatCard
           label={t.products.statStockValue}
-          value={formatPrice(products.reduce((sum, p) => sum + p.price * p.stock, 0))}
+          value={formatPrice(products.reduce((sum, p) => sum + p.price * getTotalStock(p), 0))}
           icon="payments"
           tone="primary"
         />
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-sm mb-md">
+        <div className="flex-1">
+          <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.filterSection}</label>
+          <select
+            value={sectionFilter}
+            onChange={(e) => handleSectionFilterChange(e.target.value as Section | "all")}
+            className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface"
+          >
+            <option value="all">{t.products.filterAllSections}</option>
+            {SECTIONS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.filterAgeGroup}</label>
+          <select
+            value={ageGroupFilter}
+            disabled={ageFilterDisabled}
+            onChange={(e) => setAgeGroupFilter(e.target.value as AgeGroup | "all")}
+            className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <option value="all">{t.products.filterAllAgeGroups}</option>
+            {AGE_GROUPS.map(({ value, label }) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.filterStock}</label>
+          <select
+            value={stockFilter}
+            onChange={(e) => setStockFilter(e.target.value as StockFilter)}
+            className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface"
+          >
+            <option value="all">{t.products.filterAllStock}</option>
+            <option value="low">{t.products.filterLowStock}</option>
+            <option value="out">{t.products.filterOutOfStock}</option>
+          </select>
+        </div>
       </div>
 
       {/* Desktop table */}
@@ -75,8 +167,11 @@ export default function AdminProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => (
-              <tr key={product.id} className="border-b border-outline-variant/50">
+            {filteredProducts.map((product) => (
+              <tr
+                key={product.id}
+                className={`border-b border-outline-variant/50 ${!product.isVisible ? "opacity-45" : ""}`}
+              >
                 <td className="py-3 px-md">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
@@ -102,16 +197,23 @@ export default function AdminProductsPage() {
                 <td className="py-3 px-md text-center">
                   <span
                     className={`inline-block px-3 py-1 rounded-full font-label-sm text-label-sm ${
-                      product.stock <= LOW_STOCK_THRESHOLD
+                      getTotalStock(product) <= LOW_STOCK_THRESHOLD
                         ? "bg-error-container/20 text-error"
                         : "bg-surface-container-high text-on-background"
                     }`}
                   >
-                    {product.stock}
+                    {getTotalStock(product)}
                   </span>
                 </td>
                 <td className="py-3 px-md">
                   <div className="flex justify-end gap-2">
+                    <button
+                      onClick={() => handleToggleVisibility(product)}
+                      title={product.isVisible ? t.products.hideProduct : t.products.showProduct}
+                      className="text-on-surface-variant hover:text-primary transition-colors"
+                    >
+                      <span className="material-symbols-outlined">{product.isVisible ? "visibility" : "visibility_off"}</span>
+                    </button>
                     <button onClick={() => openEdit(product)} className="text-on-surface-variant hover:text-primary transition-colors">
                       <span className="material-symbols-outlined">edit</span>
                     </button>
@@ -122,7 +224,7 @@ export default function AdminProductsPage() {
                 </td>
               </tr>
             ))}
-            {products.length === 0 && (
+            {filteredProducts.length === 0 && (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-on-surface-variant font-body-md">
                   {t.products.noProductsYet}
@@ -135,8 +237,13 @@ export default function AdminProductsPage() {
 
       {/* Mobile cards */}
       <div className="md:hidden flex flex-col gap-sm">
-        {products.map((product) => (
-          <div key={product.id} className="relative bg-surface-container-lowest rounded-2xl cloud-shadow p-md flex gap-md">
+        {filteredProducts.map((product) => (
+          <div
+            key={product.id}
+            className={`relative bg-surface-container-lowest rounded-2xl cloud-shadow p-md flex gap-md ${
+              !product.isVisible ? "opacity-45" : ""
+            }`}
+          >
             <div className="w-16 h-16 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
               {product.images[0] && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -151,13 +258,20 @@ export default function AdminProductsPage() {
               <p className="font-body-md text-secondary font-semibold mt-1">{formatPrice(product.price)}</p>
               <span
                 className={`inline-block mt-1 px-2 py-0.5 rounded-full font-label-sm text-label-sm ${
-                  product.stock <= LOW_STOCK_THRESHOLD ? "bg-error-container/20 text-error" : "bg-surface-container-high"
+                  getTotalStock(product) <= LOW_STOCK_THRESHOLD ? "bg-error-container/20 text-error" : "bg-surface-container-high"
                 }`}
               >
-                {t.products.stockLabel} {product.stock}
+                {t.products.stockLabel} {getTotalStock(product)}
               </span>
             </div>
             <div className="absolute top-3 end-3 flex gap-2">
+              <button
+                onClick={() => handleToggleVisibility(product)}
+                title={product.isVisible ? t.products.hideProduct : t.products.showProduct}
+                className="text-on-surface-variant hover:text-primary"
+              >
+                <span className="material-symbols-outlined text-[20px]">{product.isVisible ? "visibility" : "visibility_off"}</span>
+              </button>
               <button onClick={() => openEdit(product)} className="text-on-surface-variant hover:text-primary">
                 <span className="material-symbols-outlined text-[20px]">edit</span>
               </button>

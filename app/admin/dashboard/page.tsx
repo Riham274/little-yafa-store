@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { subscribeToOrders } from "@/lib/firebase/orders";
-import { subscribeToProducts } from "@/lib/firebase/products";
+import { subscribeToProducts, getTotalStock } from "@/lib/firebase/products";
 import { formatPrice } from "@/lib/format";
 import type { Order, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
@@ -28,8 +28,8 @@ export default function AdminOverviewPage() {
 
   const newOrdersCount = orders.filter((o) => o.status === "new").length;
   const lowStockProducts = products
-    .filter((p) => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD)
-    .sort((a, b) => a.stock - b.stock);
+    .filter((p) => getTotalStock(p) > 0 && getTotalStock(p) <= LOW_STOCK_THRESHOLD)
+    .sort((a, b) => getTotalStock(a) - getTotalStock(b));
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
 
   return (
@@ -99,7 +99,7 @@ export default function AdminOverviewPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h5 className="font-label-md text-label-md text-on-surface truncate">{product.name.en}</h5>
-                  <p className="font-label-sm text-label-sm text-error">{product.stock} {t.overview.unitsLeft}</p>
+                  <p className="font-label-sm text-label-sm text-error">{getTotalStock(product)} {t.overview.unitsLeft}</p>
                 </div>
               </div>
             ))}

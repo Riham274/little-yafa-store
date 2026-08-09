@@ -10,6 +10,11 @@ export type Section = "boys" | "girls" | "hospital";
 
 export type AgeGroup = "0-3m" | "3-24m" | "2-10y";
 
+export type ProductSize = {
+  label: string;
+  stock: number;
+};
+
 export type Product = {
   id: string;
   name: LocalizedText;
@@ -18,7 +23,8 @@ export type Product = {
   images: string[];
   sections: Section[];
   ageGroups: AgeGroup[];
-  stock: number;
+  sizes: ProductSize[];
+  isVisible: boolean;
 };
 
 export type ProductInput = Omit<Product, "id">;
@@ -30,6 +36,7 @@ export type ShippingRegion = "westBank" | "jerusalem" | "inside";
 export type OrderItem = {
   productId: string;
   name: string;
+  size: string;
   qty: number;
   price: number;
 };
@@ -53,6 +60,7 @@ export type CartItem = {
   name: LocalizedText;
   price: number;
   image: string | null;
+  size: string;
   qty: number;
   stock: number;
 };

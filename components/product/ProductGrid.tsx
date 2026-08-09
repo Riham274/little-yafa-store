@@ -1,10 +1,11 @@
 import type { Product } from "@/lib/types";
+import { getTotalStock } from "@/lib/firebase/products";
 import ProductCard from "./ProductCard";
 
 export default function ProductGrid({ products }: { products: Product[] }) {
   const sorted = [...products].sort((a, b) => {
-    const aOut = a.stock <= 0 ? 1 : 0;
-    const bOut = b.stock <= 0 ? 1 : 0;
+    const aOut = getTotalStock(a) <= 0 ? 1 : 0;
+    const bOut = getTotalStock(b) <= 0 ? 1 : 0;
     return aOut - bOut;
   });
 

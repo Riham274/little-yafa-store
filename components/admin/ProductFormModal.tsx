@@ -38,7 +38,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
   const [sections, setSections] = useState<Section[]>(product?.sections ?? []);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
-  const [stock, setStock] = useState(product?.stock?.toString() ?? "");
+  const [sizes, setSizes] = useState<{ label: string; stock: string }[]>(
+    product?.sizes.map((s) => ({ label: s.label, stock: s.stock.toString() })) ?? [{ label: "", stock: "" }]
+  );
   const [existingImages, setExistingImages] = useState<string[]>(product?.images ?? []);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
@@ -54,11 +56,17 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     setAgeGroups((prev) => (prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]));
   };
 
+  const addSizeRow = () => setSizes((prev) => [...prev, { label: "", stock: "" }]);
+  const removeSizeRow = (index: number) => setSizes((prev) => prev.filter((_, i) => i !== index));
+  const updateSizeRow = (index: number, patch: Partial<{ label: string; stock: string }>) =>
+    setSizes((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!nameEn || !price || !stock || sections.length === 0) {
+    const validSizes = sizes.filter((s) => s.label.trim());
+    if (!nameEn || !price || sections.length === 0 || validSizes.length === 0) {
       setError(t.products.errorRequiredFields);
       return;
     }
@@ -92,7 +100,11 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         images,
         sections,
         ageGroups: hospitalOnly ? [] : ageGroups,
-        stock: Number(stock),
+        sizes: validSizes.map((s) => ({ label: s.label.trim(), stock: Math.max(0, Number(s.stock) || 0) })),
+        // Visibility is managed exclusively via the eye-icon toggle on the
+        // products table, not this form — pass through the existing value
+        // unchanged when editing, default new products to visible.
+        isVisible: product?.isVisible ?? true,
       };
 
       if (isEdit && product) {
@@ -141,9 +153,48 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
             <TextAreaField label={t.products.descriptionHe} value={descHe} onChange={setDescHe} dir="rtl" />
           </div>
 
-          <div className="grid grid-cols-2 gap-sm">
-            <Field label={t.products.price} value={price} onChange={setPrice} type="number" />
-            <Field label={t.products.stock} value={stock} onChange={setStock} type="number" />
+          <Field label={t.products.price} value={price} onChange={setPrice} type="number" />
+
+          <div>
+            <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.sizesLabel}</label>
+            <div className="flex flex-col gap-2">
+              {sizes.map((row, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={row.label}
+                    onChange={(e) => updateSizeRow(i, { label: e.target.value })}
+                    placeholder={t.products.sizeLabelPlaceholder}
+                    className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    value={row.stock}
+                    onChange={(e) => updateSizeRow(i, { stock: e.target.value })}
+                    placeholder={t.products.sizeStockPlaceholder}
+                    className="w-28 bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeSizeRow(i)}
+                    disabled={sizes.length <= 1}
+                    aria-label={t.products.removeSize}
+                    className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                  >
+                    <span className="material-symbols-outlined">delete</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={addSizeRow}
+              className="mt-2 flex items-center gap-1 font-label-md text-label-md text-primary hover:text-secondary transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              {t.products.addSize}
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-sm">

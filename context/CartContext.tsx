@@ -9,9 +9,9 @@ type CartContextValue = {
   items: CartItem[];
   count: number;
   subtotal: number;
-  addItem: (product: Product, qty?: number) => void;
-  removeItem: (productId: string) => void;
-  setQty: (productId: string, qty: number) => void;
+  addItem: (product: Product, qty: number, size: string) => void;
+  removeItem: (productId: string, size: string) => void;
+  setQty: (productId: string, size: string, qty: number) => void;
   clear: () => void;
 };
 
@@ -36,14 +36,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = (product: Product, qty = 1) => {
+  const addItem = (product: Product, qty: number, size: string) => {
+    const maxQty = product.sizes.find((s) => s.label === size)?.stock ?? 0;
     setItems((prev) => {
-      const existing = prev.find((item) => item.productId === product.id);
-      const maxQty = product.stock;
+      const existing = prev.find((item) => item.productId === product.id && item.size === size);
       if (existing) {
         return prev.map((item) =>
-          item.productId === product.id
-            ? { ...item, qty: Math.min(item.qty + qty, maxQty) }
+          item.productId === product.id && item.size === size
+            ? { ...item, qty: Math.min(item.qty + qty, maxQty), stock: maxQty }
             : item
         );
       }
@@ -54,21 +54,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: product.name,
           price: product.price,
           image: product.images[0] ?? null,
+          size,
           qty: Math.min(qty, maxQty),
-          stock: product.stock,
+          stock: maxQty,
         },
       ];
     });
   };
 
-  const removeItem = (productId: string) => {
-    setItems((prev) => prev.filter((item) => item.productId !== productId));
+  const removeItem = (productId: string, size: string) => {
+    setItems((prev) => prev.filter((item) => !(item.productId === productId && item.size === size)));
   };
 
-  const setQty = (productId: string, qty: number) => {
+  const setQty = (productId: string, size: string, qty: number) => {
     setItems((prev) =>
       prev.map((item) =>
-        item.productId === productId
+        item.productId === productId && item.size === size
           ? { ...item, qty: Math.max(1, Math.min(qty, item.stock)) }
           : item
       )
