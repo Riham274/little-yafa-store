@@ -59,7 +59,7 @@ export default function Footer() {
               <Link href="/girls" className={linkClass}>
                 {t.nav.girls}
               </Link>
-              <Link href="/hospital-bag" className={linkClass}>
+              <Link href="/newborn" className={linkClass}>
                 {t.home.categoryBaby}
               </Link>
             </nav>

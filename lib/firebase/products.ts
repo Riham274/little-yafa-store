@@ -12,14 +12,14 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { AgeGroup, Gender, Product, ProductInput, ProductSize, Section } from "@/lib/types";
+import type { AgeGroup, Category, Product, ProductInput, ProductSize } from "@/lib/types";
 
 const PRODUCTS_COLLECTION = "products";
 
 function toProduct(id: string, data: Record<string, unknown>): Product {
-  // Legacy single-value fields — kept as a defensive fallback in case any
+  // Legacy single-value field — kept as a defensive fallback in case any
   // doc predates the sections[]/ageGroups[] migration.
-  const legacySection = data.section as Section | undefined;
+  const legacySection = data.section as string | undefined;
   const legacyAgeGroup = data.ageGroup as AgeGroup | null | undefined;
 
   // Legacy single `stock` number — docs that predate the sizes[] migration
@@ -27,17 +27,26 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
   // the one-time migration script (or an admin edit) converts them properly.
   const legacyStock = data.stock as number | undefined;
 
+  // The `categories` field replaced `sections` (renamed alongside the old
+  // "hospital" value becoming "newborn"). The migration script converts
+  // every doc, but this fallback keeps reads correct even for a doc it
+  // somehow missed, by reading the old field name and mapping the old value
+  // on the fly.
+  const rawCategories: string[] = Array.isArray(data.categories)
+    ? (data.categories as string[])
+    : Array.isArray(data.sections)
+      ? (data.sections as string[])
+      : legacySection
+        ? [legacySection]
+        : [];
+
   return {
     id,
     name: data.name as Product["name"],
     description: data.description as Product["description"],
     price: Number(data.price) || 0,
     images: Array.isArray(data.images) ? (data.images as string[]) : [],
-    sections: Array.isArray(data.sections)
-      ? (data.sections as Section[])
-      : legacySection
-        ? [legacySection]
-        : [],
+    categories: rawCategories.map((c) => (c === "hospital" ? "newborn" : c)) as Category[],
     ageGroups: Array.isArray(data.ageGroups)
       ? (data.ageGroups as AgeGroup[])
       : legacyAgeGroup
@@ -48,10 +57,6 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : legacyStock !== undefined
         ? [{ label: "One Size", stock: Number(legacyStock) || 0 }]
         : [],
-    // Only meaningful for hospital-section products; docs that predate this
-    // field (or products outside the hospital section) fall back to
-    // "unisex" so they keep appearing under every gender filter tab.
-    gender: (data.gender as Gender) ?? "unisex",
     // Missing field == visible, so products created before this field
     // existed keep showing up on the storefront exactly as before.
     isVisible: data.isVisible !== false,
@@ -81,8 +86,8 @@ export function isProductOutOfStock(product: Pick<Product, "sizes">): boolean {
 // customer-facing reads fetch normally and filter client-side after
 // toProduct() has already applied the missing-field-means-visible fallback.
 
-export async function getProductsBySection(section: Section): Promise<Product[]> {
-  const q = query(collection(db, PRODUCTS_COLLECTION), where("sections", "array-contains", section));
+export async function getProductsByCategory(category: Category): Promise<Product[]> {
+  const q = query(collection(db, PRODUCTS_COLLECTION), where("categories", "array-contains", category));
   const snap = await getDocs(q);
   return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
 }
@@ -111,18 +116,18 @@ export async function getProductByIdForAdmin(id: string): Promise<Product | null
 }
 
 export async function getSimilarProducts(product: Product, limitCount = 4): Promise<Product[]> {
-  if (product.sections.length === 0) return [];
+  if (product.categories.length === 0) return [];
 
-  const q = query(collection(db, PRODUCTS_COLLECTION), where("sections", "array-contains-any", product.sections));
+  const q = query(collection(db, PRODUCTS_COLLECTION), where("categories", "array-contains-any", product.categories));
   const snap = await getDocs(q);
   const candidates = snap.docs
     .map((d) => toProduct(d.id, d.data()))
     .filter((p) => p.id !== product.id && p.isVisible);
 
   const scored = candidates.map((p) => {
-    const sectionOverlap = p.sections.filter((s) => product.sections.includes(s)).length;
+    const categoryOverlap = p.categories.filter((c) => product.categories.includes(c)).length;
     const ageOverlap = p.ageGroups.filter((age) => product.ageGroups.includes(age)).length;
-    return { product: p, score: sectionOverlap * 10 + ageOverlap };
+    return { product: p, score: categoryOverlap * 10 + ageOverlap };
   });
 
   scored.sort((a, b) => b.score - a.score);

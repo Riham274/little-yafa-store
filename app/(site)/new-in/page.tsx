@@ -4,11 +4,11 @@ import { Suspense } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import CategoryPageContent from "@/components/product/CategoryPageContent";
 
-export default function HospitalBagPage() {
+export default function NewInPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent section="hospital" title={t.category.hospitalTitle} showAgeFilter={false} showGenderFilter />
+      <CategoryPageContent category="new-in" title={t.category.newInTitle} showAgeFilter={false} />
     </Suspense>
   );
 }

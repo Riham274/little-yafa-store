@@ -3,20 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
-import { getProductsBySection } from "@/lib/firebase/products";
-import type { AgeGroup, Product, Section } from "@/lib/types";
+import { getProductsByCategory } from "@/lib/firebase/products";
+import type { AgeGroup, Category, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import AgeFilterPills from "./AgeFilterPills";
 import GenderFilterPills, { type GenderFilterValue } from "./GenderFilterPills";
 import ProductGrid from "./ProductGrid";
 
 export default function CategoryPageContent({
-  section,
+  category,
   title,
   showAgeFilter,
   showGenderFilter = false,
 }: {
-  section: Section;
+  category: Category;
   title: string;
   showAgeFilter: boolean;
   showGenderFilter?: boolean;
@@ -32,18 +32,21 @@ export default function CategoryPageContent({
 
   useEffect(() => {
     setLoading(true);
-    getProductsBySection(section)
+    getProductsByCategory(category)
       .then(setProducts)
       .finally(() => setLoading(false));
-  }, [section]);
+  }, [category]);
 
   const filtered = useMemo(() => {
     let result = products;
     if (showAgeFilter && activeAge) {
       result = result.filter((p) => p.ageGroups.includes(activeAge));
     }
+    // Boys/Girls tabs on the Newborn page: a product qualifies if it's
+    // ALSO explicitly tagged with that category (e.g. both "newborn" and
+    // "boys" checked in the admin form) — no separate gender field.
     if (showGenderFilter && activeGender) {
-      result = result.filter((p) => p.gender === activeGender || p.gender === "unisex");
+      result = result.filter((p) => p.categories.includes(activeGender));
     }
     return result;
   }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter]);

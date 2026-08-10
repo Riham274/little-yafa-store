@@ -7,17 +7,17 @@ import { useLanguage } from "@/context/LanguageContext";
 export default function HomePage() {
   const { t } = useLanguage();
   const categories = [
-    { href: "/", label: t.nav.newIn, icon: "/icon-new-in.png" },
-    { href: "/hospital-bag", label: t.home.categoryBaby, icon: "/icon-baby.png" },
+    { href: "/new-in", label: t.nav.newIn, icon: "/icon-new-in.png" },
+    { href: "/newborn", label: t.home.categoryBaby, icon: "/icon-baby.png" },
     { href: "/girls", label: t.home.categoryGirl, icon: "/icon-girl.png" },
     { href: "/boys", label: t.home.categoryBoy, icon: "/icon-boy.png" },
   ];
   const services = [
-    { label: t.home.giftWrapping, icon: "/icon2-gift-wrapping.png" },
-    { label: t.home.babyAccessories, icon: "/icon2-baby-accessories.png" },
-    { label: t.home.babyBlankets, icon: "/icon2-baby-blankets.png" },
-    { label: t.home.babyTowelSet, icon: "/icon2-baby-towel-set.png" },
-    { label: t.home.bathEssentials, icon: "/icon2-bath-essentials.png" },
+    { href: "/gift-wrapping", label: t.home.giftWrapping, icon: "/icon2-gift-wrapping.png" },
+    { href: "/accessories", label: t.home.babyAccessories, icon: "/icon2-baby-accessories.png" },
+    { href: "/blankets", label: t.home.babyBlankets, icon: "/icon2-baby-blankets.png" },
+    { href: "/towels", label: t.home.babyTowelSet, icon: "/icon2-baby-towel-set.png" },
+    { href: "/bath", label: t.home.bathEssentials, icon: "/icon2-bath-essentials.png" },
   ];
 
   return (
@@ -105,11 +105,12 @@ export default function HomePage() {
       <section className="relative bg-[#EFE5DC] px-gutter py-lg md:py-xl fade-in-up">
         <div className="max-w-[760px] mx-auto flex sm:grid sm:grid-cols-5 gap-3 sm:gap-4 md:gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory sm:overflow-visible">
           {services.map((service) => (
-            <div
-              key={service.icon}
-              className="shrink-0 w-[100px] sm:w-auto snap-start flex flex-col items-center"
+            <Link
+              key={service.href}
+              href={service.href}
+              className="group shrink-0 w-[100px] sm:w-auto snap-start flex flex-col items-center"
             >
-              <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#8C916F] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5">
+              <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#8C916F] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
                 <Image src={service.icon} alt={service.label} width={96} height={96} className="w-[84%] h-auto object-contain" />
                 <span
                   className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
@@ -118,7 +119,7 @@ export default function HomePage() {
                   {service.label}
                 </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
         {/* Hint that the row scrolls further when it overflows the viewport */}

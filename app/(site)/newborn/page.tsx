@@ -4,11 +4,11 @@ import { Suspense } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import CategoryPageContent from "@/components/product/CategoryPageContent";
 
-export default function BoysPage() {
+export default function NewbornPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="boys" title={t.category.boysTitle} showAgeFilter />
+      <CategoryPageContent category="newborn" title={t.category.newbornTitle} showAgeFilter={false} showGenderFilter />
     </Suspense>
   );
 }

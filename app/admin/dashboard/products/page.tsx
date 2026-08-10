@@ -10,7 +10,7 @@ import {
   setProductVisibility,
 } from "@/lib/firebase/products";
 import { formatPrice } from "@/lib/format";
-import type { AgeGroup, Product, Section } from "@/lib/types";
+import type { AgeGroup, Category, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatCard from "@/components/admin/StatCard";
 import ProductFormModal from "@/components/admin/ProductFormModal";
@@ -24,7 +24,7 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [sectionFilter, setSectionFilter] = useState<Section | "all">("all");
+  const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [ageGroupFilter, setAgeGroupFilter] = useState<AgeGroup | "all">("all");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
@@ -33,23 +33,25 @@ export default function AdminProductsPage() {
   const lowStock = products.filter((p) => getTotalStock(p) > 0 && getTotalStock(p) <= LOW_STOCK_THRESHOLD).length;
   const outOfStock = products.filter((p) => getTotalStock(p) <= 0).length;
 
-  const ageFilterDisabled = sectionFilter === "hospital";
+  // Age groups only apply to Boys/Girls — disabled for every other category
+  // filter (but left enabled for "all", same as the admin form's behavior).
+  const ageFilterDisabled = categoryFilter !== "all" && categoryFilter !== "boys" && categoryFilter !== "girls";
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      const matchesSection = sectionFilter === "all" || p.sections.includes(sectionFilter);
+      const matchesCategory = categoryFilter === "all" || p.categories.includes(categoryFilter);
       const matchesAge = ageFilterDisabled || ageGroupFilter === "all" || p.ageGroups.includes(ageGroupFilter);
       const matchesStock =
         stockFilter === "all" ||
         (stockFilter === "low" && isProductLowStock(p)) ||
         (stockFilter === "out" && isProductOutOfStock(p));
-      return matchesSection && matchesAge && matchesStock;
+      return matchesCategory && matchesAge && matchesStock;
     });
-  }, [products, sectionFilter, ageGroupFilter, ageFilterDisabled, stockFilter]);
+  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter]);
 
-  const handleSectionFilterChange = (value: Section | "all") => {
-    setSectionFilter(value);
-    if (value === "hospital") setAgeGroupFilter("all");
+  const handleCategoryFilterChange = (value: Category | "all") => {
+    setCategoryFilter(value);
+    if (value !== "all" && value !== "boys" && value !== "girls") setAgeGroupFilter("all");
   };
 
   const openCreate = () => {
@@ -71,10 +73,16 @@ export default function AdminProductsPage() {
     await setProductVisibility(product.id, !product.isVisible);
   };
 
-  const SECTIONS: { value: Section; label: string }[] = [
+  const CATEGORIES: { value: Category; label: string }[] = [
     { value: "boys", label: t.products.sectionBoys },
     { value: "girls", label: t.products.sectionGirls },
-    { value: "hospital", label: t.products.sectionHospital },
+    { value: "newborn", label: t.products.sectionNewborn },
+    { value: "new-in", label: t.products.sectionNewIn },
+    { value: "gift-wrapping", label: t.products.sectionGiftWrapping },
+    { value: "towels", label: t.products.sectionTowels },
+    { value: "blankets", label: t.products.sectionBlankets },
+    { value: "accessories", label: t.products.sectionAccessories },
+    { value: "bath", label: t.products.sectionBath },
   ];
   const AGE_GROUPS: { value: AgeGroup; label: string }[] = [
     { value: "0-3m", label: t.products.age0to3m },
@@ -111,12 +119,12 @@ export default function AdminProductsPage() {
         <div className="flex-1">
           <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.filterSection}</label>
           <select
-            value={sectionFilter}
-            onChange={(e) => handleSectionFilterChange(e.target.value as Section | "all")}
+            value={categoryFilter}
+            onChange={(e) => handleCategoryFilterChange(e.target.value as Category | "all")}
             className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface"
           >
             <option value="all">{t.products.filterAllSections}</option>
-            {SECTIONS.map(({ value, label }) => (
+            {CATEGORIES.map(({ value, label }) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -183,7 +191,7 @@ export default function AdminProductsPage() {
                     <span className="font-body-md text-on-surface">{product.name.en}</span>
                   </div>
                 </td>
-                <td className="py-3 px-md font-body-md text-on-surface-variant capitalize">{product.sections.join(", ")}</td>
+                <td className="py-3 px-md font-body-md text-on-surface-variant capitalize">{product.categories.join(", ")}</td>
                 <td className="py-3 px-md">
                   <div className="flex flex-wrap gap-1">
                     {product.ageGroups.map((age) => (
@@ -253,7 +261,7 @@ export default function AdminProductsPage() {
             <div className="flex-1 min-w-0">
               <h5 className="font-label-md text-label-md text-on-surface truncate">{product.name.en}</h5>
               <p className="font-label-sm text-label-sm text-on-surface-variant capitalize">
-                {product.sections.join(", ")} {product.ageGroups.length > 0 ? `• ${product.ageGroups.join(", ")}` : ""}
+                {product.categories.join(", ")} {product.ageGroups.length > 0 ? `• ${product.ageGroups.join(", ")}` : ""}
               </p>
               <p className="font-body-md text-secondary font-semibold mt-1">{formatPrice(product.price)}</p>
               <span
