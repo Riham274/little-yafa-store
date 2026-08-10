@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import ImageGallery from "@/components/product/ImageGallery";
 import SimilarProducts from "@/components/product/SimilarProducts";
+import PageLoader from "@/components/ui/PageLoader";
 
 export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
@@ -41,7 +42,7 @@ export default function ProductDetailPage() {
   }, [params.id]);
 
   if (loading) {
-    return <div className="max-w-container-max mx-auto px-gutter py-xl text-center text-on-surface-variant">…</div>;
+    return <PageLoader />;
   }
 
   if (!product) {

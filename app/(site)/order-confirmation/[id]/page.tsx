@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 import type { CartItem } from "@/lib/types";
 
@@ -64,7 +64,7 @@ export default function OrderConfirmationPage() {
               {order.items.map((item) => (
                 <div key={`${item.productId}-${item.size}`} className="flex items-center gap-3 text-start">
                   <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-surface-container-lowest shrink-0">
-                    {item.image && <Image src={item.image} alt={item.name[locale]} fill className="object-cover" />}
+                    {item.image && <ImageWithSpinner src={item.image} alt={item.name[locale]} fill className="object-cover" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-label-md text-label-md text-on-surface truncate">{item.name[locale]}</p>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatPrice } from "@/lib/format";
 import { getTotalStock } from "@/lib/firebase/products";
@@ -19,7 +19,7 @@ export default function ProductCard({ product }: { product: Product }) {
     >
       <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface-container-low cloud-shadow">
         {image ? (
-          <Image
+          <ImageWithSpinner
             src={image}
             alt={product.name[locale]}
             fill

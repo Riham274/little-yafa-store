@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import type { TouchEvent, MouseEvent } from "react";
 import Image from "next/image";
+import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 
 const SWIPE_THRESHOLD = 40; // px of horizontal movement before it counts as a swipe
@@ -64,7 +65,7 @@ export default function ImageGallery({ images, alt }: { images: string[]; alt: s
         onMouseLeave={() => (mouseStartX.current = null)}
       >
         {pics[active] ? (
-          <Image src={pics[active] as string} alt={alt} fill priority className="object-cover" />
+          <ImageWithSpinner src={pics[active] as string} alt={alt} fill priority className="object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
             <span className="material-symbols-outlined text-6xl">image</span>

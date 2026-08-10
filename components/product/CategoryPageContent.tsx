@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsBySection } from "@/lib/firebase/products";
 import type { AgeGroup, Product, Section } from "@/lib/types";
+import PageLoader from "@/components/ui/PageLoader";
 import AgeFilterPills from "./AgeFilterPills";
 import ProductGrid from "./ProductGrid";
 
@@ -52,7 +53,7 @@ export default function CategoryPageContent({
 
       <div className="mt-lg">
         {loading ? (
-          <div className="py-xl text-center text-on-surface-variant font-body-md">…</div>
+          <PageLoader />
         ) : filtered.length === 0 ? (
           <div className="py-xl text-center text-on-surface-variant font-body-md">{t.category.noProducts}</div>
         ) : (

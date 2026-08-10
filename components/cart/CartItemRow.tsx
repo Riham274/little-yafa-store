@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
@@ -14,7 +14,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
     <div className="bg-surface-container-lowest rounded-[2rem] p-base md:p-md cloud-shadow flex gap-md items-center">
       <div className="relative w-24 h-24 md:w-40 md:h-40 rounded-xl overflow-hidden shrink-0 bg-surface-container-low">
         {item.image ? (
-          <Image src={item.image} alt={item.name[locale]} fill className="object-cover" />
+          <ImageWithSpinner src={item.image} alt={item.name[locale]} fill className="object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
             <span className="material-symbols-outlined text-3xl">image</span>
