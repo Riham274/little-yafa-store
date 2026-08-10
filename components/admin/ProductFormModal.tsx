@@ -1,12 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import type { AgeGroup, Product, ProductInput, Section } from "@/lib/types";
 import { auth, db, storage } from "@/lib/firebase/config";
 import { createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
 import { uploadProductImage } from "@/lib/firebase/storage";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
+import Spinner from "@/components/ui/Spinner";
+
+const TRANSLATE_DEBOUNCE_MS = 800;
+type TranslateTarget = "en" | "he";
+
+async function translateTexts(texts: string[], target: TranslateTarget): Promise<string[]> {
+  const res = await fetch("/api/translate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ texts, target }),
+  });
+  if (!res.ok) throw new Error("Translation request failed");
+  const data: { translations?: string[] } = await res.json();
+  if (!data.translations) throw new Error("Translation request failed");
+  return data.translations;
+}
 
 type Props = {
   product: Product | null;
@@ -46,6 +62,58 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [translating, setTranslating] = useState<{ en: boolean; he: boolean }>({ en: false, he: false });
+  const [translateFailed, setTranslateFailed] = useState<{ en: boolean; he: boolean }>({ en: false, he: false });
+  const skipNextTranslate = useRef(true);
+
+  // Debounced auto-translate: the admin only has to type Arabic — English and
+  // Hebrew fields auto-fill shortly after they stop typing, but stay
+  // editable so they can correct the machine translation before saving.
+  // Skipped on mount so opening the edit form doesn't overwrite existing
+  // English/Hebrew text that was already saved (or manually corrected).
+  useEffect(() => {
+    if (skipNextTranslate.current) {
+      skipNextTranslate.current = false;
+      return;
+    }
+    if (!nameAr.trim() && !descAr.trim()) return;
+
+    const timer = setTimeout(() => {
+      (["en", "he"] as const).forEach(async (target) => {
+        const fields: { key: "name" | "description"; text: string }[] = [];
+        if (nameAr.trim()) fields.push({ key: "name", text: nameAr });
+        if (descAr.trim()) fields.push({ key: "description", text: descAr });
+        if (fields.length === 0) return;
+
+        setTranslating((prev) => ({ ...prev, [target]: true }));
+        setTranslateFailed((prev) => ({ ...prev, [target]: false }));
+        try {
+          const translations = await translateTexts(
+            fields.map((f) => f.text),
+            target
+          );
+          fields.forEach((f, i) => {
+            const translated = translations[i];
+            if (translated === undefined) return;
+            if (target === "en") {
+              if (f.key === "name") setNameEn(translated);
+              else setDescEn(translated);
+            } else {
+              if (f.key === "name") setNameHe(translated);
+              else setDescHe(translated);
+            }
+          });
+        } catch {
+          setTranslateFailed((prev) => ({ ...prev, [target]: true }));
+        } finally {
+          setTranslating((prev) => ({ ...prev, [target]: false }));
+        }
+      });
+    }, TRANSLATE_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [nameAr, descAr]);
+
   const hospitalOnly = sections.length === 1 && sections[0] === "hospital";
 
   const toggleSection = (value: Section) => {
@@ -66,7 +134,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     setError(null);
 
     const validSizes = sizes.filter((s) => s.label.trim());
-    if (!nameEn || !price || sections.length === 0 || validSizes.length === 0) {
+    if (!nameAr || !price || sections.length === 0 || validSizes.length === 0) {
       setError(t.products.errorRequiredFields);
       return;
     }
@@ -142,15 +210,39 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-md">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
-            <Field label={t.products.nameEn} value={nameEn} onChange={setNameEn} />
+            <Field
+              label={t.products.nameEn}
+              value={nameEn}
+              onChange={setNameEn}
+              loading={translating.en}
+              errorText={translateFailed.en ? t.products.translateFailed : undefined}
+            />
             <Field label={t.products.nameAr} value={nameAr} onChange={setNameAr} dir="rtl" />
-            <Field label={t.products.nameHe} value={nameHe} onChange={setNameHe} dir="rtl" />
+            <Field
+              label={t.products.nameHe}
+              value={nameHe}
+              onChange={setNameHe}
+              dir="rtl"
+              loading={translating.he}
+              errorText={translateFailed.he ? t.products.translateFailed : undefined}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
-            <TextAreaField label={t.products.descriptionEn} value={descEn} onChange={setDescEn} />
+            <TextAreaField
+              label={t.products.descriptionEn}
+              value={descEn}
+              onChange={setDescEn}
+              loading={translating.en}
+            />
             <TextAreaField label={t.products.descriptionAr} value={descAr} onChange={setDescAr} dir="rtl" />
-            <TextAreaField label={t.products.descriptionHe} value={descHe} onChange={setDescHe} dir="rtl" />
+            <TextAreaField
+              label={t.products.descriptionHe}
+              value={descHe}
+              onChange={setDescHe}
+              dir="rtl"
+              loading={translating.he}
+            />
           </div>
 
           <Field label={t.products.price} value={price} onChange={setPrice} type="number" />
@@ -313,6 +405,8 @@ function Field({
   type = "text",
   dir,
   placeholder,
+  loading,
+  errorText,
 }: {
   label: string;
   value: string;
@@ -320,10 +414,15 @@ function Field({
   type?: string;
   dir?: "rtl" | "ltr";
   placeholder?: string;
+  loading?: boolean;
+  errorText?: string;
 }) {
   return (
     <div>
-      <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{label}</label>
+      <label className="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant mb-1">
+        {label}
+        {loading && <Spinner size={12} />}
+      </label>
       <input
         type={type}
         value={value}
@@ -332,6 +431,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         className="w-full bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
       />
+      {errorText && <p className="font-label-sm text-label-sm text-error mt-1">{errorText}</p>}
     </div>
   );
 }
@@ -341,15 +441,20 @@ function TextAreaField({
   value,
   onChange,
   dir,
+  loading,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   dir?: "rtl" | "ltr";
+  loading?: boolean;
 }) {
   return (
     <div>
-      <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{label}</label>
+      <label className="flex items-center gap-1.5 font-label-sm text-label-sm text-on-surface-variant mb-1">
+        {label}
+        {loading && <Spinner size={12} />}
+      </label>
       <textarea
         value={value}
         dir={dir}
