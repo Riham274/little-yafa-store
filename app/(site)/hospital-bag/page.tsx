@@ -8,7 +8,7 @@ export default function HospitalBagPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent section="hospital" title={t.category.hospitalTitle} showAgeFilter={false} />
+      <CategoryPageContent section="hospital" title={t.category.hospitalTitle} showAgeFilter={false} showGenderFilter />
     </Suspense>
   );
 }

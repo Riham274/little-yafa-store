@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import type { AgeGroup, Product, ProductInput, Section } from "@/lib/types";
+import type { AgeGroup, Gender, Product, ProductInput, Section } from "@/lib/types";
 import { auth, db, storage } from "@/lib/firebase/config";
 import { createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
 import { uploadProductImage } from "@/lib/firebase/storage";
@@ -44,6 +44,11 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     { value: "3-24m", label: t.products.age3to24m },
     { value: "2-10y", label: t.products.age2to10y },
   ];
+  const GENDERS: { value: Gender; label: string }[] = [
+    { value: "boys", label: t.products.sectionBoys },
+    { value: "girls", label: t.products.sectionGirls },
+    { value: "unisex", label: t.products.genderUnisex },
+  ];
 
   const [nameEn, setNameEn] = useState(product?.name.en ?? "");
   const [nameAr, setNameAr] = useState(product?.name.ar ?? "");
@@ -54,6 +59,11 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
   const [sections, setSections] = useState<Section[]>(product?.sections ?? []);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
+  // Empty string for a brand-new product forces an explicit choice (the
+  // field is required whenever "hospital" is selected); editing an existing
+  // product pre-fills from its saved value, which already defaults to
+  // "unisex" for docs that predate this field (see toProduct()).
+  const [gender, setGender] = useState<Gender | "">(product?.gender ?? "");
   const [sizes, setSizes] = useState<{ label: string; stock: string }[]>(
     product?.sizes.map((s) => ({ label: s.label, stock: s.stock.toString() })) ?? [{ label: "", stock: "" }]
   );
@@ -115,6 +125,10 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   }, [nameAr, descAr]);
 
   const hospitalOnly = sections.length === 1 && sections[0] === "hospital";
+  // Gender is only meaningful for hospital-bag listings — shown/required
+  // whenever "hospital" is one of the selected sections, regardless of
+  // whether it's combined with Boys/Girls.
+  const showGenderField = sections.includes("hospital");
 
   const toggleSection = (value: Section) => {
     setSections((prev) => (prev.includes(value) ? prev.filter((s) => s !== value) : [...prev, value]));
@@ -134,7 +148,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     setError(null);
 
     const validSizes = sizes.filter((s) => s.label.trim());
-    if (!nameAr || !price || sections.length === 0 || validSizes.length === 0) {
+    if (!nameAr || !price || sections.length === 0 || validSizes.length === 0 || (showGenderField && !gender)) {
       setError(t.products.errorRequiredFields);
       return;
     }
@@ -168,6 +182,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         images,
         sections,
         ageGroups: hospitalOnly ? [] : ageGroups,
+        // Irrelevant outside the hospital section — save a harmless default
+        // rather than leaving it unset, since the field is never read there.
+        gender: showGenderField && gender ? gender : "unisex",
         sizes: validSizes.map((s) => ({ label: s.label.trim(), stock: Math.max(0, Number(s.stock) || 0) })),
         // Visibility is managed exclusively via the eye-icon toggle on the
         // products table, not this form — pass through the existing value
@@ -336,6 +353,26 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
               </div>
             </div>
           </div>
+
+          {showGenderField && (
+            <div>
+              <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.genderLabel}</label>
+              <div className="flex flex-wrap gap-3 bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2.5">
+                {GENDERS.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-2 font-body-md text-on-surface cursor-pointer">
+                    <input
+                      type="radio"
+                      name="gender"
+                      checked={gender === value}
+                      onChange={() => setGender(value)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="block font-label-sm text-label-sm text-on-surface-variant mb-2">{t.products.images}</label>

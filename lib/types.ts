@@ -10,6 +10,11 @@ export type Section = "boys" | "girls" | "hospital";
 
 export type AgeGroup = "0-3m" | "3-24m" | "2-10y";
 
+// Only meaningful for products in the "hospital" section — independent of
+// `sections`, which controls where a product is listed. Falls back to
+// "unisex" for any doc that predates this field (see toProduct()).
+export type Gender = "boys" | "girls" | "unisex";
+
 export type ProductSize = {
   label: string;
   stock: number;
@@ -23,6 +28,7 @@ export type Product = {
   images: string[];
   sections: Section[];
   ageGroups: AgeGroup[];
+  gender: Gender;
   sizes: ProductSize[];
   isVisible: boolean;
 };

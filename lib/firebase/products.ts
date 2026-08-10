@@ -12,7 +12,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { AgeGroup, Product, ProductInput, ProductSize, Section } from "@/lib/types";
+import type { AgeGroup, Gender, Product, ProductInput, ProductSize, Section } from "@/lib/types";
 
 const PRODUCTS_COLLECTION = "products";
 
@@ -48,6 +48,10 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : legacyStock !== undefined
         ? [{ label: "One Size", stock: Number(legacyStock) || 0 }]
         : [],
+    // Only meaningful for hospital-section products; docs that predate this
+    // field (or products outside the hospital section) fall back to
+    // "unisex" so they keep appearing under every gender filter tab.
+    gender: (data.gender as Gender) ?? "unisex",
     // Missing field == visible, so products created before this field
     // existed keep showing up on the storefront exactly as before.
     isVisible: data.isVisible !== false,
