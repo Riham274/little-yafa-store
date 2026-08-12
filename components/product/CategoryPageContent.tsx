@@ -42,11 +42,11 @@ export default function CategoryPageContent({
     if (showAgeFilter && activeAge) {
       result = result.filter((p) => p.ageGroups.includes(activeAge));
     }
-    // Boys/Girls tabs on the Newborn page: a product qualifies if it's
-    // ALSO explicitly tagged with that category (e.g. both "newborn" and
-    // "boys" checked in the admin form) — no separate gender field.
+    // Boys/Girls tabs on the Newborn page filter on the independent
+    // newbornGender sub-field, not the main categories array — unrelated to
+    // whether the product is also tagged the main "boys"/"girls" category.
     if (showGenderFilter && activeGender) {
-      result = result.filter((p) => p.categories.includes(activeGender));
+      result = result.filter((p) => p.newbornGender === activeGender || p.newbornGender === "unisex");
     }
     return result;
   }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter]);

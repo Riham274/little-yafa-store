@@ -77,6 +77,10 @@ export default function Footer() {
                 <span className="material-symbols-outlined text-[20px]">location_on</span>
                 <span>{t.footer.location}</span>
               </div>
+              <Link href="/contact" className={`flex items-center gap-3 ${linkClass}`}>
+                <span className="material-symbols-outlined text-[20px]">chat</span>
+                <span>{t.footer.contactConcierge}</span>
+              </Link>
             </div>
           </div>
         </div>

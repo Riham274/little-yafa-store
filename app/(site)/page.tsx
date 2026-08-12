@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Boxes } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
 export default function HomePage() {
@@ -13,11 +14,12 @@ export default function HomePage() {
     { href: "/boys", label: t.home.categoryBoy, icon: "/icon-boy.png" },
   ];
   const services = [
-    { href: "/gift-wrapping", label: t.home.giftWrapping, icon: "/icon2-gift-wrapping.png" },
-    { href: "/accessories", label: t.home.babyAccessories, icon: "/icon2-baby-accessories.png" },
-    { href: "/blankets", label: t.home.babyBlankets, icon: "/icon2-baby-blankets.png" },
-    { href: "/towels", label: t.home.babyTowelSet, icon: "/icon2-baby-towel-set.png" },
     { href: "/bath", label: t.home.bathEssentials, icon: "/icon2-bath-essentials.png" },
+    { href: "/blankets", label: t.home.babyBlankets, icon: "/icon2-baby-blankets.png" },
+    { href: "/accessories", label: t.home.babyAccessories, icon: "/icon2-baby-accessories.png" },
+    { href: "/gift-wrapping", label: t.home.giftWrapping, icon: "/icon2-gift-wrapping.png" },
+    // No PNG icon — wholesale uses a lucide line-art icon instead (see render below).
+    { href: "/wholesale", label: t.home.wholesale, icon: null },
   ];
 
   return (
@@ -111,7 +113,11 @@ export default function HomePage() {
               className="group shrink-0 w-[100px] sm:w-auto snap-start flex flex-col items-center"
             >
               <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#8C916F] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                <Image src={service.icon} alt={service.label} width={96} height={96} className="w-[84%] h-auto object-contain" />
+                {service.icon ? (
+                  <Image src={service.icon} alt={service.label} width={96} height={96} className="w-[84%] h-auto object-contain" />
+                ) : (
+                  <Boxes className="w-[84%] h-auto" style={{ aspectRatio: "1 / 1" }} color="#EFE5DC" strokeWidth={1.5} />
+                )}
                 <span
                   className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
                   style={{ color: "#EFE5DC", fontWeight: 500 }}

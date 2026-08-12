@@ -16,6 +16,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [saving, setSaving] = useState(false);
   const [productsById, setProductsById] = useState<ProductLookup>({});
+  const [zoomedItemIndex, setZoomedItemIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const ids = [...new Set(order.items.map((item) => item.productId))];
@@ -25,6 +26,15 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
       });
     });
   }, [order.items]);
+
+  useEffect(() => {
+    if (zoomedItemIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomedItemIndex(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [zoomedItemIndex]);
 
   const regionLabels: Record<string, string> = {
     westBank: t.orders.regionWestBank,
@@ -43,7 +53,13 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
     }
   };
 
+  const zoomedItem = zoomedItemIndex !== null ? order.items[zoomedItemIndex] : null;
+  const zoomedProduct = zoomedItem ? productsById[zoomedItem.productId] : undefined;
+  const zoomedImage = zoomedProduct?.images[0];
+  const zoomedDescription = zoomedProduct ? zoomedProduct.description[locale] : null;
+
   return (
+    <>
     <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-end md:items-center md:justify-center p-0 md:p-gutter">
       <div className="bg-surface rounded-t-[2rem] md:rounded-[2rem] cloud-shadow w-full md:max-w-lg max-h-[90vh] overflow-y-auto p-lg">
         <div className="flex items-center justify-between mb-md">
@@ -89,7 +105,12 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
               const image = product?.images[0];
               const description = product ? product.description[locale] : null;
               return (
-                <div key={i} className="flex items-start gap-3">
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setZoomedItemIndex(i)}
+                  className="flex items-start gap-3 w-full text-start rounded-xl p-1 -m-1 hover:bg-surface-container/60 transition-colors cursor-pointer"
+                >
                   <div className="w-14 h-14 rounded-lg bg-surface-container overflow-hidden shrink-0">
                     {image ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -112,7 +133,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
                     ) : null}
                   </div>
                   <span className="text-on-surface font-body-md shrink-0">{formatPrice(item.price * item.qty)}</span>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -147,5 +168,60 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
         </div>
       </div>
     </div>
+
+    {zoomedItem && (
+      <div
+        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-gutter"
+        onClick={() => setZoomedItemIndex(null)}
+      >
+        <div
+          className="bg-surface rounded-[2rem] cloud-shadow w-full max-w-md max-h-[90vh] overflow-y-auto p-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-md">
+            <h2 className="font-headline-sm text-headline-sm text-on-surface">{zoomedItem.name}</h2>
+            <button
+              onClick={() => setZoomedItemIndex(null)}
+              className="text-on-surface-variant hover:text-error transition-colors shrink-0"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <div className="w-full aspect-square rounded-2xl bg-surface-container overflow-hidden mb-md">
+            {zoomedImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={zoomedImage} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
+                <span className="material-symbols-outlined text-[64px]">image_not_supported</span>
+              </div>
+            )}
+          </div>
+
+          {zoomedProduct === null ? (
+            <p className="font-label-sm text-label-sm text-error mb-md">{t.orders.productUnavailable}</p>
+          ) : zoomedDescription ? (
+            <p className="font-body-md text-on-surface-variant mb-md">{zoomedDescription}</p>
+          ) : null}
+
+          <div className="flex flex-col gap-1.5 font-body-md text-on-surface bg-surface-container-low rounded-2xl p-md">
+            <div className="flex items-center justify-between">
+              <span className="text-on-surface-variant">{t.orders.size}</span>
+              <span>{zoomedItem.size}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-on-surface-variant">{t.orders.quantity}</span>
+              <span>{zoomedItem.qty}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-on-surface-variant">{t.orders.price}</span>
+              <span className="text-secondary font-semibold">{formatPrice(zoomedItem.price * zoomedItem.qty)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

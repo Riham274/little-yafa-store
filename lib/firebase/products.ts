@@ -1,6 +1,7 @@
 import {
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -9,6 +10,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
@@ -40,13 +42,28 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
         ? [legacySection]
         : [];
 
+  const categories = rawCategories.map((c) => (c === "hospital" ? "newborn" : c)) as Category[];
+
+  // newbornGender only matters for newborn-tagged products. Any newborn
+  // product saved before this field existed (or with an invalid value)
+  // defaults to "unisex" so it keeps showing under all 3 newborn tabs.
+  const rawNewbornGender = data.newbornGender as Product["newbornGender"];
+  const newbornGender: Product["newbornGender"] = categories.includes("newborn")
+    ? rawNewbornGender === "boys" || rawNewbornGender === "girls" || rawNewbornGender === "unisex"
+      ? rawNewbornGender
+      : "unisex"
+    : rawNewbornGender;
+
   return {
     id,
     name: data.name as Product["name"],
     description: data.description as Product["description"],
-    price: Number(data.price) || 0,
+    // Left undefined (not defaulted to 0) when the field is absent, so
+    // display code can distinguish "no price set" from "priced at ₪0".
+    price: typeof data.price === "number" ? data.price : undefined,
     images: Array.isArray(data.images) ? (data.images as string[]) : [],
-    categories: rawCategories.map((c) => (c === "hospital" ? "newborn" : c)) as Category[],
+    categories,
+    newbornGender,
     ageGroups: Array.isArray(data.ageGroups)
       ? (data.ageGroups as AgeGroup[])
       : legacyAgeGroup
@@ -150,12 +167,29 @@ export async function createProduct(id: string, input: ProductInput): Promise<vo
   await setDoc(doc(db, PRODUCTS_COLLECTION, id), input);
 }
 
+/** Explicitly clears a product's price field in Firestore — omitting
+ * `price` from updateProduct()'s partial input only skips writing it, it
+ * doesn't remove an existing value, so an admin blanking out a wholesale
+ * item's price needs this instead. */
+export async function clearProductPrice(id: string): Promise<void> {
+  await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { price: deleteField() });
+}
+
 export async function updateProduct(id: string, input: Partial<ProductInput>): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), input);
 }
 
 export async function setProductVisibility(id: string, isVisible: boolean): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { isVisible });
+}
+
+/** Bulk visibility toggle for the admin table's master show-all/hide-all
+ * button — applied atomically to exactly the given ids (the currently
+ * filtered rows), not every product in the catalog. */
+export async function setProductsVisibility(ids: string[], isVisible: boolean): Promise<void> {
+  const batch = writeBatch(db);
+  ids.forEach((id) => batch.update(doc(db, PRODUCTS_COLLECTION, id), { isVisible }));
+  await batch.commit();
 }
 
 export async function deleteProduct(id: string): Promise<void> {

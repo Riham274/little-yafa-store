@@ -9,18 +9,25 @@ export type LocalizedText = {
 // A product can belong to any combination of these at once (e.g. both
 // "girls" and "gift-wrapping"). "newborn" replaces the old "hospital" value
 // — see the migration in toProduct() for docs still holding the old value.
+// "wholesale" replaces the old "towels" value — no migration for that one:
+// any product still tagged "towels" simply stops matching any category.
 export type Category =
   | "boys"
   | "girls"
   | "newborn"
   | "new-in"
   | "gift-wrapping"
-  | "towels"
+  | "wholesale"
   | "blankets"
   | "accessories"
   | "bath";
 
 export type AgeGroup = "0-3m" | "3-24m" | "2-10y";
+
+// Independent from the main "boys"/"girls" category values — only meaningful
+// on products tagged with the "newborn" category, and never used to decide
+// whether a product appears on the main Boys/Girls pages.
+export type NewbornGender = "boys" | "girls" | "unisex";
 
 export type ProductSize = {
   label: string;
@@ -31,9 +38,12 @@ export type Product = {
   id: string;
   name: LocalizedText;
   description: LocalizedText;
-  price: number;
+  // Optional so wholesale ("الجملة") items can be listed without a price —
+  // display code must hide the price entirely rather than showing ₪0.
+  price?: number;
   images: string[];
   categories: Category[];
+  newbornGender?: NewbornGender;
   ageGroups: AgeGroup[];
   sizes: ProductSize[];
   isVisible: boolean;
@@ -70,9 +80,23 @@ export type Order = {
 export type CartItem = {
   productId: string;
   name: LocalizedText;
-  price: number;
+  // Optional to carry a priceless wholesale product through the cart — kept
+  // undefined rather than defaulted to 0 so display code can hide it.
+  price?: number;
   image: string | null;
   size: string;
   qty: number;
   stock: number;
+};
+
+export type ContactMessageStatus = "new" | "read";
+
+export type ContactMessage = {
+  id: string;
+  name: string;
+  phone: string;
+  subject: string;
+  message: string;
+  status: ContactMessageStatus;
+  createdAt: number;
 };

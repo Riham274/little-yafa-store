@@ -48,6 +48,15 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Contact messages: anyone can submit the form (create), but only
+    // admins can read the inbox or mark a message as read. No public
+    // update/delete.
+    match /contactMessages/{messageId} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+      allow delete: if false;
+    }
+
     // Admins: a signed-in user may read their own admin doc (used to check
     // role on login). No client-side writes — this collection is managed
     // manually from the Firebase Console.

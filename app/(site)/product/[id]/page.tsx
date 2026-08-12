@@ -90,7 +90,9 @@ export default function ProductDetailPage() {
         <div className="md:col-span-5">
           <h1 className="font-headline-md text-headline-md text-on-surface mb-2">{product.name[locale]}</h1>
           <p className="font-body-md text-on-surface-variant mb-md">{product.description[locale]}</p>
-          <p className="font-headline-sm text-headline-sm text-secondary mb-md">{formatPrice(product.price)}</p>
+          {product.price !== undefined && (
+            <p className="font-headline-sm text-headline-sm text-secondary mb-md">{formatPrice(product.price)}</p>
+          )}
 
           {outOfStock ? (
             <span className="inline-block px-4 py-1 rounded-full bg-error-container text-on-error-container font-label-md text-label-md mb-md">

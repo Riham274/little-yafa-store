@@ -24,11 +24,17 @@ export default function CartItemRow({ item }: { item: CartItem }) {
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-headline-sm text-headline-sm text-on-surface line-clamp-1">{item.name[locale]}</h3>
-          <p className="font-body-md text-body-md text-secondary font-semibold whitespace-nowrap">
-            {formatPrice(item.price * item.qty)}
-          </p>
+          {item.price !== undefined && (
+            <p className="font-body-md text-body-md text-secondary font-semibold whitespace-nowrap">
+              {formatPrice(item.price * item.qty)}
+            </p>
+          )}
         </div>
-        <p className="font-body-md text-[14px] text-on-surface-variant mt-1">{formatPrice(item.price)} / {t.product.quantity.toLowerCase()}</p>
+        {item.price !== undefined && (
+          <p className="font-body-md text-[14px] text-on-surface-variant mt-1">
+            {formatPrice(item.price)} / {t.product.quantity.toLowerCase()}
+          </p>
+        )}
         <p className="font-body-md text-[14px] text-on-surface-variant mt-0.5">
           {t.product.size}: <span className="text-on-surface">{item.size}</span>
         </p>

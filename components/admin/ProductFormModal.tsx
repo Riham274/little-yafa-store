@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import type { AgeGroup, Category, Product, ProductInput } from "@/lib/types";
+import type { AgeGroup, Category, NewbornGender, Product, ProductInput } from "@/lib/types";
 import { auth, db, storage } from "@/lib/firebase/config";
-import { createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
+import { clearProductPrice, createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
 import { uploadProductImage } from "@/lib/firebase/storage";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import Spinner from "@/components/ui/Spinner";
@@ -39,16 +39,21 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     { value: "girls", label: t.products.sectionGirls },
     { value: "newborn", label: t.products.sectionNewborn },
     { value: "new-in", label: t.products.sectionNewIn },
-    { value: "gift-wrapping", label: t.products.sectionGiftWrapping },
-    { value: "towels", label: t.products.sectionTowels },
+    { value: "bath", label: t.products.sectionBath },
     { value: "blankets", label: t.products.sectionBlankets },
     { value: "accessories", label: t.products.sectionAccessories },
-    { value: "bath", label: t.products.sectionBath },
+    { value: "gift-wrapping", label: t.products.sectionGiftWrapping },
+    { value: "wholesale", label: t.products.sectionWholesale },
   ];
   const AGE_GROUPS: { value: AgeGroup; label: string }[] = [
     { value: "0-3m", label: t.products.age0to3m },
     { value: "3-24m", label: t.products.age3to24m },
     { value: "2-10y", label: t.products.age2to10y },
+  ];
+  const NEWBORN_GENDERS: { value: NewbornGender; label: string }[] = [
+    { value: "boys", label: t.products.newbornGenderBoys },
+    { value: "girls", label: t.products.newbornGenderGirls },
+    { value: "unisex", label: t.products.newbornGenderUnisex },
   ];
 
   const [nameEn, setNameEn] = useState(product?.name.en ?? "");
@@ -59,6 +64,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [descHe, setDescHe] = useState(product?.description.he ?? "");
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
   const [categories, setCategories] = useState<Category[]>(product?.categories ?? []);
+  const [newbornGender, setNewbornGender] = useState<NewbornGender | null>(product?.newbornGender ?? null);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
   const [sizes, setSizes] = useState<{ label: string; stock: string }[]>(
     product?.sizes.map((s) => ({ label: s.label, stock: s.stock.toString() })) ?? [{ label: "", stock: "" }]
@@ -122,8 +128,17 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
 
   // Age groups are only meaningful for Boys/Girls listings.
   const showAgeGroups = categories.includes("boys") || categories.includes("girls");
+  // Newborn gender is a standalone sub-field, unrelated to the main
+  // Boys/Girls categories above — only shown for the "newborn" category.
+  const showNewbornGender = categories.includes("newborn");
+  // Wholesale items are often priced outside the app (negotiated per order),
+  // so price is the one required field that becomes optional for them.
+  const priceRequired = !categories.includes("wholesale");
 
   const toggleCategory = (value: Category) => {
+    if (value === "newborn" && categories.includes(value)) {
+      setNewbornGender(null);
+    }
     setCategories((prev) => (prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]));
   };
 
@@ -141,7 +156,13 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     setError(null);
 
     const validSizes = sizes.filter((s) => s.label.trim());
-    if (!nameAr || !price || categories.length === 0 || validSizes.length === 0) {
+    if (
+      !nameAr ||
+      (priceRequired && !price) ||
+      categories.length === 0 ||
+      validSizes.length === 0 ||
+      (showNewbornGender && !newbornGender)
+    ) {
       setError(t.products.errorRequiredFields);
       return;
     }
@@ -171,19 +192,31 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       const data: ProductInput = {
         name: { en: nameEn, ar: nameAr, he: nameHe },
         description: { en: descEn, ar: descAr, he: descHe },
-        price: Number(price),
         images,
         categories,
         ageGroups: showAgeGroups ? ageGroups : [],
         sizes: validSizes.map((s) => ({ label: s.label.trim(), stock: Math.max(0, Number(s.stock) || 0) })),
         // Visibility is managed exclusively via the eye-icon toggle on the
         // products table, not this form — pass through the existing value
-        // unchanged when editing, default new products to visible.
-        isVisible: product?.isVisible ?? true,
+        // unchanged when editing. New products default to hidden so a whole
+        // collection can be built out before revealing it to customers.
+        isVisible: product?.isVisible ?? false,
       };
+      if (showNewbornGender && newbornGender) {
+        data.newbornGender = newbornGender;
+      }
+      if (price.trim()) {
+        data.price = Number(price);
+      }
 
       if (isEdit && product) {
         await updateProduct(product.id, data);
+        // Omitting `price` from `data` above only skips writing it — it
+        // doesn't clear an existing value, so blanking out a previously
+        // priced product needs an explicit delete.
+        if (!price.trim() && product.price !== undefined) {
+          await clearProductPrice(product.id);
+        }
       } else {
         await createProduct(id, data);
       }
@@ -252,7 +285,12 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
             />
           </div>
 
-          <Field label={t.products.price} value={price} onChange={setPrice} type="number" />
+          <Field
+            label={priceRequired ? t.products.price : t.products.priceOptional}
+            value={price}
+            onChange={setPrice}
+            type="number"
+          />
 
           <div>
             <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.sizesLabel}</label>
@@ -311,6 +349,23 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                 </label>
               ))}
             </div>
+            {showNewbornGender && (
+              <div className="mt-2 flex items-center gap-md bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2.5">
+                <span className="font-label-sm text-label-sm text-on-surface-variant">{t.products.newbornGenderLabel}</span>
+                {NEWBORN_GENDERS.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-1.5 font-body-md text-on-surface cursor-pointer">
+                    <input
+                      type="radio"
+                      name="newbornGender"
+                      checked={newbornGender === value}
+                      onChange={() => setNewbornGender(value)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>

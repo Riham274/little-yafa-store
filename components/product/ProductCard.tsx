@@ -41,9 +41,11 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
       <div>
         <h3 className="font-label-md text-label-md text-on-surface line-clamp-1">{product.name[locale]}</h3>
-        <span className="font-label-sm text-label-sm" style={{ color: "#8C916F" }}>
-          {formatPrice(product.price)}
-        </span>
+        {product.price !== undefined && (
+          <span className="font-label-sm text-label-sm" style={{ color: "#8C916F" }}>
+            {formatPrice(product.price)}
+          </span>
+        )}
       </div>
     </Link>
   );

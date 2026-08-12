@@ -214,7 +214,9 @@ export default function CheckoutPage() {
                     {t.product.size}: {item.size} · Qty: {item.qty}
                   </p>
                 </div>
-                <p className="font-body-md text-on-surface">{formatPrice(item.price * item.qty)}</p>
+                {item.price !== undefined && (
+                  <p className="font-body-md text-on-surface">{formatPrice(item.price * item.qty)}</p>
+                )}
               </div>
             ))}
           </div>

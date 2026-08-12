@@ -79,7 +79,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clear = () => setItems([]);
 
   const count = items.reduce((sum, item) => sum + item.qty, 0);
-  const subtotal = items.reduce((sum, item) => sum + item.qty * item.price, 0);
+  const subtotal = items.reduce((sum, item) => sum + item.qty * (item.price ?? 0), 0);
 
   return (
     <CartContext.Provider value={{ items, count, subtotal, addItem, removeItem, setQty, clear }}>

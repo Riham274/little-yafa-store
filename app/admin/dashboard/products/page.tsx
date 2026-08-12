@@ -8,6 +8,7 @@ import {
   isProductLowStock,
   isProductOutOfStock,
   setProductVisibility,
+  setProductsVisibility,
 } from "@/lib/firebase/products";
 import { formatPrice } from "@/lib/format";
 import type { AgeGroup, Category, Product } from "@/lib/types";
@@ -73,13 +74,33 @@ export default function AdminProductsPage() {
     await setProductVisibility(product.id, !product.isVisible);
   };
 
+  // Master toggle reflects the currently filtered rows only, so an admin
+  // filtered to one category can bulk-show/hide just that category.
+  const visibleFilteredCount = filteredProducts.filter((p) => p.isVisible).length;
+  const bulkDisabled = filteredProducts.length === 0;
+  const bulkMajorityVisible = !bulkDisabled && visibleFilteredCount / filteredProducts.length >= 0.5;
+
+  const handleBulkToggleVisibility = async () => {
+    if (bulkDisabled) return;
+    const nextVisible = !bulkMajorityVisible;
+    const confirmMessage = (nextVisible ? t.products.bulkShowConfirm : t.products.bulkHideConfirm).replace(
+      "{count}",
+      String(filteredProducts.length)
+    );
+    if (!window.confirm(confirmMessage)) return;
+    await setProductsVisibility(
+      filteredProducts.map((p) => p.id),
+      nextVisible
+    );
+  };
+
   const CATEGORIES: { value: Category; label: string }[] = [
     { value: "boys", label: t.products.sectionBoys },
     { value: "girls", label: t.products.sectionGirls },
     { value: "newborn", label: t.products.sectionNewborn },
     { value: "new-in", label: t.products.sectionNewIn },
     { value: "gift-wrapping", label: t.products.sectionGiftWrapping },
-    { value: "towels", label: t.products.sectionTowels },
+    { value: "wholesale", label: t.products.sectionWholesale },
     { value: "blankets", label: t.products.sectionBlankets },
     { value: "accessories", label: t.products.sectionAccessories },
     { value: "bath", label: t.products.sectionBath },
@@ -109,7 +130,7 @@ export default function AdminProductsPage() {
         <StatCard label={t.products.statOutOfStock} value={outOfStock} icon="error" tone="error" />
         <StatCard
           label={t.products.statStockValue}
-          value={formatPrice(products.reduce((sum, p) => sum + p.price * getTotalStock(p), 0))}
+          value={formatPrice(products.reduce((sum, p) => sum + (p.price ?? 0) * getTotalStock(p), 0))}
           icon="payments"
           tone="primary"
         />
@@ -171,7 +192,22 @@ export default function AdminProductsPage() {
               <th className="py-3 px-md">{t.products.tableAgeGroups}</th>
               <th className="py-3 px-md text-end">{t.products.tablePrice}</th>
               <th className="py-3 px-md text-center">{t.products.tableStock}</th>
-              <th className="py-3 px-md text-end">{t.common.actions}</th>
+              <th className="py-3 px-md text-end">
+                <div className="flex items-center justify-end gap-2">
+                  <span>{t.common.actions}</span>
+                  <button
+                    type="button"
+                    onClick={handleBulkToggleVisibility}
+                    disabled={bulkDisabled}
+                    title={bulkMajorityVisible ? t.products.bulkHideAll : t.products.bulkShowAll}
+                    className="normal-case text-on-surface-variant hover:text-primary transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {bulkMajorityVisible ? "visibility" : "visibility_off"}
+                    </span>
+                  </button>
+                </div>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -201,7 +237,9 @@ export default function AdminProductsPage() {
                     ))}
                   </div>
                 </td>
-                <td className="py-3 px-md text-end font-body-md text-secondary font-semibold">{formatPrice(product.price)}</td>
+                <td className="py-3 px-md text-end font-body-md text-secondary font-semibold">
+                  {product.price !== undefined ? formatPrice(product.price) : "—"}
+                </td>
                 <td className="py-3 px-md text-center">
                   <span
                     className={`inline-block px-3 py-1 rounded-full font-label-sm text-label-sm ${
@@ -263,7 +301,9 @@ export default function AdminProductsPage() {
               <p className="font-label-sm text-label-sm text-on-surface-variant capitalize">
                 {product.categories.join(", ")} {product.ageGroups.length > 0 ? `• ${product.ageGroups.join(", ")}` : ""}
               </p>
-              <p className="font-body-md text-secondary font-semibold mt-1">{formatPrice(product.price)}</p>
+              <p className="font-body-md text-secondary font-semibold mt-1">
+                {product.price !== undefined ? formatPrice(product.price) : "—"}
+              </p>
               <span
                 className={`inline-block mt-1 px-2 py-0.5 rounded-full font-label-sm text-label-sm ${
                   getTotalStock(product) <= LOW_STOCK_THRESHOLD ? "bg-error-container/20 text-error" : "bg-surface-container-high"

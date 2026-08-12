@@ -80,12 +80,9 @@ export default function OrderConfirmationPage() {
 
         <Link
           href="/"
-          className="inline-flex items-center justify-center px-lg py-4 bg-primary text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 mb-md w-full"
+          className="inline-flex items-center justify-center px-lg py-4 bg-primary text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 w-full"
         >
           {t.confirmation.continueShopping}
-        </Link>
-        <Link href="/contact" className="text-primary font-label-md text-label-md underline">
-          {t.confirmation.contactConcierge}
         </Link>
       </div>
     </div>

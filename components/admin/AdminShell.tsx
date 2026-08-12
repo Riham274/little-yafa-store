@@ -17,6 +17,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     { href: "/admin/dashboard", label: t.nav.overview, icon: "dashboard" },
     { href: "/admin/dashboard/products", label: t.nav.products, icon: "inventory_2" },
     { href: "/admin/dashboard/orders", label: t.nav.orders, icon: "receipt_long" },
+    { href: "/admin/dashboard/messages", label: t.nav.messages, icon: "mail" },
   ];
 
   const isActive = (href: string) => (href === "/admin/dashboard" ? pathname === href : pathname.startsWith(href));

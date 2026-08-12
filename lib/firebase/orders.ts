@@ -87,7 +87,11 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       if (sizes) transaction.update(ref, { sizes });
     });
 
-    const subtotal = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+    // A wholesale item with no price set contributes ₪0 to the order total
+    // — Firestore rejects `undefined` field values, and the order record
+    // needs a concrete number regardless (unlike storefront display, which
+    // hides the price entirely for these items).
+    const subtotal = items.reduce((sum, item) => sum + (item.price ?? 0) * item.qty, 0);
     const total = subtotal + customer.shippingCost;
 
     transaction.set(orderRef, {
@@ -102,7 +106,7 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
         name: item.name.en,
         size: item.size,
         qty: item.qty,
-        price: item.price,
+        price: item.price ?? 0,
       })),
       total,
       status: "new" satisfies OrderStatus,
