@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Boxes } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
 
 export default function HomePage() {
   const { t } = useLanguage();
@@ -142,6 +143,9 @@ export default function HomePage() {
           className="w-full h-auto block"
         />
       </section>
+
+      {/* Discover Products */}
+      <FeaturedProductsSection />
     </>
   );
 }
