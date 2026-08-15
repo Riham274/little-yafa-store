@@ -85,6 +85,11 @@ const en = {
     noProducts: "No products found in this category yet.",
     shopAllTitle: "Shop Our Collection",
   },
+  search: {
+    title: "Search Results",
+    noResults: "No results found",
+    seeAllResults: "See all results",
+  },
   cart: {
     title: "Your Cart",
     empty: "Your cart is empty.",
@@ -240,6 +245,11 @@ const ar: Dictionary = {
     noProducts: "لا توجد منتجات في هذه الفئة بعد.",
     shopAllTitle: "تسوقي مجموعتنا",
   },
+  search: {
+    title: "نتائج البحث",
+    noResults: "لا توجد نتائج",
+    seeAllResults: "عرض كل النتائج",
+  },
   cart: {
     title: "سلتك",
     empty: "سلتك فارغة.",
@@ -394,6 +404,11 @@ const he: Dictionary = {
     loadMore: "טען עוד",
     noProducts: "עדיין אין מוצרים בקטגוריה זו.",
     shopAllTitle: "קנו את הקולקציה שלנו",
+  },
+  search: {
+    title: "תוצאות חיפוש",
+    noResults: "לא נמצאו תוצאות",
+    seeAllResults: "צפה בכל התוצאות",
   },
   cart: {
     title: "העגלה שלך",
