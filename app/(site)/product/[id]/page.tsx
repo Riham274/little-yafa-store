@@ -21,6 +21,7 @@ export default function ProductDetailPage() {
   const [similar, setSimilar] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [qty, setQty] = useState(1);
+  const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
 
@@ -30,6 +31,10 @@ export default function ProductDetailPage() {
     getProductById(params.id).then(async (p) => {
       if (!active) return;
       setProduct(p);
+      // A single-color product is auto-selected (and its selector hidden) —
+      // multi-color products start with nothing picked.
+      setSelectedColorIndex(p && p.colors.length === 1 ? 0 : null);
+      setSelectedSize(null);
       setLoading(false);
       if (p) {
         const sim = await getSimilarProducts(p);
@@ -58,9 +63,10 @@ export default function ProductDetailPage() {
 
   const totalStock = getTotalStock(product);
   const outOfStock = totalStock <= 0;
-  const selectedSizeEntry = product.sizes.find((s) => s.label === selectedSize) ?? null;
+  const selectedColor = selectedColorIndex !== null ? product.colors[selectedColorIndex] : null;
+  const selectedSizeEntry = selectedColor?.sizes.find((s) => s.label === selectedSize) ?? null;
   const selectedSizeStock = selectedSizeEntry?.stock ?? 0;
-  const canAddToCart = !outOfStock && selectedSizeEntry !== null && selectedSizeStock > 0;
+  const canAddToCart = !outOfStock && selectedColor !== null && selectedSizeEntry !== null && selectedSizeStock > 0;
   const lowStock = canAddToCart && selectedSizeStock <= 3;
   const lowStockText =
     selectedSizeStock === 1
@@ -69,14 +75,20 @@ export default function ProductDetailPage() {
         ? t.product.lowStockTwo
         : t.product.lowStockMany.replace("{count}", String(selectedSizeStock));
 
+  const handleSelectColor = (index: number) => {
+    setSelectedColorIndex(index);
+    setSelectedSize(null);
+    setQty(1);
+  };
+
   const handleSelectSize = (label: string) => {
     setSelectedSize(label);
     setQty(1);
   };
 
   const handleAddToCart = () => {
-    if (!selectedSize) return;
-    addItem(product, qty, selectedSize);
+    if (!selectedColor || !selectedSize) return;
+    addItem(product, qty, selectedColor.label, selectedSize);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -85,7 +97,7 @@ export default function ProductDetailPage() {
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-lg">
         <div className="md:col-span-7">
-          <ImageGallery images={product.images} alt={product.name[locale]} />
+          <ImageGallery images={selectedColor?.images ?? []} alt={product.name[locale]} />
         </div>
         <div className="md:col-span-5">
           <h1 className="font-headline-md text-headline-md text-on-surface mb-2">{product.name[locale]}</h1>
@@ -102,11 +114,35 @@ export default function ProductDetailPage() {
             <p className="font-label-sm text-label-sm text-error mb-md">{lowStockText}</p>
           ) : null}
 
-          {!outOfStock && (
+          {!outOfStock && product.colors.length > 1 && (
+            <div className="mb-lg">
+              <p className="font-label-md text-label-md text-on-surface-variant mb-2">{t.product.selectColor}</p>
+              <div className="flex flex-wrap gap-2">
+                {product.colors.map((color, i) => {
+                  const active = selectedColorIndex === i;
+                  return (
+                    <button
+                      key={color.label + i}
+                      type="button"
+                      onClick={() => handleSelectColor(i)}
+                      className={`px-4 py-2 rounded-full border font-label-md text-label-md transition-all active:scale-95 ${
+                        active ? "text-white" : "bg-surface border-outline-variant text-on-surface hover:border-[#8C916F]/50"
+                      }`}
+                      style={active ? { backgroundColor: "#8C916F", borderColor: "#8C916F" } : undefined}
+                    >
+                      {color.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {!outOfStock && selectedColor && (
             <div className="mb-lg">
               <p className="font-label-md text-label-md text-on-surface-variant mb-2">{t.product.selectSize}</p>
               <div className="flex flex-wrap gap-2">
-                {product.sizes.map((size) => {
+                {selectedColor.sizes.map((size) => {
                   const sizeOut = size.stock <= 0;
                   const active = selectedSize === size.label;
                   return (
@@ -154,7 +190,7 @@ export default function ProductDetailPage() {
 
           <button
             onClick={handleAddToCart}
-            disabled={outOfStock || !selectedSize}
+            disabled={outOfStock || !selectedColor || !selectedSize}
             className="w-full flex items-center justify-center gap-2 px-lg py-4 text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none mb-lg"
             style={{ backgroundColor: "#8C916F" }}
           >
@@ -163,9 +199,11 @@ export default function ProductDetailPage() {
               ? t.product.addedToCart
               : outOfStock
                 ? t.product.outOfStock
-                : !selectedSize
-                  ? t.product.selectSizeFirst
-                  : t.product.addToCart}
+                : !selectedColor
+                  ? t.product.selectColor
+                  : !selectedSize
+                    ? t.product.selectSizeFirst
+                    : t.product.addToCart}
           </button>
         </div>
       </div>

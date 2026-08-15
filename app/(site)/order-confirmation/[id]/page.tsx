@@ -62,14 +62,14 @@ export default function OrderConfirmationPage() {
           {order && order.items.length > 0 && (
             <div className="flex flex-col gap-2 mt-md">
               {order.items.map((item) => (
-                <div key={`${item.productId}-${item.size}`} className="flex items-center gap-3 text-start">
+                <div key={`${item.productId}-${item.color}-${item.size}`} className="flex items-center gap-3 text-start">
                   <div className="relative w-14 h-14 rounded-lg overflow-hidden bg-surface-container-lowest shrink-0">
                     {item.image && <ImageWithSpinner src={item.image} alt={item.name[locale]} fill className="object-cover" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-label-md text-label-md text-on-surface truncate">{item.name[locale]}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">
-                      {t.product.size}: {item.size} · × {item.qty}
+                      {t.product.color}: {item.color} · {t.product.size}: {item.size} · × {item.qty}
                     </p>
                   </div>
                 </div>

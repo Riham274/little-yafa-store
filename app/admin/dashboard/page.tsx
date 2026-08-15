@@ -92,9 +92,9 @@ export default function AdminOverviewPage() {
             {lowStockProducts.slice(0, 6).map((product) => (
               <div key={product.id} className="flex items-center gap-md p-sm rounded-xl bg-surface-container-low">
                 <div className="w-12 h-12 rounded-lg bg-surface-container overflow-hidden shrink-0">
-                  {product.images[0] && (
+                  {product.colors[0]?.images[0] && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                    <img src={product.colors[0].images[0]} alt="" className="w-full h-full object-cover" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

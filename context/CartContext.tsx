@@ -9,9 +9,9 @@ type CartContextValue = {
   items: CartItem[];
   count: number;
   subtotal: number;
-  addItem: (product: Product, qty: number, size: string) => void;
-  removeItem: (productId: string, size: string) => void;
-  setQty: (productId: string, size: string, qty: number) => void;
+  addItem: (product: Product, qty: number, color: string, size: string) => void;
+  removeItem: (productId: string, color: string, size: string) => void;
+  setQty: (productId: string, color: string, size: string, qty: number) => void;
   clear: () => void;
 };
 
@@ -36,13 +36,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = (product: Product, qty: number, size: string) => {
-    const maxQty = product.sizes.find((s) => s.label === size)?.stock ?? 0;
+  const addItem = (product: Product, qty: number, color: string, size: string) => {
+    const colorEntry = product.colors.find((c) => c.label === color);
+    const maxQty = colorEntry?.sizes.find((s) => s.label === size)?.stock ?? 0;
     setItems((prev) => {
-      const existing = prev.find((item) => item.productId === product.id && item.size === size);
+      const existing = prev.find(
+        (item) => item.productId === product.id && item.color === color && item.size === size
+      );
       if (existing) {
         return prev.map((item) =>
-          item.productId === product.id && item.size === size
+          item.productId === product.id && item.color === color && item.size === size
             ? { ...item, qty: Math.min(item.qty + qty, maxQty), stock: maxQty }
             : item
         );
@@ -53,7 +56,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
           productId: product.id,
           name: product.name,
           price: product.price,
-          image: product.images[0] ?? null,
+          image: colorEntry?.images[0] ?? null,
+          color,
           size,
           qty: Math.min(qty, maxQty),
           stock: maxQty,
@@ -62,14 +66,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const removeItem = (productId: string, size: string) => {
-    setItems((prev) => prev.filter((item) => !(item.productId === productId && item.size === size)));
+  const removeItem = (productId: string, color: string, size: string) => {
+    setItems((prev) =>
+      prev.filter((item) => !(item.productId === productId && item.color === color && item.size === size))
+    );
   };
 
-  const setQty = (productId: string, size: string, qty: number) => {
+  const setQty = (productId: string, color: string, size: string, qty: number) => {
     setItems((prev) =>
       prev.map((item) =>
-        item.productId === productId && item.size === size
+        item.productId === productId && item.color === color && item.size === size
           ? { ...item, qty: Math.max(1, Math.min(qty, item.stock)) }
           : item
       )

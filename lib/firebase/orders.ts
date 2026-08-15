@@ -10,7 +10,8 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { CartItem, Order, OrderStatus, ProductSize, ShippingRegion } from "@/lib/types";
+import { deriveProductColors } from "./products";
+import type { CartItem, Order, OrderStatus, ProductColor, ShippingRegion } from "@/lib/types";
 
 const ORDERS_COLLECTION = "orders";
 const PRODUCTS_COLLECTION = "products";
@@ -37,21 +38,21 @@ export type CustomerDetails = {
 };
 
 /**
- * Places an order and decrements the ordered size's stock atomically. Reads
- * every product doc inside the transaction so concurrent checkouts can never
- * push stock below zero; aborts (no writes at all) if any line item can't be
- * fulfilled at the moment the transaction runs. Each product's `sizes` array
- * is rewritten in full (Firestore has no per-element array update), with only
- * the ordered size's `stock` entry decremented — every other size is carried
- * over unchanged.
+ * Places an order and decrements the ordered color+size's stock atomically.
+ * Reads every product doc inside the transaction so concurrent checkouts can
+ * never push stock below zero; aborts (no writes at all) if any line item
+ * can't be fulfilled at the moment the transaction runs. Each product's
+ * `colors` array is rewritten in full (Firestore has no per-element array
+ * update), with only the ordered color's matching size `stock` entry
+ * decremented — every other color/size is carried over unchanged.
  */
 export async function placeOrder(items: CartItem[], customer: CustomerDetails): Promise<string> {
   const orderRef = doc(collection(db, ORDERS_COLLECTION));
 
   await runTransaction(db, async (transaction) => {
     // De-duplicated by product, not by line item — the same product can
-    // appear twice in the cart with two different sizes, and both
-    // decrements must land on one consolidated `sizes` array before a
+    // appear twice in the cart with two different color/size combos, and
+    // both decrements must land on one consolidated `colors` array before a
     // single `update()` per product is issued (Firestore has no
     // per-element array update, and two separate `update()` calls on the
     // same doc within one transaction would just overwrite each other).
@@ -59,32 +60,41 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
     const productRefs = productIds.map((id) => doc(db, PRODUCTS_COLLECTION, id));
     const productSnaps = await Promise.all(productRefs.map((ref) => transaction.get(ref)));
 
-    const sizesByProductId = new Map<string, ProductSize[]>();
+    const colorsByProductId = new Map<string, ProductColor[]>();
     productSnaps.forEach((snap, index) => {
       if (!snap.exists()) return;
-      const sizes = Array.isArray(snap.data().sizes) ? (snap.data().sizes as ProductSize[]).map((s) => ({ ...s })) : [];
-      sizesByProductId.set(productIds[index], sizes);
+      // deriveProductColors() applies the same migration fallback as
+      // toProduct() — an unmigrated doc (still on flat images/sizes) can
+      // still be successfully ordered, decrementing its synthesized
+      // "افتراضي" color and writing it back in the new `colors` shape.
+      const rawColors = deriveProductColors(snap.data());
+      const colors = rawColors.map((c) => ({ ...c, sizes: c.sizes.map((s) => ({ ...s })) }));
+      colorsByProductId.set(productIds[index], colors);
     });
 
     for (const item of items) {
-      const sizes = sizesByProductId.get(item.productId);
-      if (!sizes) {
+      const colors = colorsByProductId.get(item.productId);
+      if (!colors) {
         throw new InsufficientStockError(item.name.en, 0);
       }
-      const sizeIndex = sizes.findIndex((s) => s.label === item.size);
+      const color = colors.find((c) => c.label === item.color);
+      if (!color) {
+        throw new InsufficientStockError(item.name.en, 0);
+      }
+      const sizeIndex = color.sizes.findIndex((s) => s.label === item.size);
       if (sizeIndex === -1) {
         throw new InsufficientStockError(item.name.en, 0);
       }
-      const available = Number(sizes[sizeIndex].stock) || 0;
+      const available = Number(color.sizes[sizeIndex].stock) || 0;
       if (available < item.qty) {
         throw new InsufficientStockError(item.name.en, available);
       }
-      sizes[sizeIndex] = { ...sizes[sizeIndex], stock: available - item.qty };
+      color.sizes[sizeIndex] = { ...color.sizes[sizeIndex], stock: available - item.qty };
     }
 
     productRefs.forEach((ref, index) => {
-      const sizes = sizesByProductId.get(productIds[index]);
-      if (sizes) transaction.update(ref, { sizes });
+      const colors = colorsByProductId.get(productIds[index]);
+      if (colors) transaction.update(ref, { colors });
     });
 
     // A wholesale item with no price set contributes ₪0 to the order total
@@ -104,6 +114,7 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       items: items.map((item) => ({
         productId: item.productId,
         name: item.name.en,
+        color: item.color,
         size: item.size,
         qty: item.qty,
         price: item.price ?? 0,

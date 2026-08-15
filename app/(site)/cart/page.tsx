@@ -28,7 +28,7 @@ export default function CartPage() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-md">
           <div className="md:col-span-8 flex flex-col gap-md">
             {items.map((item) => (
-              <CartItemRow key={`${item.productId}-${item.size}`} item={item} />
+              <CartItemRow key={`${item.productId}-${item.color}-${item.size}`} item={item} />
             ))}
           </div>
           <aside className="md:col-span-4">

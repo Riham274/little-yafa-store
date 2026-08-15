@@ -10,7 +10,7 @@ import type { Product } from "@/lib/types";
 export default function ProductCard({ product }: { product: Product }) {
   const { locale, t } = useLanguage();
   const outOfStock = getTotalStock(product) <= 0;
-  const image = product.images[0];
+  const image = product.colors[0]?.images[0];
 
   return (
     <Link

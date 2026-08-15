@@ -9,35 +9,43 @@ service cloud.firestore {
         get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // A checkout-triggered stock decrement: only the `sizes` field may
-    // change, and the array must keep the same length (same size entries,
-    // same order) — this is what lets an unauthenticated customer's order
-    // transaction deduct purchased quantity from one size's stock without
-    // granting them any other write access to the product (price, name,
-    // images, other sizes' labels, etc. stay admin-only).
+    // A checkout-triggered stock decrement: only the `colors` field may
+    // change, and (once a doc already has one) the array must keep the same
+    // length (same color entries, same order) — this is what lets an
+    // unauthenticated customer's order transaction deduct purchased
+    // quantity from one color's size stock without granting them any other
+    // write access to the product (price, name, images, other sizes'
+    // labels, etc. stay admin-only).
     //
-    // Firestore rules can't loop over a dynamic-length list to verify "only
-    // one entry's stock decreased, nothing else changed" element-by-element,
-    // so this check is intentionally looser than the old single-`stock`
-    // rule: a malicious client could still send an arbitrary same-length
-    // `sizes` array (e.g. inflate a stock count) as long as it never touches
-    // any other top-level field. Tightening this further would require a
-    // server-side Cloud Function running with elevated privileges instead of
-    // a purely client-side transaction — out of scope for the current
-    // architecture, called out here for future reference.
-    function isValidSizesStockDecrement() {
+    // The `!hadColors ||` branch exists only for products that predate the
+    // colors migration: their doc has no `colors` field yet, so there's no
+    // prior length to compare against when the first purchase lazily
+    // synthesizes one (see deriveProductColors() in lib/firebase/products.ts)
+    // and writes it back for the first time.
+    //
+    // Firestore rules can't loop over a dynamic-length nested list to verify
+    // "only one color's one size decreased, nothing else changed"
+    // element-by-element, so this check is intentionally loose: a malicious
+    // client could still send an arbitrary same-length `colors` array (e.g.
+    // inflate a stock count, or change a nested size's label) as long as it
+    // never touches any other top-level field. Tightening this further would
+    // require a server-side Cloud Function running with elevated privileges
+    // instead of a purely client-side transaction — out of scope for the
+    // current architecture, called out here for future reference.
+    function isValidColorsStockDecrement() {
       let affectedKeys = request.resource.data.diff(resource.data).affectedKeys();
-      return affectedKeys.hasOnly(['sizes']) &&
-        request.resource.data.sizes is list &&
-        request.resource.data.sizes.size() == resource.data.sizes.size();
+      let hadColors = resource.data.keys().hasAny(['colors']);
+      return affectedKeys.hasOnly(['colors']) &&
+        request.resource.data.colors is list &&
+        (!hadColors || request.resource.data.colors.size() == resource.data.colors.size());
     }
 
     // Products: publicly readable, only admins can create/delete/edit —
-    // except a customer's checkout may decrement a size's stock (see above).
+    // except a customer's checkout may decrement a color's size stock (see above).
     match /products/{productId} {
       allow read: if true;
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || isValidSizesStockDecrement();
+      allow update: if isAdmin() || isValidColorsStockDecrement();
     }
 
     // Orders: anyone can place an order (create), but only admins can read

@@ -55,7 +55,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
 
   const zoomedItem = zoomedItemIndex !== null ? order.items[zoomedItemIndex] : null;
   const zoomedProduct = zoomedItem ? productsById[zoomedItem.productId] : undefined;
-  const zoomedImage = zoomedProduct?.images[0];
+  const zoomedImage = zoomedProduct?.colors[0]?.images[0];
   const zoomedDescription = zoomedProduct ? zoomedProduct.description[locale] : null;
 
   return (
@@ -102,7 +102,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           <div className="flex flex-col gap-3">
             {order.items.map((item, i) => {
               const product = productsById[item.productId];
-              const image = product?.images[0];
+              const image = product?.colors[0]?.images[0];
               const description = product ? product.description[locale] : null;
               return (
                 <button
@@ -124,7 +124,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
                   <div className="flex-1 min-w-0">
                     <p className="font-body-md text-on-surface">{item.name}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">
-                      ({t.orders.size}: {item.size}) × {item.qty}
+                      ({t.orders.color}: {item.color} · {t.orders.size}: {item.size}) × {item.qty}
                     </p>
                     {product === null ? (
                       <p className="font-label-sm text-label-sm text-error mt-0.5">{t.orders.productUnavailable}</p>
@@ -206,6 +206,10 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           ) : null}
 
           <div className="flex flex-col gap-1.5 font-body-md text-on-surface bg-surface-container-low rounded-2xl p-md">
+            <div className="flex items-center justify-between">
+              <span className="text-on-surface-variant">{t.orders.color}</span>
+              <span>{zoomedItem.color}</span>
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-on-surface-variant">{t.orders.size}</span>
               <span>{zoomedItem.size}</span>

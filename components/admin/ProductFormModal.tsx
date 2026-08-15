@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import type { AgeGroup, Category, NewbornGender, Product, ProductInput } from "@/lib/types";
+import type { AgeGroup, Category, NewbornGender, Product, ProductColor, ProductInput } from "@/lib/types";
 import { auth, db, storage } from "@/lib/firebase/config";
 import { clearProductPrice, createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
 import { uploadProductImage } from "@/lib/firebase/storage";
@@ -29,6 +29,21 @@ type Props = {
   onClose: () => void;
   onSaved: () => void;
 };
+
+type ColorFormState = {
+  label: string;
+  existingImages: string[];
+  newFiles: File[];
+  sizes: { label: string; stock: string }[];
+};
+
+function isColorComplete(color: ColorFormState): boolean {
+  return (
+    color.label.trim() !== "" &&
+    color.existingImages.length + color.newFiles.length > 0 &&
+    color.sizes.some((s) => s.label.trim())
+  );
+}
 
 export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const { t, dir } = useAdminLanguage();
@@ -66,11 +81,14 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [categories, setCategories] = useState<Category[]>(product?.categories ?? []);
   const [newbornGender, setNewbornGender] = useState<NewbornGender | null>(product?.newbornGender ?? null);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
-  const [sizes, setSizes] = useState<{ label: string; stock: string }[]>(
-    product?.sizes.map((s) => ({ label: s.label, stock: s.stock.toString() })) ?? [{ label: "", stock: "" }]
+  const [colors, setColors] = useState<ColorFormState[]>(
+    product?.colors.map((c) => ({
+      label: c.label,
+      existingImages: c.images,
+      newFiles: [],
+      sizes: c.sizes.map((s) => ({ label: s.label, stock: s.stock.toString() })),
+    })) ?? [{ label: "", existingImages: [], newFiles: [], sizes: [{ label: "", stock: "" }] }]
   );
-  const [existingImages, setExistingImages] = useState<string[]>(product?.images ?? []);
-  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,21 +164,44 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     setAgeGroups((prev) => (prev.includes(value) ? prev.filter((a) => a !== value) : [...prev, value]));
   };
 
-  const addSizeRow = () => setSizes((prev) => [...prev, { label: "", stock: "" }]);
-  const removeSizeRow = (index: number) => setSizes((prev) => prev.filter((_, i) => i !== index));
-  const updateSizeRow = (index: number, patch: Partial<{ label: string; stock: string }>) =>
-    setSizes((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)));
+  const addColor = () =>
+    setColors((prev) => [...prev, { label: "", existingImages: [], newFiles: [], sizes: [{ label: "", stock: "" }] }]);
+  const removeColor = (index: number) => setColors((prev) => prev.filter((_, i) => i !== index));
+  const updateColorLabel = (index: number, label: string) =>
+    setColors((prev) => prev.map((c, i) => (i === index ? { ...c, label } : c)));
+  const addColorFiles = (index: number, files: File[]) =>
+    setColors((prev) => prev.map((c, i) => (i === index ? { ...c, newFiles: [...c.newFiles, ...files] } : c)));
+  const removeColorExistingImage = (index: number, url: string) =>
+    setColors((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, existingImages: c.existingImages.filter((u) => u !== url) } : c))
+    );
+  const removeColorNewFile = (index: number, fileIndex: number) =>
+    setColors((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, newFiles: c.newFiles.filter((_, fi) => fi !== fileIndex) } : c))
+    );
+  const addColorSizeRow = (index: number) =>
+    setColors((prev) => prev.map((c, i) => (i === index ? { ...c, sizes: [...c.sizes, { label: "", stock: "" }] } : c)));
+  const removeColorSizeRow = (index: number, sizeIndex: number) =>
+    setColors((prev) =>
+      prev.map((c, i) => (i === index ? { ...c, sizes: c.sizes.filter((_, si) => si !== sizeIndex) } : c))
+    );
+  const updateColorSizeRow = (index: number, sizeIndex: number, patch: Partial<{ label: string; stock: string }>) =>
+    setColors((prev) =>
+      prev.map((c, i) =>
+        i === index ? { ...c, sizes: c.sizes.map((s, si) => (si === sizeIndex ? { ...s, ...patch } : s)) } : c
+      )
+    );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    const validSizes = sizes.filter((s) => s.label.trim());
+    const colorsValid = colors.length > 0 && colors.every(isColorComplete);
     if (
       !nameAr ||
       (priceRequired && !price) ||
       categories.length === 0 ||
-      validSizes.length === 0 ||
+      !colorsValid ||
       (showNewbornGender && !newbornGender)
     ) {
       setError(t.products.errorRequiredFields);
@@ -186,16 +227,25 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         console.log("[debug] fresh ID token obtained, length:", idTokenResult.token.length, "expires:", idTokenResult.expirationTime);
       }
 
-      const uploadedUrls = await Promise.all(newFiles.map((file) => uploadProductImage(id, file)));
-      const images = [...existingImages, ...uploadedUrls];
+      const colorsPayload: ProductColor[] = await Promise.all(
+        colors.map(async (c) => {
+          const uploadedUrls = await Promise.all(c.newFiles.map((file) => uploadProductImage(id, file)));
+          return {
+            label: c.label.trim(),
+            images: [...c.existingImages, ...uploadedUrls],
+            sizes: c.sizes
+              .filter((s) => s.label.trim())
+              .map((s) => ({ label: s.label.trim(), stock: Math.max(0, Number(s.stock) || 0) })),
+          };
+        })
+      );
 
       const data: ProductInput = {
         name: { en: nameEn, ar: nameAr, he: nameHe },
         description: { en: descEn, ar: descAr, he: descHe },
-        images,
+        colors: colorsPayload,
         categories,
         ageGroups: showAgeGroups ? ageGroups : [],
-        sizes: validSizes.map((s) => ({ label: s.label.trim(), stock: Math.max(0, Number(s.stock) || 0) })),
         // Visibility is managed exclusively via the eye-icon toggle on the
         // products table, not this form — pass through the existing value
         // unchanged when editing. New products default to hidden so a whole
@@ -293,44 +343,119 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
           />
 
           <div>
-            <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.sizesLabel}</label>
-            <div className="flex flex-col gap-2">
-              {sizes.map((row, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    value={row.label}
-                    onChange={(e) => updateSizeRow(i, { label: e.target.value })}
-                    placeholder={t.products.sizeLabelPlaceholder}
-                    className="flex-1 bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                  />
-                  <input
-                    type="number"
-                    min={0}
-                    value={row.stock}
-                    onChange={(e) => updateSizeRow(i, { stock: e.target.value })}
-                    placeholder={t.products.sizeStockPlaceholder}
-                    className="w-28 bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeSizeRow(i)}
-                    disabled={sizes.length <= 1}
-                    aria-label={t.products.removeSize}
-                    className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
-                  >
-                    <span className="material-symbols-outlined">delete</span>
-                  </button>
+            <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.colorsLabel}</label>
+            <div className="flex flex-col gap-md">
+              {colors.map((color, ci) => (
+                <div key={ci} className="bg-surface-container-low rounded-xl border border-outline-variant p-3 flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={color.label}
+                      onChange={(e) => updateColorLabel(ci, e.target.value)}
+                      placeholder={t.products.colorLabelPlaceholder}
+                      className="flex-1 bg-surface rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeColor(ci)}
+                      disabled={colors.length <= 1}
+                      aria-label={t.products.removeColor}
+                      className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                    >
+                      <span className="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block font-label-sm text-label-sm text-on-surface-variant mb-2">{t.products.images}</label>
+                    <div className="flex flex-wrap gap-sm mb-sm">
+                      {color.existingImages.map((url) => (
+                        <div key={url} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeColorExistingImage(ci, url)}
+                            className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">close</span>
+                          </button>
+                        </div>
+                      ))}
+                      {color.newFiles.map((file, fi) => (
+                        <div key={fi} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeColorNewFile(ci, fi)}
+                            className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">close</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => addColorFiles(ci, Array.from(e.target.files ?? []))}
+                      className="text-on-surface-variant font-body-md text-[14px]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.sizesLabel}</label>
+                    <div className="flex flex-col gap-2">
+                      {color.sizes.map((row, si) => (
+                        <div key={si} className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={row.label}
+                            onChange={(e) => updateColorSizeRow(ci, si, { label: e.target.value })}
+                            placeholder={t.products.sizeLabelPlaceholder}
+                            className="flex-1 bg-surface rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                          />
+                          <input
+                            type="number"
+                            min={0}
+                            value={row.stock}
+                            onChange={(e) => updateColorSizeRow(ci, si, { stock: e.target.value })}
+                            placeholder={t.products.sizeStockPlaceholder}
+                            className="w-28 bg-surface rounded-xl border border-outline-variant px-3 py-2 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeColorSizeRow(ci, si)}
+                            disabled={color.sizes.length <= 1}
+                            aria-label={t.products.removeSize}
+                            className="text-on-surface-variant hover:text-error transition-colors disabled:opacity-30 disabled:cursor-not-allowed shrink-0"
+                          >
+                            <span className="material-symbols-outlined">delete</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => addColorSizeRow(ci)}
+                      className="mt-2 flex items-center gap-1 font-label-md text-label-md text-primary hover:text-secondary transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">add</span>
+                      {t.products.addSize}
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
             <button
               type="button"
-              onClick={addSizeRow}
-              className="mt-2 flex items-center gap-1 font-label-md text-label-md text-primary hover:text-secondary transition-colors"
+              onClick={addColor}
+              className="mt-3 flex items-center gap-1 font-label-md text-label-md text-primary hover:text-secondary transition-colors"
             >
               <span className="material-symbols-outlined text-[18px]">add</span>
-              {t.products.addSize}
+              {t.products.addColor}
             </button>
           </div>
 
@@ -396,45 +521,6 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                 <p className="font-label-sm text-label-sm text-on-surface-variant mt-1">{t.products.ageGroupsHiddenNote}</p>
               )}
             </div>
-          </div>
-
-          <div>
-            <label className="block font-label-sm text-label-sm text-on-surface-variant mb-2">{t.products.images}</label>
-            <div className="flex flex-wrap gap-sm mb-sm">
-              {existingImages.map((url) => (
-                <div key={url} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container-low">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setExistingImages((prev) => prev.filter((u) => u !== url))}
-                    className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">close</span>
-                  </button>
-                </div>
-              ))}
-              {newFiles.map((file, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container-low">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setNewFiles((prev) => prev.filter((_, idx) => idx !== i))}
-                    className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
-                  >
-                    <span className="material-symbols-outlined text-[14px]">close</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => setNewFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
-              className="text-on-surface-variant font-body-md text-[14px]"
-            />
           </div>
 
           <div className="flex justify-end gap-sm mt-md">

@@ -34,6 +34,15 @@ export type ProductSize = {
   stock: number;
 };
 
+// Each color variant carries its own images and size/stock tracking — price
+// is deliberately NOT here, it stays a single top-level field shared across
+// every color of a product.
+export type ProductColor = {
+  label: string;
+  images: string[];
+  sizes: ProductSize[];
+};
+
 export type Product = {
   id: string;
   name: LocalizedText;
@@ -41,11 +50,10 @@ export type Product = {
   // Optional so wholesale ("الجملة") items can be listed without a price —
   // display code must hide the price entirely rather than showing ₪0.
   price?: number;
-  images: string[];
+  colors: ProductColor[];
   categories: Category[];
   newbornGender?: NewbornGender;
   ageGroups: AgeGroup[];
-  sizes: ProductSize[];
   isVisible: boolean;
 };
 
@@ -58,6 +66,7 @@ export type ShippingRegion = "westBank" | "jerusalem" | "inside";
 export type OrderItem = {
   productId: string;
   name: string;
+  color: string;
   size: string;
   qty: number;
   price: number;
@@ -84,6 +93,7 @@ export type CartItem = {
   // undefined rather than defaulted to 0 so display code can hide it.
   price?: number;
   image: string | null;
+  color: string;
   size: string;
   qty: number;
   stock: number;

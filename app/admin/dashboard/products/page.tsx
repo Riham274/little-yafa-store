@@ -219,9 +219,9 @@ export default function AdminProductsPage() {
                 <td className="py-3 px-md">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
-                      {product.images[0] && (
+                      {product.colors[0]?.images[0] && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                        <img src={product.colors[0].images[0]} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
                     <span className="font-body-md text-on-surface">{product.name.en}</span>
@@ -291,9 +291,9 @@ export default function AdminProductsPage() {
             }`}
           >
             <div className="w-16 h-16 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
-              {product.images[0] && (
+              {product.colors[0]?.images[0] && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={product.images[0]} alt="" className="w-full h-full object-cover" />
+                <img src={product.colors[0].images[0]} alt="" className="w-full h-full object-cover" />
               )}
             </div>
             <div className="flex-1 min-w-0">

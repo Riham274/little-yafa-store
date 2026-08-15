@@ -14,20 +14,41 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { AgeGroup, Category, Product, ProductInput, ProductSize } from "@/lib/types";
+import type { AgeGroup, Category, Product, ProductColor, ProductInput, ProductSize } from "@/lib/types";
 
 const PRODUCTS_COLLECTION = "products";
+
+// Label given to the single color variant synthesized from a pre-colors-
+// feature product's flat `images`/`sizes` fields — both here (read-time
+// fallback) and in scripts/migrate-colors.mjs (the one-time write).
+export const DEFAULT_COLOR_LABEL = "افتراضي";
+
+/** Derives a product's `colors` array from raw Firestore doc data, wrapping
+ * a pre-colors-feature doc's flat `images`/`sizes` (or even older single
+ * `stock`) fields into one synthesized color if `colors` itself is absent.
+ * Shared by toProduct() (storefront/admin reads) and placeOrder() (which
+ * reads raw transaction snapshots directly, bypassing toProduct) so an
+ * unmigrated product can still be browsed AND successfully ordered. */
+export function deriveProductColors(data: Record<string, unknown>): ProductColor[] {
+  const legacyStock = data.stock as number | undefined;
+  const legacyImages = Array.isArray(data.images) ? (data.images as string[]) : [];
+  const legacySizes = Array.isArray(data.sizes)
+    ? (data.sizes as ProductSize[])
+    : legacyStock !== undefined
+      ? [{ label: "One Size", stock: Number(legacyStock) || 0 }]
+      : [];
+  return Array.isArray(data.colors)
+    ? (data.colors as ProductColor[])
+    : legacyImages.length > 0 || legacySizes.length > 0
+      ? [{ label: DEFAULT_COLOR_LABEL, images: legacyImages, sizes: legacySizes }]
+      : [];
+}
 
 function toProduct(id: string, data: Record<string, unknown>): Product {
   // Legacy single-value field — kept as a defensive fallback in case any
   // doc predates the sections[]/ageGroups[] migration.
   const legacySection = data.section as string | undefined;
   const legacyAgeGroup = data.ageGroup as AgeGroup | null | undefined;
-
-  // Legacy single `stock` number — docs that predate the sizes[] migration
-  // are collapsed into a single "One Size" entry so they keep working until
-  // the one-time migration script (or an admin edit) converts them properly.
-  const legacyStock = data.stock as number | undefined;
 
   // The `categories` field replaced `sections` (renamed alongside the old
   // "hospital" value becoming "newborn"). The migration script converts
@@ -61,7 +82,9 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
     // Left undefined (not defaulted to 0) when the field is absent, so
     // display code can distinguish "no price set" from "priced at ₪0".
     price: typeof data.price === "number" ? data.price : undefined,
-    images: Array.isArray(data.images) ? (data.images as string[]) : [],
+    // `colors` replaced the old flat `images`/`sizes` fields — see
+    // deriveProductColors() for the migration fallback applied here.
+    colors: deriveProductColors(data),
     categories,
     newbornGender,
     ageGroups: Array.isArray(data.ageGroups)
@@ -69,33 +92,29 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : legacyAgeGroup
         ? [legacyAgeGroup]
         : [],
-    sizes: Array.isArray(data.sizes)
-      ? (data.sizes as ProductSize[])
-      : legacyStock !== undefined
-        ? [{ label: "One Size", stock: Number(legacyStock) || 0 }]
-        : [],
     // Missing field == visible, so products created before this field
     // existed keep showing up on the storefront exactly as before.
     isVisible: data.isVisible !== false,
   };
 }
 
-/** Sum of stock across all sizes — the closest equivalent to the old
- * single `stock` field, used anywhere the app needs one aggregate number
- * (out-of-stock checks, admin stat cards, low-stock lists). */
-export function getTotalStock(product: Pick<Product, "sizes">): number {
-  return product.sizes.reduce((sum, s) => sum + s.stock, 0);
+/** Sum of stock across every color's sizes — the closest equivalent to the
+ * old single `stock` field, used anywhere the app needs one aggregate
+ * number (out-of-stock checks, admin stat cards, low-stock lists). */
+export function getTotalStock(product: Pick<Product, "colors">): number {
+  return product.colors.reduce((sum, c) => sum + c.sizes.reduce((s, sz) => s + sz.stock, 0), 0);
 }
 
-/** Per-size stock status, used by the admin Stock filter — distinct from
- * getTotalStock's sum-based threshold, since a product can have plenty of
- * total stock while one specific size is nearly gone. */
-export function isProductLowStock(product: Pick<Product, "sizes">): boolean {
-  return product.sizes.some((s) => s.stock >= 1 && s.stock <= 3);
+/** True if at least one color+size combination has 1-3 in stock — distinct
+ * from getTotalStock's sum-based threshold, since a product can have plenty
+ * of total stock while one specific color/size is nearly gone. */
+export function isProductLowStock(product: Pick<Product, "colors">): boolean {
+  return product.colors.some((c) => c.sizes.some((s) => s.stock >= 1 && s.stock <= 3));
 }
 
-export function isProductOutOfStock(product: Pick<Product, "sizes">): boolean {
-  return product.sizes.every((s) => s.stock <= 0);
+/** True only when every color+size combination is at 0 stock. */
+export function isProductOutOfStock(product: Pick<Product, "colors">): boolean {
+  return product.colors.every((c) => c.sizes.every((s) => s.stock <= 0));
 }
 
 // Firestore can't query "isVisible == true OR field missing" in one
