@@ -1,14 +1,22 @@
 "use client";
 
 import { useRef, useState } from "react";
-import type { TouchEvent, MouseEvent } from "react";
+import type { ReactNode, TouchEvent, MouseEvent } from "react";
 import Image from "next/image";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 
 const SWIPE_THRESHOLD = 40; // px of horizontal movement before it counts as a swipe
 
-export default function ImageGallery({ images, alt }: { images: string[]; alt: string }) {
+export default function ImageGallery({
+  images,
+  alt,
+  badge,
+}: {
+  images: string[];
+  alt: string;
+  badge?: ReactNode;
+}) {
   const { dir } = useLanguage();
   const [active, setActive] = useState(0);
   const pics = images.length > 0 ? images : [null];
@@ -71,6 +79,7 @@ export default function ImageGallery({ images, alt }: { images: string[]; alt: s
             <span className="material-symbols-outlined text-6xl">image</span>
           </div>
         )}
+        {badge}
       </div>
       {pics.length > 1 && (
         <div className="flex gap-sm">

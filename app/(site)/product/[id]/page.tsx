@@ -9,6 +9,7 @@ import type { Product } from "@/lib/types";
 import ImageGallery from "@/components/product/ImageGallery";
 import SimilarProducts from "@/components/product/SimilarProducts";
 import PriceTag from "@/components/product/PriceTag";
+import ProductStatusBadge from "@/components/product/ProductStatusBadge";
 import PageLoader from "@/components/ui/PageLoader";
 
 export default function ProductDetailPage() {
@@ -97,7 +98,11 @@ export default function ProductDetailPage() {
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-lg">
         <div className="md:col-span-7">
-          <ImageGallery images={selectedColor?.images ?? []} alt={product.name[locale]} />
+          <ImageGallery
+            images={selectedColor?.images ?? []}
+            alt={product.name[locale]}
+            badge={<ProductStatusBadge product={product} />}
+          />
         </div>
         <div className="md:col-span-5">
           <h1 className="font-headline-md text-headline-md text-on-surface mb-2">{product.name[locale]}</h1>

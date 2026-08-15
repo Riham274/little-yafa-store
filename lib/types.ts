@@ -62,9 +62,13 @@ export type Product = {
   newbornGender?: NewbornGender;
   ageGroups: AgeGroup[];
   isVisible: boolean;
+  // Server-set at creation time (see createProduct()) — powers the "New"
+  // badge, not editable through the admin form. Defaults to 0 (epoch) for
+  // any doc that predates this field, so old products never show as new.
+  createdAt: number;
 };
 
-export type ProductInput = Omit<Product, "id">;
+export type ProductInput = Omit<Product, "id" | "createdAt">;
 
 export type OrderStatus = "new" | "processing" | "delivered";
 

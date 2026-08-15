@@ -6,9 +6,10 @@ import { useLanguage } from "@/context/LanguageContext";
 import { getTotalStock } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
 import PriceTag from "./PriceTag";
+import ProductStatusBadge from "./ProductStatusBadge";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { locale, t } = useLanguage();
+  const { locale } = useLanguage();
   const outOfStock = getTotalStock(product) <= 0;
   const image = product.colors[0]?.images[0];
 
@@ -31,13 +32,7 @@ export default function ProductCard({ product }: { product: Product }) {
             <span className="material-symbols-outlined text-4xl">image</span>
           </div>
         )}
-        {outOfStock && (
-          <div className="absolute top-2 left-2">
-            <span className="bg-on-surface/80 text-inverse-on-surface text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">
-              {t.product.outOfStock}
-            </span>
-          </div>
-        )}
+        <ProductStatusBadge product={product} />
       </div>
       <div>
         <h3 className="font-label-md text-label-md text-on-surface line-clamp-1">{product.name[locale]}</h3>

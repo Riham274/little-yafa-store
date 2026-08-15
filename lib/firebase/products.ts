@@ -7,6 +7,7 @@ import {
   getDocs,
   onSnapshot,
   query,
+  serverTimestamp,
   setDoc,
   updateDoc,
   where,
@@ -75,6 +76,11 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : "unisex"
     : rawNewbornGender;
 
+  // Absent on any doc created before this field existed — defaults to epoch
+  // (not Date.now()) so those older products never register as "new".
+  const rawCreatedAt = data.createdAt as { toMillis?: () => number } | undefined;
+  const createdAt = rawCreatedAt?.toMillis ? rawCreatedAt.toMillis() : 0;
+
   return {
     id,
     name: data.name as Product["name"],
@@ -96,6 +102,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
     // Missing field == visible, so products created before this field
     // existed keep showing up on the storefront exactly as before.
     isVisible: data.isVisible !== false,
+    createdAt,
   };
 }
 
@@ -184,7 +191,7 @@ export function newProductRef() {
 }
 
 export async function createProduct(id: string, input: ProductInput): Promise<void> {
-  await setDoc(doc(db, PRODUCTS_COLLECTION, id), input);
+  await setDoc(doc(db, PRODUCTS_COLLECTION, id), { ...input, createdAt: serverTimestamp() });
 }
 
 /** Explicitly clears a product's price field in Firestore — omitting
