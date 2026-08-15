@@ -5,9 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAllProducts } from "@/lib/firebase/products";
 import { searchProducts } from "@/lib/searchProducts";
+import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import ProductGrid from "@/components/product/ProductGrid";
+import SortSelect from "@/components/product/SortSelect";
 
 function SearchResults() {
   const { t, locale } = useLanguage();
@@ -15,14 +17,15 @@ function SearchResults() {
   const query = searchParams.get("q") ?? "";
 
   const [allProducts, setAllProducts] = useState<Product[] | null>(null);
+  const [sort, setSort] = useState<SortOption | null>(null);
 
   useEffect(() => {
     getAllProducts().then(setAllProducts);
   }, []);
 
   const results = useMemo(
-    () => (allProducts ? searchProducts(allProducts, query, locale) : []),
-    [allProducts, query, locale]
+    () => (allProducts ? sortProducts(searchProducts(allProducts, query, locale), sort ?? "newest") : []),
+    [allProducts, query, locale, sort]
   );
 
   return (
@@ -31,6 +34,12 @@ function SearchResults() {
         {t.search.title}
         {query && <span className="text-on-surface-variant">{` "${query}"`}</span>}
       </h1>
+
+      {allProducts !== null && results.length > 0 && (
+        <div className="flex justify-end mb-lg">
+          <SortSelect value={sort} onChange={setSort} />
+        </div>
+      )}
 
       {allProducts === null ? (
         <PageLoader />

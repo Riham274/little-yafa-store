@@ -4,11 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategory } from "@/lib/firebase/products";
+import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { AgeGroup, Category, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import AgeFilterPills from "./AgeFilterPills";
 import GenderFilterPills, { type GenderFilterValue } from "./GenderFilterPills";
 import ProductGrid from "./ProductGrid";
+import SortSelect from "./SortSelect";
 
 export default function CategoryPageContent({
   category,
@@ -26,6 +28,7 @@ export default function CategoryPageContent({
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sort, setSort] = useState<SortOption | null>(null);
 
   const activeAge = (searchParams.get("age") as AgeGroup | null) ?? null;
   const activeGender = (searchParams.get("gender") as GenderFilterValue | null) ?? null;
@@ -48,8 +51,8 @@ export default function CategoryPageContent({
     if (showGenderFilter && activeGender) {
       result = result.filter((p) => p.newbornGender === activeGender || p.newbornGender === "unisex");
     }
-    return result;
-  }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter]);
+    return sortProducts(result, sort ?? "newest");
+  }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter, sort]);
 
   const handleAgeChange = (age: AgeGroup | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -69,8 +72,15 @@ export default function CategoryPageContent({
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
       <h1 className="font-headline-md text-headline-md md:text-display-lg-mobile text-on-surface mb-md">{title}</h1>
 
-      {showAgeFilter && <AgeFilterPills active={activeAge} onChange={handleAgeChange} />}
-      {showGenderFilter && <GenderFilterPills active={activeGender} onChange={handleGenderChange} />}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
+        {(showAgeFilter || showGenderFilter) && (
+          <div className="min-w-0 sm:flex-1">
+            {showAgeFilter && <AgeFilterPills active={activeAge} onChange={handleAgeChange} />}
+            {showGenderFilter && <GenderFilterPills active={activeGender} onChange={handleGenderChange} />}
+          </div>
+        )}
+        <SortSelect value={sort} onChange={setSort} className="self-end sm:self-auto sm:ms-auto" />
+      </div>
 
       <div className="mt-lg">
         {loading ? (
