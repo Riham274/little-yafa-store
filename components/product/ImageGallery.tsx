@@ -73,7 +73,14 @@ export default function ImageGallery({
         onMouseLeave={() => (mouseStartX.current = null)}
       >
         {pics[active] ? (
-          <ImageWithSpinner src={pics[active] as string} alt={alt} fill priority className="object-cover" />
+          <ImageWithSpinner
+            src={pics[active] as string}
+            alt={alt}
+            fill
+            preload
+            sizes="(max-width: 768px) 100vw, 58vw"
+            className="object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
             <span className="material-symbols-outlined text-6xl">image</span>
@@ -90,7 +97,7 @@ export default function ImageGallery({
               className="relative aspect-square w-20 rounded-xl overflow-hidden border-2 transition-colors"
               style={{ borderColor: active === i ? "#8C916F" : "transparent" }}
             >
-              {pic && <Image src={pic} alt="" fill className="object-cover" />}
+              {pic && <Image src={pic} alt="" fill sizes="80px" className="object-cover" />}
             </button>
           ))}
         </div>

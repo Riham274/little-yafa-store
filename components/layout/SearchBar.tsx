@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAllProducts } from "@/lib/firebase/products";
@@ -100,13 +101,14 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                     onClick={closeDropdown}
                     className="flex items-center gap-3 p-2.5 hover:bg-surface-container-low transition-colors"
                   >
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-surface-container-low shrink-0">
+                    <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-surface-container-low shrink-0">
                       {product.colors[0]?.images[0] ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <Image
                           src={product.colors[0].images[0]}
                           alt=""
-                          className="w-full h-full object-cover"
+                          fill
+                          sizes="40px"
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-on-surface-variant">

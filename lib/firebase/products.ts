@@ -130,15 +130,59 @@ export function isProductOutOfStock(product: Pick<Product, "colors">): boolean {
 // customer-facing reads fetch normally and filter client-side after
 // toProduct() has already applied the missing-field-means-visible fallback.
 
+// Short-lived in-memory cache for the two whole-catalog reads. Several
+// independent components (search bar, featured section, shop-all, sale
+// page, every category page) each call these on mount, often within the
+// same navigation — without this, browsing around re-fetches the entire
+// products collection over and over. The TTL keeps the storefront eventually
+// consistent without a real-time listener; any admin write clears it
+// immediately via invalidateProductCaches() so edits show up right away.
+const CACHE_TTL_MS = 60_000;
+
+let allProductsCache: { data: Product[]; expiresAt: number } | null = null;
+let allProductsPromise: Promise<Product[]> | null = null;
+const categoryCache = new Map<Category, { data: Product[]; expiresAt: number }>();
+const categoryPromises = new Map<Category, Promise<Product[]>>();
+
+function invalidateProductCaches(): void {
+  allProductsCache = null;
+  categoryCache.clear();
+}
+
 export async function getProductsByCategory(category: Category): Promise<Product[]> {
-  const q = query(collection(db, PRODUCTS_COLLECTION), where("categories", "array-contains", category));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+  const now = Date.now();
+  const cached = categoryCache.get(category);
+  if (cached && now < cached.expiresAt) return cached.data;
+
+  let pending = categoryPromises.get(category);
+  if (!pending) {
+    pending = (async () => {
+      const q = query(collection(db, PRODUCTS_COLLECTION), where("categories", "array-contains", category));
+      const snap = await getDocs(q);
+      const data = snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+      categoryCache.set(category, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+      return data;
+    })().finally(() => categoryPromises.delete(category));
+    categoryPromises.set(category, pending);
+  }
+  return pending;
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
-  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+  const now = Date.now();
+  if (allProductsCache && now < allProductsCache.expiresAt) return allProductsCache.data;
+
+  if (!allProductsPromise) {
+    allProductsPromise = (async () => {
+      const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
+      const data = snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+      allProductsCache = { data, expiresAt: Date.now() + CACHE_TTL_MS };
+      return data;
+    })().finally(() => {
+      allProductsPromise = null;
+    });
+  }
+  return allProductsPromise;
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -192,6 +236,7 @@ export function newProductRef() {
 
 export async function createProduct(id: string, input: ProductInput): Promise<void> {
   await setDoc(doc(db, PRODUCTS_COLLECTION, id), { ...input, createdAt: serverTimestamp() });
+  invalidateProductCaches();
 }
 
 /** Explicitly clears a product's price field in Firestore — omitting
@@ -200,19 +245,23 @@ export async function createProduct(id: string, input: ProductInput): Promise<vo
  * item's price needs this instead. */
 export async function clearProductPrice(id: string): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { price: deleteField() });
+  invalidateProductCaches();
 }
 
 /** Mirrors clearProductPrice() for the optional sale-price field. */
 export async function clearProductSalePrice(id: string): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { salePrice: deleteField() });
+  invalidateProductCaches();
 }
 
 export async function updateProduct(id: string, input: Partial<ProductInput>): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), input);
+  invalidateProductCaches();
 }
 
 export async function setProductVisibility(id: string, isVisible: boolean): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { isVisible });
+  invalidateProductCaches();
 }
 
 /** Bulk visibility toggle for the admin table's master show-all/hide-all
@@ -222,10 +271,12 @@ export async function setProductsVisibility(ids: string[], isVisible: boolean): 
   const batch = writeBatch(db);
   ids.forEach((id) => batch.update(doc(db, PRODUCTS_COLLECTION, id), { isVisible }));
   await batch.commit();
+  invalidateProductCaches();
 }
 
 export async function deleteProduct(id: string): Promise<void> {
   await deleteDoc(doc(db, PRODUCTS_COLLECTION, id));
+  invalidateProductCaches();
 }
 
 export { PRODUCTS_COLLECTION };

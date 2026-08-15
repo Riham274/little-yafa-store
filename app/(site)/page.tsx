@@ -62,7 +62,7 @@ export default function HomePage() {
           alt="Little Yafa — Baby & Kids Store"
           width={628}
           height={397}
-          priority
+          preload
           className="w-24 sm:w-28 md:w-36 lg:w-40 h-auto"
         />
       </section>

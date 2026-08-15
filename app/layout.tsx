@@ -23,7 +23,7 @@ const ibmPlexSansArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: "Little Yafa | Premium Baby Boutique",
+  title: "Little Yafa Store",
   description:
     "Little Yafa — Premium organic baby clothing and accessories. Handcrafted with love, inspired by Palestine.",
 };

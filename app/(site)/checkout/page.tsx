@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
@@ -203,10 +204,9 @@ export default function CheckoutPage() {
           <div className="flex flex-col gap-4 mb-md">
             {items.map((item) => (
               <div key={`${item.productId}-${item.color}-${item.size}`} className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0">
+                <div className="relative w-16 h-16 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0">
                   {item.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.image} alt={item.name[locale]} className="w-full h-full object-cover" />
+                    <Image src={item.image} alt={item.name[locale]} fill sizes="64px" className="object-cover" />
                   )}
                 </div>
                 <div className="flex-1">

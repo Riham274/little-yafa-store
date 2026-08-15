@@ -15,7 +15,13 @@ export default function CartItemRow({ item }: { item: CartItem }) {
     <div className="bg-surface-container-lowest rounded-[2rem] p-base md:p-md cloud-shadow flex gap-md items-center">
       <div className="relative w-24 h-24 md:w-40 md:h-40 rounded-xl overflow-hidden shrink-0 bg-surface-container-low">
         {item.image ? (
-          <ImageWithSpinner src={item.image} alt={item.name[locale]} fill className="object-cover" />
+          <ImageWithSpinner
+            src={item.image}
+            alt={item.name[locale]}
+            fill
+            sizes="(max-width: 768px) 96px, 160px"
+            className="object-cover"
+          />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
             <span className="material-symbols-outlined text-3xl">image</span>
