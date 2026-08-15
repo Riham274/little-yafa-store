@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAllProducts } from "@/lib/firebase/products";
 import { searchProducts } from "@/lib/searchProducts";
-import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
+import PriceTag from "@/components/product/PriceTag";
 
 const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 6;
@@ -117,7 +117,13 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                     <div className="flex-1 min-w-0">
                       <p className="font-label-sm text-label-sm text-on-surface truncate">{product.name[locale]}</p>
                       {product.price !== undefined && (
-                        <p className="font-label-sm text-label-sm text-on-surface-variant">{formatPrice(product.price)}</p>
+                        <p className="font-label-sm text-label-sm text-on-surface-variant">
+                          <PriceTag
+                            price={product.price}
+                            salePrice={product.salePrice}
+                            priceClassName="text-on-surface-variant"
+                          />
+                        </p>
                       )}
                     </div>
                   </Link>

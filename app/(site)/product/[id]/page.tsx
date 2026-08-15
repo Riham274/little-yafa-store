@@ -5,10 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { getProductById, getSimilarProducts, getTotalStock } from "@/lib/firebase/products";
-import { formatPrice } from "@/lib/format";
 import type { Product } from "@/lib/types";
 import ImageGallery from "@/components/product/ImageGallery";
 import SimilarProducts from "@/components/product/SimilarProducts";
+import PriceTag from "@/components/product/PriceTag";
 import PageLoader from "@/components/ui/PageLoader";
 
 export default function ProductDetailPage() {
@@ -103,7 +103,9 @@ export default function ProductDetailPage() {
           <h1 className="font-headline-md text-headline-md text-on-surface mb-2">{product.name[locale]}</h1>
           <p className="font-body-md text-on-surface-variant mb-md">{product.description[locale]}</p>
           {product.price !== undefined && (
-            <p className="font-headline-sm text-headline-sm text-secondary mb-md">{formatPrice(product.price)}</p>
+            <p className="font-headline-sm text-headline-sm mb-md">
+              <PriceTag price={product.price} salePrice={product.salePrice} priceClassName="text-secondary" />
+            </p>
           )}
 
           {outOfStock ? (

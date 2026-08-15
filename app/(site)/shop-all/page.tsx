@@ -18,6 +18,9 @@ const ALL_CATEGORIES: Category[] = [
   "blankets",
   "accessories",
   "bath",
+  "shoes",
+  "dresses",
+  "winter",
 ];
 const PER_CATEGORY = 2;
 

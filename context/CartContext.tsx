@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { CartItem, Product } from "@/lib/types";
+import { isProductOnSale } from "@/lib/sale";
 
 const STORAGE_KEY = "little-yafa-cart";
 
@@ -39,6 +40,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addItem = (product: Product, qty: number, color: string, size: string) => {
     const colorEntry = product.colors.find((c) => c.label === color);
     const maxQty = colorEntry?.sizes.find((s) => s.label === size)?.stock ?? 0;
+    const onSale = isProductOnSale(product);
     setItems((prev) => {
       const existing = prev.find(
         (item) => item.productId === product.id && item.color === color && item.size === size
@@ -55,7 +57,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         {
           productId: product.id,
           name: product.name,
-          price: product.price,
+          price: onSale ? product.salePrice : product.price,
+          originalPrice: onSale ? product.price : undefined,
           image: colorEntry?.images[0] ?? null,
           color,
           size,

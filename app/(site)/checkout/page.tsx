@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/format";
 import { placeOrder, InsufficientStockError } from "@/lib/firebase/orders";
 import { SHIPPING_RATES } from "@/lib/shipping";
 import type { ShippingRegion } from "@/lib/types";
+import PriceTag from "@/components/product/PriceTag";
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
 
@@ -215,7 +216,13 @@ export default function CheckoutPage() {
                   </p>
                 </div>
                 {item.price !== undefined && (
-                  <p className="font-body-md text-on-surface">{formatPrice(item.price * item.qty)}</p>
+                  <p className="font-body-md text-on-surface">
+                    <PriceTag
+                      price={(item.originalPrice ?? item.price) * item.qty}
+                      salePrice={item.originalPrice !== undefined ? item.price * item.qty : undefined}
+                      priceClassName="text-on-surface"
+                    />
+                  </p>
                 )}
               </div>
             ))}

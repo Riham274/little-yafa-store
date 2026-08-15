@@ -20,7 +20,10 @@ export type Category =
   | "wholesale"
   | "blankets"
   | "accessories"
-  | "bath";
+  | "bath"
+  | "shoes"
+  | "dresses"
+  | "winter";
 
 export type AgeGroup = "0-3m" | "3-24m" | "2-10y";
 
@@ -50,6 +53,10 @@ export type Product = {
   // Optional so wholesale ("الجملة") items can be listed without a price —
   // display code must hide the price entirely rather than showing ₪0.
   price?: number;
+  // A product is "on sale" when this is set and lower than `price` — see
+  // isProductOnSale() in lib/sale.ts. Not a separate category: the Sale page
+  // and card derive membership from this field rather than a manual tag.
+  salePrice?: number;
   colors: ProductColor[];
   categories: Category[];
   newbornGender?: NewbornGender;
@@ -69,7 +76,12 @@ export type OrderItem = {
   color: string;
   size: string;
   qty: number;
+  // Amount actually charged per unit (the sale price when the item was
+  // bought on sale, otherwise the regular price).
   price: number;
+  // Regular price, present only if this item was bought on sale — kept so
+  // order records can still show the discount after the fact.
+  originalPrice?: number;
 };
 
 export type Order = {
@@ -91,7 +103,13 @@ export type CartItem = {
   name: LocalizedText;
   // Optional to carry a priceless wholesale product through the cart — kept
   // undefined rather than defaulted to 0 so display code can hide it.
+  // Amount actually charged per unit (the sale price if the product was on
+  // sale when added, otherwise the regular price) — used directly in
+  // subtotal/total math elsewhere so those calculations stay untouched.
   price?: number;
+  // Regular price, present only if this item was on sale when added to the
+  // cart — used purely for the strikethrough display, never in totals.
+  originalPrice?: number;
   image: string | null;
   color: string;
   size: string;

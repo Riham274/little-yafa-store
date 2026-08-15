@@ -118,6 +118,9 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
         size: item.size,
         qty: item.qty,
         price: item.price ?? 0,
+        // Firestore rejects `undefined` field values, so this is only
+        // included when the item was actually bought on sale.
+        ...(item.originalPrice !== undefined ? { originalPrice: item.originalPrice } : {}),
       })),
       total,
       status: "new" satisfies OrderStatus,

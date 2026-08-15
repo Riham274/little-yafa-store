@@ -6,6 +6,30 @@ import { Boxes } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
 
+// Icon source files aren't guaranteed to share the same intrinsic aspect
+// ratio (e.g. icon-sale-olive.png is a tall 304x597 tag glyph vs. the square
+// ~280x280 garment icons), which previously threw off the card's computed
+// size when width/height props were used. Rendering into a fixed square box
+// with `fill` + `object-contain` keeps every card the same size regardless
+// of the source image's own dimensions.
+function CategoryCard({ href, label, icon }: { href: string; label: string; icon: string }) {
+  return (
+    <Link href={href} className="group flex flex-col items-center">
+      <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
+        <div className="relative w-[84%] aspect-square">
+          <Image src={icon} alt={label} fill sizes="120px" className="object-contain" />
+        </div>
+        <span
+          className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
+          style={{ color: "#8C916F", fontWeight: 500 }}
+        >
+          {label}
+        </span>
+      </div>
+    </Link>
+  );
+}
+
 export default function HomePage() {
   const { t } = useLanguage();
   const categories = [
@@ -13,6 +37,12 @@ export default function HomePage() {
     { href: "/newborn", label: t.home.categoryBaby, icon: "/icon-baby.png" },
     { href: "/girls", label: t.home.categoryGirl, icon: "/icon-girl.png" },
     { href: "/boys", label: t.home.categoryBoy, icon: "/icon-boy.png" },
+  ];
+  const categoriesRow2 = [
+    { href: "/sale", label: t.home.categoryDiscounts, icon: "/icon-sale-olive.png" },
+    { href: "/shoes", label: t.home.categoryShoes, icon: "/icon-shoes.png" },
+    { href: "/dresses", label: t.home.categoryDresses, icon: "/icon-dresses.png" },
+    { href: "/winter", label: t.home.categoryWinter, icon: "/icon-winter.png" },
   ];
   const services = [
     { href: "/bath", label: t.home.bathEssentials, icon: "/icon2-bath-essentials.png" },
@@ -53,20 +83,17 @@ export default function HomePage() {
 
       {/* Categories */}
       <section className="bg-[#8C916F] px-gutter py-lg md:py-xl fade-in-up">
-        <div className="max-w-[640px] mx-auto grid grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-          {categories.map((cat) => (
-            <Link key={cat.href + cat.label} href={cat.href} className="group flex flex-col items-center">
-              <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                <Image src={cat.icon} alt={cat.label} width={96} height={96} className="w-[84%] h-auto object-contain" />
-                <span
-                  className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
-                  style={{ color: "#8C916F", fontWeight: 500 }}
-                >
-                  {cat.label}
-                </span>
-              </div>
-            </Link>
-          ))}
+        <div className="max-w-[640px] mx-auto flex flex-col gap-3 sm:gap-4 md:gap-6">
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            {categories.map((cat) => (
+              <CategoryCard key={cat.href + cat.label} {...cat} />
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+            {categoriesRow2.map((cat) => (
+              <CategoryCard key={cat.href + cat.label} {...cat} />
+            ))}
+          </div>
         </div>
       </section>
 

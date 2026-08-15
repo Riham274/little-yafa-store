@@ -3,9 +3,9 @@
 import Link from "next/link";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
-import { formatPrice } from "@/lib/format";
 import { getTotalStock } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
+import PriceTag from "./PriceTag";
 
 export default function ProductCard({ product }: { product: Product }) {
   const { locale, t } = useLanguage();
@@ -42,9 +42,12 @@ export default function ProductCard({ product }: { product: Product }) {
       <div>
         <h3 className="font-label-md text-label-md text-on-surface line-clamp-1">{product.name[locale]}</h3>
         {product.price !== undefined && (
-          <span className="font-label-sm text-label-sm" style={{ color: "#8C916F" }}>
-            {formatPrice(product.price)}
-          </span>
+          <PriceTag
+            price={product.price}
+            salePrice={product.salePrice}
+            priceClassName="font-label-sm text-label-sm"
+            priceStyle={{ color: "#8C916F" }}
+          />
         )}
       </div>
     </Link>

@@ -5,6 +5,7 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import type { CartItem } from "@/lib/types";
+import PriceTag from "@/components/product/PriceTag";
 
 export default function CartItemRow({ item }: { item: CartItem }) {
   const { locale, t } = useLanguage();
@@ -31,8 +32,13 @@ export default function CartItemRow({ item }: { item: CartItem }) {
           )}
         </div>
         {item.price !== undefined && (
-          <p className="font-body-md text-[14px] text-on-surface-variant mt-1">
-            {formatPrice(item.price)} / {t.product.quantity.toLowerCase()}
+          <p className="font-body-md text-[14px] text-on-surface-variant mt-1 flex items-center gap-1 flex-wrap">
+            <PriceTag
+              price={item.originalPrice ?? item.price}
+              salePrice={item.originalPrice !== undefined ? item.price : undefined}
+              priceClassName="text-on-surface-variant"
+            />
+            <span>/ {t.product.quantity.toLowerCase()}</span>
           </p>
         )}
         <p className="font-body-md text-[14px] text-on-surface-variant mt-0.5">

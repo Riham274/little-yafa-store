@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
 import type { AgeGroup, Category, NewbornGender, Product, ProductColor, ProductInput } from "@/lib/types";
 import { auth, db, storage } from "@/lib/firebase/config";
-import { clearProductPrice, createProduct, newProductRef, updateProduct } from "@/lib/firebase/products";
+import {
+  clearProductPrice,
+  clearProductSalePrice,
+  createProduct,
+  newProductRef,
+  updateProduct,
+} from "@/lib/firebase/products";
 import { uploadProductImage } from "@/lib/firebase/storage";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import Spinner from "@/components/ui/Spinner";
@@ -59,6 +65,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     { value: "accessories", label: t.products.sectionAccessories },
     { value: "gift-wrapping", label: t.products.sectionGiftWrapping },
     { value: "wholesale", label: t.products.sectionWholesale },
+    { value: "shoes", label: t.products.sectionShoes },
+    { value: "dresses", label: t.products.sectionDresses },
+    { value: "winter", label: t.products.sectionWinter },
   ];
   const AGE_GROUPS: { value: AgeGroup; label: string }[] = [
     { value: "0-3m", label: t.products.age0to3m },
@@ -78,6 +87,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [descAr, setDescAr] = useState(product?.description.ar ?? "");
   const [descHe, setDescHe] = useState(product?.description.he ?? "");
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
+  const [salePrice, setSalePrice] = useState(product?.salePrice?.toString() ?? "");
   const [categories, setCategories] = useState<Category[]>(product?.categories ?? []);
   const [newbornGender, setNewbornGender] = useState<NewbornGender | null>(product?.newbornGender ?? null);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
@@ -152,6 +162,11 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   // Wholesale items are often priced outside the app (negotiated per order),
   // so price is the one required field that becomes optional for them.
   const priceRequired = !categories.includes("wholesale");
+  // Sale price is always optional, but when filled in it must land below a
+  // known regular price — otherwise the site would have nothing to strike
+  // through.
+  const salePriceInvalid =
+    salePrice.trim() !== "" && (!price.trim() || Number(salePrice) >= Number(price));
 
   const toggleCategory = (value: Category) => {
     if (value === "newborn" && categories.includes(value)) {
@@ -207,6 +222,10 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       setError(t.products.errorRequiredFields);
       return;
     }
+    if (salePriceInvalid) {
+      setError(t.products.errorSalePriceInvalid);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -258,14 +277,20 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       if (price.trim()) {
         data.price = Number(price);
       }
+      if (salePrice.trim()) {
+        data.salePrice = Number(salePrice);
+      }
 
       if (isEdit && product) {
         await updateProduct(product.id, data);
-        // Omitting `price` from `data` above only skips writing it — it
-        // doesn't clear an existing value, so blanking out a previously
-        // priced product needs an explicit delete.
+        // Omitting `price`/`salePrice` from `data` above only skips writing
+        // them — it doesn't clear an existing value, so blanking out a
+        // previously set field needs an explicit delete.
         if (!price.trim() && product.price !== undefined) {
           await clearProductPrice(product.id);
+        }
+        if (!salePrice.trim() && product.salePrice !== undefined) {
+          await clearProductSalePrice(product.id);
         }
       } else {
         await createProduct(id, data);
@@ -335,12 +360,21 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
             />
           </div>
 
-          <Field
-            label={priceRequired ? t.products.price : t.products.priceOptional}
-            value={price}
-            onChange={setPrice}
-            type="number"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
+            <Field
+              label={priceRequired ? t.products.price : t.products.priceOptional}
+              value={price}
+              onChange={setPrice}
+              type="number"
+            />
+            <Field
+              label={t.products.salePriceOptional}
+              value={salePrice}
+              onChange={setSalePrice}
+              type="number"
+              errorText={salePriceInvalid ? t.products.errorSalePriceInvalid : undefined}
+            />
+          </div>
 
           <div>
             <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.colorsLabel}</label>
