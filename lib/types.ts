@@ -57,6 +57,10 @@ export type Product = {
   // isProductOnSale() in lib/sale.ts. Not a separate category: the Sale page
   // and card derive membership from this field rather than a manual tag.
   salePrice?: number;
+  // What the admin paid to source the product — admin-only, never shown to
+  // customers. Undefined/0 both mean "not set" for profit-calculation
+  // purposes (see lib/finance.ts), not "sourced for free".
+  costPrice?: number;
   colors: ProductColor[];
   categories: Category[];
   newbornGender?: NewbornGender;

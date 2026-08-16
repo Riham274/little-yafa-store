@@ -89,6 +89,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
     // display code can distinguish "no price set" from "priced at ₪0".
     price: typeof data.price === "number" ? data.price : undefined,
     salePrice: typeof data.salePrice === "number" ? data.salePrice : undefined,
+    costPrice: typeof data.costPrice === "number" ? data.costPrice : undefined,
     // `colors` replaced the old flat `images`/`sizes` fields — see
     // deriveProductColors() for the migration fallback applied here.
     colors: deriveProductColors(data),
@@ -251,6 +252,12 @@ export async function clearProductPrice(id: string): Promise<void> {
 /** Mirrors clearProductPrice() for the optional sale-price field. */
 export async function clearProductSalePrice(id: string): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { salePrice: deleteField() });
+  invalidateProductCaches();
+}
+
+/** Mirrors clearProductPrice() for the admin-only cost-price field. */
+export async function clearProductCostPrice(id: string): Promise<void> {
+  await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { costPrice: deleteField() });
   invalidateProductCaches();
 }
 

@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import type { AgeGroup, Category, NewbornGender, Product, ProductColor, ProductInput } from "@/lib/types";
 import { auth, db, storage } from "@/lib/firebase/config";
 import {
+  clearProductCostPrice,
   clearProductPrice,
   clearProductSalePrice,
   createProduct,
@@ -88,6 +89,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [descHe, setDescHe] = useState(product?.description.he ?? "");
   const [price, setPrice] = useState(product?.price?.toString() ?? "");
   const [salePrice, setSalePrice] = useState(product?.salePrice?.toString() ?? "");
+  const [costPrice, setCostPrice] = useState(product?.costPrice?.toString() ?? "");
   const [categories, setCategories] = useState<Category[]>(product?.categories ?? []);
   const [newbornGender, setNewbornGender] = useState<NewbornGender | null>(product?.newbornGender ?? null);
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
@@ -280,17 +282,23 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       if (salePrice.trim()) {
         data.salePrice = Number(salePrice);
       }
+      if (costPrice.trim()) {
+        data.costPrice = Number(costPrice);
+      }
 
       if (isEdit && product) {
         await updateProduct(product.id, data);
-        // Omitting `price`/`salePrice` from `data` above only skips writing
-        // them — it doesn't clear an existing value, so blanking out a
-        // previously set field needs an explicit delete.
+        // Omitting `price`/`salePrice`/`costPrice` from `data` above only
+        // skips writing them — it doesn't clear an existing value, so
+        // blanking out a previously set field needs an explicit delete.
         if (!price.trim() && product.price !== undefined) {
           await clearProductPrice(product.id);
         }
         if (!salePrice.trim() && product.salePrice !== undefined) {
           await clearProductSalePrice(product.id);
+        }
+        if (!costPrice.trim() && product.costPrice !== undefined) {
+          await clearProductCostPrice(product.id);
         }
       } else {
         await createProduct(id, data);
@@ -374,6 +382,14 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
               type="number"
               errorText={salePriceInvalid ? t.products.errorSalePriceInvalid : undefined}
             />
+          </div>
+
+          <div>
+            <Field label={t.products.costPriceOptional} value={costPrice} onChange={setCostPrice} type="number" />
+            <p className="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant mt-1">
+              <span className="material-symbols-outlined text-[14px]">lock</span>
+              {t.products.costPriceNote}
+            </p>
           </div>
 
           <div>

@@ -27,6 +27,7 @@ const en = {
     products: "Products",
     orders: "Orders",
     messages: "Messages",
+    finance: "Finance",
   },
   login: {
     panelTitle: "Admin Panel",
@@ -98,6 +99,8 @@ const en = {
     price: "Price (₪) *",
     priceOptional: "Price (₪)",
     salePriceOptional: "Sale Price (₪)",
+    costPriceOptional: "Cost Price (₪)",
+    costPriceNote: "This field is private — it's never shown to customers.",
     colorsLabel: "Colors *",
     colorLabelPlaceholder: "e.g. Red, Blue",
     addColor: "+ Add Color",
@@ -178,6 +181,24 @@ const en = {
     newBadge: "New",
     markAsRead: "Mark as read",
   },
+  finance: {
+    title: "Finance",
+    periodToday: "Today",
+    periodWeek: "This Week",
+    periodMonth: "This Month",
+    statTotalSales: "Total Sales",
+    statNetProfit: "Net Profit",
+    statOrderCount: "Number of Orders",
+    missingCostPriceWarning:
+      "Some items in this period are missing a cost price, so profit may be understated. Set a cost price on those products for an accurate figure.",
+    tableProduct: "Product",
+    tableQtySold: "Qty Sold",
+    tableRevenue: "Revenue",
+    tableProfit: "Profit",
+    sortByRevenue: "Sort by Revenue",
+    sortByProfit: "Sort by Profit",
+    noSales: "No sales in this period yet.",
+  },
 };
 
 const ar: AdminDictionary = {
@@ -200,6 +221,7 @@ const ar: AdminDictionary = {
     products: "المنتجات",
     orders: "الطلبات",
     messages: "الرسائل",
+    finance: "المالية",
   },
   login: {
     panelTitle: "لوحة التحكم",
@@ -271,6 +293,8 @@ const ar: AdminDictionary = {
     price: "السعر (₪) *",
     priceOptional: "السعر (₪)",
     salePriceOptional: "سعر الخصم (₪)",
+    costPriceOptional: "رأس المال (₪)",
+    costPriceNote: "هذا الحقل خاص بك فقط ولا يظهر للزبائن.",
     colorsLabel: "الألوان *",
     colorLabelPlaceholder: "مثال: أحمر، أزرق",
     addColor: "+ إضافة لون",
@@ -350,6 +374,24 @@ const ar: AdminDictionary = {
     noMessagesFound: "لا توجد رسائل بعد.",
     newBadge: "جديدة",
     markAsRead: "تحديد كمقروءة",
+  },
+  finance: {
+    title: "المالية",
+    periodToday: "اليوم",
+    periodWeek: "هذا الأسبوع",
+    periodMonth: "هذا الشهر",
+    statTotalSales: "إجمالي المبيعات",
+    statNetProfit: "صافي الربح",
+    statOrderCount: "عدد الطلبات",
+    missingCostPriceWarning:
+      "بعض المنتجات في هذه الفترة لا يوجد لها رأس مال محدد، لذا قد يكون الربح المعروض أقل من الواقع. حددي رأس المال لهذه المنتجات للحصول على رقم دقيق.",
+    tableProduct: "المنتج",
+    tableQtySold: "الكمية المباعة",
+    tableRevenue: "الإيرادات",
+    tableProfit: "الربح",
+    sortByRevenue: "ترتيب حسب الإيرادات",
+    sortByProfit: "ترتيب حسب الربح",
+    noSales: "لا توجد مبيعات في هذه الفترة بعد.",
   },
 };
 
