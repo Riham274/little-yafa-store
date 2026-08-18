@@ -72,5 +72,12 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+
+    // Site settings (e.g. the homepage hero banner URL): publicly readable
+    // so the storefront can render them, only admins can change them.
+    match /siteSettings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

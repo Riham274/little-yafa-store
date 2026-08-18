@@ -28,6 +28,7 @@ const en = {
     orders: "Orders",
     messages: "Messages",
     finance: "Finance",
+    settings: "Site Settings",
   },
   login: {
     panelTitle: "Admin Panel",
@@ -204,6 +205,16 @@ const en = {
     sortByProfit: "Sort by Profit",
     noSales: "No sales in this period yet.",
   },
+  settings: {
+    title: "Site Settings",
+    heroBannerTitle: "Homepage Hero Banner",
+    heroBannerDescription: "This image is shown full-width on the homepage, right below the logo.",
+    currentImage: "Current Image",
+    uploadNewImage: "Upload New Image",
+    uploading: "Uploading...",
+    uploadSuccess: "Banner updated successfully.",
+    uploadError: "Failed to upload the new banner. Please try again.",
+  },
 };
 
 const ar: AdminDictionary = {
@@ -227,6 +238,7 @@ const ar: AdminDictionary = {
     orders: "الطلبات",
     messages: "الرسائل",
     finance: "المالية",
+    settings: "إعدادات الموقع",
   },
   login: {
     panelTitle: "لوحة التحكم",
@@ -402,6 +414,16 @@ const ar: AdminDictionary = {
     sortByRevenue: "ترتيب حسب الإيرادات",
     sortByProfit: "ترتيب حسب الربح",
     noSales: "لا توجد مبيعات في هذه الفترة بعد.",
+  },
+  settings: {
+    title: "إعدادات الموقع",
+    heroBannerTitle: "بانر الصفحة الرئيسية",
+    heroBannerDescription: "تظهر هذه الصورة بعرض كامل في الصفحة الرئيسية، أسفل الشعار مباشرة.",
+    currentImage: "الصورة الحالية",
+    uploadNewImage: "رفع صورة جديدة",
+    uploading: "جارٍ الرفع...",
+    uploadSuccess: "تم تحديث البانر بنجاح.",
+    uploadError: "فشل رفع البانر الجديد. يرجى المحاولة مرة أخرى.",
   },
 };
 

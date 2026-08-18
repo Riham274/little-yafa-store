@@ -14,5 +14,12 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Site settings images (e.g. homepage hero banner): publicly readable,
+    // only admins can upload/replace/delete.
+    match /site-settings/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

@@ -36,10 +36,23 @@ export async function uploadProductImage(productId: string, file: File): Promise
   return getDownloadURL(storageRef);
 }
 
-export async function deleteProductImage(url: string): Promise<void> {
+/** Replaces the site's homepage hero banner image — used from the admin
+ * settings page, not tied to any product. */
+export async function uploadHeroBannerImage(file: File): Promise<string> {
+  const { blob, contentType, extension } = await compressForUpload(file);
+  const fileName = `hero-banner-${Date.now()}.${extension}`;
+  const storageRef = ref(storage, `site-settings/${fileName}`);
+  await uploadBytes(storageRef, blob, { contentType, cacheControl: LONG_CACHE_CONTROL });
+  return getDownloadURL(storageRef);
+}
+
+/** Deletes any Storage file by its download URL — generic, not tied to a
+ * particular collection (used for both product images and site-settings
+ * images like the hero banner). */
+export async function deleteStorageFile(url: string): Promise<void> {
   try {
     await deleteObject(ref(storage, url));
   } catch {
-    // Image may already be gone or URL wasn't a Storage ref — non-fatal.
+    // File may already be gone or URL wasn't a Storage ref — non-fatal.
   }
 }

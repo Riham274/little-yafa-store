@@ -1,10 +1,17 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Boxes } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { getHeroBannerUrl } from "@/lib/firebase/siteSettings";
 import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
+
+// Shown until an admin uploads a replacement through the admin Settings
+// page (app/admin/dashboard/settings) — kept in public/ as the permanent
+// fallback, not deleted once a live banner exists.
+const DEFAULT_HERO_BANNER = "/new-hero-banner.png";
 
 // Icon source files aren't guaranteed to share the same intrinsic aspect
 // ratio (e.g. icon-sale-olive.png is a tall 304x597 tag glyph vs. the square
@@ -42,6 +49,19 @@ function CategoryCard({
 
 export default function HomePage() {
   const { t } = useLanguage();
+  const [heroBannerUrl, setHeroBannerUrl] = useState(DEFAULT_HERO_BANNER);
+
+  useEffect(() => {
+    getHeroBannerUrl()
+      .then((url) => {
+        if (url) setHeroBannerUrl(url);
+      })
+      .catch(() => {
+        // Keep showing the static fallback — e.g. rules not deployed yet,
+        // or the client is offline.
+      });
+  }, []);
+
   const categories = [
     { href: "/new-in", label: t.nav.newIn, icon: "/icon-new-in.png" },
     { href: "/newborn", label: t.home.categoryBaby, icon: "/icon-baby.png" },
@@ -80,7 +100,7 @@ export default function HomePage() {
       {/* Hero banner */}
       <section className="w-full fade-in-up">
         <Image
-          src="/new-hero-banner.png"
+          src={heroBannerUrl}
           alt="Little Yafa — a little touch of magic"
           width={1364}
           height={768}
