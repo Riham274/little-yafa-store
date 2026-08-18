@@ -12,7 +12,17 @@ import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
 // size when width/height props were used. Rendering into a fixed square box
 // with `fill` + `object-contain` keeps every card the same size regardless
 // of the source image's own dimensions.
-function CategoryCard({ href, label, icon }: { href: string; label: string; icon: string }) {
+function CategoryCard({
+  href,
+  label,
+  icon,
+  labelColor = "#5A5F44",
+}: {
+  href: string;
+  label: string;
+  icon: string;
+  labelColor?: string;
+}) {
   return (
     <Link href={href} className="group flex flex-col items-center">
       <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
@@ -21,7 +31,7 @@ function CategoryCard({ href, label, icon }: { href: string; label: string; icon
         </div>
         <span
           className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
-          style={{ color: "#5A5F44", fontWeight: 500 }}
+          style={{ color: labelColor, fontWeight: 500 }}
         >
           {label}
         </span>
@@ -39,7 +49,7 @@ export default function HomePage() {
     { href: "/boys", label: t.home.categoryBoy, icon: "/icon-boy.png" },
   ];
   const categoriesRow2 = [
-    { href: "/sale", label: t.home.categoryDiscounts, icon: "/icon-sale-olive.png" },
+    { href: "/sale", label: t.home.categoryDiscounts, icon: "/icon-sale-olive.png", labelColor: "#AC7557" },
     { href: "/shoes", label: t.home.categoryShoes, icon: "/icon-shoes.png" },
     { href: "/dresses", label: t.home.categoryDresses, icon: "/icon-dresses.png" },
     { href: "/winter", label: t.home.categoryWinter, icon: "/icon-winter.png" },
