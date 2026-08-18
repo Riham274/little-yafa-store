@@ -104,6 +104,12 @@ export type Order = {
   total: number;
   status: OrderStatus;
   createdAt: number;
+  // Purely an admin-side organizational flag for the Orders list — archived
+  // orders are hidden from the default view but never excluded from
+  // anything else (Finance's historical sales/profit figures must always
+  // include every order regardless of this field). Missing on any doc
+  // predating this field, which is treated as false (not archived).
+  archived: boolean;
 };
 
 export type CartItem = {

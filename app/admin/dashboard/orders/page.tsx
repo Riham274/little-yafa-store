@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { subscribeToOrders } from "@/lib/firebase/orders";
+import { archiveOrder, subscribeToOrders, unarchiveOrder } from "@/lib/firebase/orders";
 import { formatPrice } from "@/lib/format";
 import type { Order, OrderStatus } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
@@ -9,36 +9,68 @@ import StatusBadge from "@/components/admin/StatusBadge";
 import OrderDetailDrawer from "@/components/admin/OrderDetailDrawer";
 import StatCard from "@/components/admin/StatCard";
 
+type OrdersView = "active" | "archived";
+
 export default function AdminOrdersPage() {
   const { t } = useAdminLanguage();
   const [orders, setOrders] = useState<Order[]>([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
+  const [view, setView] = useState<OrdersView>("active");
   const [selected, setSelected] = useState<Order | null>(null);
 
   useEffect(() => subscribeToOrders(setOrders), []);
 
+  const activeOrders = useMemo(() => orders.filter((o) => !o.archived), [orders]);
+
   const filtered = useMemo(() => {
-    return orders.filter((order) => {
+    const scoped = view === "archived" ? orders.filter((o) => o.archived) : activeOrders;
+    return scoped.filter((order) => {
       const matchesStatus = statusFilter === "all" || order.status === statusFilter;
       const q = search.trim().toLowerCase();
       const matchesSearch =
         !q || order.id.toLowerCase().includes(q) || order.customerName.toLowerCase().includes(q);
       return matchesStatus && matchesSearch;
     });
-  }, [orders, search, statusFilter]);
+  }, [orders, activeOrders, view, search, statusFilter]);
 
-  const newCount = orders.filter((o) => o.status === "new").length;
-  const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
+  // Headline stats always describe the active/operational order set,
+  // regardless of which tab is currently open — archiving an order
+  // shouldn't make it vanish from Finance-style totals, just from the list.
+  const newCount = activeOrders.filter((o) => o.status === "new").length;
+  const totalRevenue = activeOrders.reduce((sum, o) => sum + o.total, 0);
+
+  const handleArchive = async (order: Order) => {
+    if (!window.confirm(t.orders.archiveConfirm)) return;
+    await archiveOrder(order.id);
+  };
+
+  const handleUnarchive = async (order: Order) => {
+    await unarchiveOrder(order.id);
+  };
 
   return (
     <div>
       <h1 className="font-headline-md text-headline-md text-on-surface mb-lg">{t.orders.title}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-md mb-lg">
-        <StatCard label={t.orders.statTotalOrders} value={orders.length} icon="receipt_long" tone="primary" />
+        <StatCard label={t.orders.statTotalOrders} value={activeOrders.length} icon="receipt_long" tone="primary" />
         <StatCard label={t.orders.statNewOrders} value={newCount} icon="pending_actions" tone="secondary" />
         <StatCard label={t.orders.statTotalRevenue} value={formatPrice(totalRevenue)} icon="payments" tone="primary" />
+      </div>
+
+      <div className="inline-flex bg-surface-container-low rounded-full p-1 mb-md">
+        {(["active", "archived"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-4 py-2 rounded-full font-label-md text-label-md transition-colors ${
+              view === v ? "bg-primary text-on-primary" : "text-on-surface-variant hover:text-on-surface"
+            }`}
+          >
+            {v === "active" ? t.orders.tabActive : t.orders.tabArchived}
+          </button>
+        ))}
       </div>
 
       <div className="flex flex-col md:flex-row gap-sm mb-md">
@@ -75,6 +107,7 @@ export default function AdminOrdersPage() {
               <th className="py-3 px-md">{t.orders.tableStatus}</th>
               <th className="py-3 px-md text-end">{t.orders.tableTotal}</th>
               <th className="py-3 px-md text-end">{t.orders.tableDate}</th>
+              <th className="py-3 px-md text-end normal-case">{t.common.actions}</th>
             </tr>
           </thead>
           <tbody>
@@ -93,11 +126,38 @@ export default function AdminOrdersPage() {
                 <td className="py-3 px-md text-end font-label-sm text-label-sm text-on-surface-variant">
                   {new Date(order.createdAt).toLocaleDateString()}
                 </td>
+                <td className="py-3 px-md text-end">
+                  <div className="flex justify-end">
+                    {order.archived ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUnarchive(order);
+                        }}
+                        title={t.orders.unarchiveOrder}
+                        className="text-on-surface-variant hover:text-primary transition-colors"
+                      >
+                        <span className="material-symbols-outlined">unarchive</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleArchive(order);
+                        }}
+                        title={t.orders.archiveOrder}
+                        className="text-on-surface-variant hover:text-error transition-colors"
+                      >
+                        <span className="material-symbols-outlined">archive</span>
+                      </button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-on-surface-variant font-body-md">
+                <td colSpan={6} className="py-8 text-center text-on-surface-variant font-body-md">
                   {t.orders.noOrdersFound}
                 </td>
               </tr>

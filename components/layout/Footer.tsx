@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 
-const OLIVE = "#8C916F";
+const OLIVE = "#5A5F44";
 
 const linkClass = "font-body-md transition-opacity hover:opacity-70";
 const headingClass = "font-label-md text-label-md uppercase tracking-widest font-bold";

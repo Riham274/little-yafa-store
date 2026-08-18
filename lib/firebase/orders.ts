@@ -124,6 +124,7 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       })),
       total,
       status: "new" satisfies OrderStatus,
+      archived: false,
       createdAt: serverTimestamp(),
     });
   });
@@ -145,6 +146,7 @@ function toOrder(id: string, data: Record<string, unknown>): Order {
     total: Number(data.total) || 0,
     status: (data.status as OrderStatus) ?? "new",
     createdAt: createdAt?.toMillis ? createdAt.toMillis() : Date.now(),
+    archived: data.archived === true,
   };
 }
 
@@ -157,6 +159,16 @@ export function subscribeToOrders(callback: (orders: Order[]) => void): Unsubscr
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus): Promise<void> {
   await updateDoc(doc(db, ORDERS_COLLECTION, orderId), { status });
+}
+
+/** Hides an order from the default Orders list without deleting it — order
+ * data (and therefore Finance's historical figures) is untouched. */
+export async function archiveOrder(orderId: string): Promise<void> {
+  await updateDoc(doc(db, ORDERS_COLLECTION, orderId), { archived: true });
+}
+
+export async function unarchiveOrder(orderId: string): Promise<void> {
+  await updateDoc(doc(db, ORDERS_COLLECTION, orderId), { archived: false });
 }
 
 export { ORDERS_COLLECTION };

@@ -29,10 +29,10 @@ export default function FeaturedProductsSection() {
     <section className="px-gutter py-lg md:py-xl fade-in-up" style={{ backgroundColor: "#EFE5DC" }}>
       <div className="max-w-container-max mx-auto">
         <div className="text-center mb-lg">
-          <h2 className="font-headline-md text-headline-md mb-2" style={{ color: "#8C916F" }}>
+          <h2 className="font-headline-md text-headline-md mb-2" style={{ color: "#5A5F44" }}>
             {t.home.discoverProducts}
           </h2>
-          <p className="font-body-md" style={{ color: "#8C916F" }}>
+          <p className="font-body-md" style={{ color: "#5A5F44" }}>
             {t.home.discoverSubtitle}
           </p>
         </div>
@@ -49,7 +49,7 @@ export default function FeaturedProductsSection() {
           <Link
             href="/shop-all"
             className="inline-flex items-center gap-2 px-lg py-4 text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
-            style={{ backgroundColor: "#8C916F" }}
+            style={{ backgroundColor: "#5A5F44" }}
           >
             {t.home.viewAll}
             <span className="material-symbols-outlined rtl:rotate-180">arrow_forward</span>

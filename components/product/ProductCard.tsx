@@ -41,7 +41,7 @@ export default function ProductCard({ product }: { product: Product }) {
             price={product.price}
             salePrice={product.salePrice}
             priceClassName="font-label-sm text-label-sm"
-            priceStyle={{ color: "#8C916F" }}
+            priceStyle={{ color: "#5A5F44" }}
           />
         )}
       </div>

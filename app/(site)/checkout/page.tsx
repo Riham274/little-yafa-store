@@ -42,7 +42,7 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-3xl mx-auto px-gutter py-xl text-center">
         <p className="font-body-lg text-on-surface-variant mb-md">{t.cart.empty}</p>
-        <Link href="/" className="underline" style={{ color: "#8C916F" }}>
+        <Link href="/" className="underline" style={{ color: "#5A5F44" }}>
           {t.cart.continueShopping}
         </Link>
       </div>
@@ -183,9 +183,9 @@ export default function CheckoutPage() {
                       setRegionError(null);
                     }}
                     className={`flex flex-col items-center justify-center gap-1 rounded-xl border-2 px-4 py-3 font-label-md text-label-md transition-all active:scale-95 ${
-                      active ? "text-white" : "bg-surface border-outline-variant text-on-surface hover:border-[#8C916F]/50"
+                      active ? "text-white" : "bg-surface border-outline-variant text-on-surface hover:border-[#5A5F44]/50"
                     }`}
-                    style={active ? { backgroundColor: "#8C916F", borderColor: "#8C916F" } : undefined}
+                    style={active ? { backgroundColor: "#5A5F44", borderColor: "#5A5F44" } : undefined}
                   >
                     <span>{label}</span>
                     <span className={active ? "text-white/90" : "text-on-surface-variant"}>

@@ -55,7 +55,7 @@ export default function ProductDetailPage() {
     return (
       <div className="max-w-container-max mx-auto px-gutter py-xl text-center">
         <p className="font-body-lg text-on-surface-variant mb-md">Product not found.</p>
-        <button onClick={() => router.push("/")} className="underline" style={{ color: "#8C916F" }}>
+        <button onClick={() => router.push("/")} className="underline" style={{ color: "#5A5F44" }}>
           Go home
         </button>
       </div>
@@ -133,9 +133,9 @@ export default function ProductDetailPage() {
                       type="button"
                       onClick={() => handleSelectColor(i)}
                       className={`px-4 py-2 rounded-full border font-label-md text-label-md transition-all active:scale-95 ${
-                        active ? "text-white" : "bg-surface border-outline-variant text-on-surface hover:border-[#8C916F]/50"
+                        active ? "text-white" : "bg-surface border-outline-variant text-on-surface hover:border-[#5A5F44]/50"
                       }`}
-                      style={active ? { backgroundColor: "#8C916F", borderColor: "#8C916F" } : undefined}
+                      style={active ? { backgroundColor: "#5A5F44", borderColor: "#5A5F44" } : undefined}
                     >
                       {color.label}
                     </button>
@@ -163,9 +163,9 @@ export default function ProductDetailPage() {
                           ? "opacity-40 cursor-not-allowed line-through bg-surface-container-low border-outline-variant text-on-surface-variant"
                           : active
                             ? "text-white"
-                            : "bg-surface border-outline-variant text-on-surface hover:border-[#8C916F]/50"
+                            : "bg-surface border-outline-variant text-on-surface hover:border-[#5A5F44]/50"
                       }`}
-                      style={active && !sizeOut ? { backgroundColor: "#8C916F", borderColor: "#8C916F" } : undefined}
+                      style={active && !sizeOut ? { backgroundColor: "#5A5F44", borderColor: "#5A5F44" } : undefined}
                     >
                       {size.label}
                     </button>
@@ -199,7 +199,7 @@ export default function ProductDetailPage() {
             onClick={handleAddToCart}
             disabled={outOfStock || !selectedColor || !selectedSize}
             className="w-full flex items-center justify-center gap-2 px-lg py-4 text-on-primary rounded-full font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none mb-lg"
-            style={{ backgroundColor: "#8C916F" }}
+            style={{ backgroundColor: "#5A5F44" }}
           >
             <span className="material-symbols-outlined">shopping_bag</span>
             {added

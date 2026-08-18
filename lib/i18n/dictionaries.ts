@@ -22,7 +22,6 @@ const en = {
     language: "Change Language",
   },
   home: {
-    beautifulClothes: "Beautiful Clothes for your little ones.",
     categoryBaby: "Baby",
     categoryGirl: "Girl",
     categoryBoy: "Boy",
@@ -195,7 +194,6 @@ const ar: Dictionary = {
     language: "تغيير اللغة",
   },
   home: {
-    beautifulClothes: "لأن طفولتهم تستحق أجمل التفاصيل… وليتل يافا موجودة لترافق كل لحظة مميزة.",
     categoryBaby: "مولود جديد",
     categoryGirl: "بنات",
     categoryBoy: "أولاد",
@@ -368,7 +366,6 @@ const he: Dictionary = {
     language: "החלף שפה",
   },
   home: {
-    beautifulClothes: "בגדים יפים לקטנים שלכם.",
     categoryBaby: "תינוק",
     categoryGirl: "בת",
     categoryBoy: "בן",

@@ -21,7 +21,7 @@ export default function Header() {
   return (
     <header className="fixed top-0 left-0 w-full z-50 flex flex-col" id="site-header">
       <nav
-        className={`bg-[#8C916F] shadow-[0px_10px_30px_rgba(74,74,74,0.05)] transition-all duration-300 ease-in-out ${
+        className={`bg-[#5A5F44] shadow-[0px_10px_30px_rgba(74,74,74,0.05)] transition-all duration-300 ease-in-out ${
           scrolled ? "py-2 shadow-lg" : "py-4"
         }`}
       >
