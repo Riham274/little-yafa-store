@@ -5,6 +5,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  limit,
   onSnapshot,
   query,
   serverTimestamp,
@@ -205,6 +206,35 @@ export async function getAllProducts(): Promise<Product[]> {
     });
   }
   return allProductsPromise;
+}
+
+// Bounded reads for pages that only need a small, visually-varied sample —
+// the homepage's featured section and shop-all's curated mix used to call
+// getAllProducts()/getProductsByCategory() and randomly sample from the
+// *entire* result, meaning every visit re-read the whole catalog just to
+// show 8-24 items. These pull a small, capped pool instead, so the read
+// size stays flat as the catalog grows; callers sample from that pool.
+//
+// Deliberately NOT using `orderBy("createdAt", ...)` here — Firestore
+// excludes documents missing the ordered-by field from the results
+// entirely (not just sorts them last), and plenty of products predate that
+// field, so ordering by it would silently hide older catalog items instead
+// of just deprioritizing them.
+
+export async function getFeaturedProductsPool(poolSize: number): Promise<Product[]> {
+  const q = query(collection(db, PRODUCTS_COLLECTION), limit(poolSize));
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+}
+
+export async function getProductsByCategoryPool(category: Category, poolSize: number): Promise<Product[]> {
+  const q = query(
+    collection(db, PRODUCTS_COLLECTION),
+    where("categories", "array-contains", category),
+    limit(poolSize)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
 }
 
 export async function getProductById(id: string): Promise<Product | null> {

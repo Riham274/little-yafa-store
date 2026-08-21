@@ -1,6 +1,10 @@
 import { doc, getDoc } from "firebase/firestore";
-import { signInWithEmailAndPassword, signOut as firebaseSignOut, type User } from "firebase/auth";
-import { auth, db } from "./config";
+import { getAuth, signInWithEmailAndPassword, signOut as firebaseSignOut, type User } from "firebase/auth";
+import { app, db } from "./config";
+
+// Admin-only — see the comment in config.ts for why this lives here instead
+// of being initialized alongside `db`.
+export const auth = getAuth(app);
 
 export async function isAdminUser(user: User): Promise<boolean> {
   const snap = await getDoc(doc(db, "admins", user.uid));

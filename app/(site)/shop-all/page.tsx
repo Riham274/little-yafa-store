@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { getAllProducts } from "@/lib/firebase/products";
+import { getProductsByCategoryPool } from "@/lib/firebase/products";
 import { pickRandom } from "@/lib/random";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { Category, Product } from "@/lib/types";
@@ -25,14 +25,20 @@ const ALL_CATEGORIES: Category[] = [
   "winter",
 ];
 const PER_CATEGORY = 2;
+// Bounded per-category pool instead of the whole catalog (see
+// getProductsByCategoryPool()'s comment) — 12 small parallel reads instead
+// of one that grows with total catalog size.
+const CATEGORY_POOL_SIZE = 6;
 
 // ~2 random products per category, deduped (a product can satisfy more than
 // one category) and reshuffled so the final order isn't grouped by category.
-function pickCuratedMix(products: Product[]): Product[] {
+async function fetchCuratedMix(): Promise<Product[]> {
+  const pools = await Promise.all(
+    ALL_CATEGORIES.map((category) => getProductsByCategoryPool(category, CATEGORY_POOL_SIZE))
+  );
   const picked = new Map<string, Product>();
-  for (const category of ALL_CATEGORIES) {
-    const inCategory = products.filter((p) => p.categories.includes(category));
-    for (const product of pickRandom(inCategory, PER_CATEGORY)) {
+  for (const pool of pools) {
+    for (const product of pickRandom(pool, PER_CATEGORY)) {
       picked.set(product.id, product);
     }
   }
@@ -46,7 +52,7 @@ export default function ShopAllPage() {
   const [sort, setSort] = useState<SortOption | null>(null);
 
   useEffect(() => {
-    getAllProducts().then((all) => setProducts(pickCuratedMix(all)));
+    fetchCuratedMix().then(setProducts);
   }, []);
 
   const sorted = useMemo(

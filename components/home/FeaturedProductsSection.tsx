@@ -3,25 +3,30 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
-import { getAllProducts } from "@/lib/firebase/products";
+import { getFeaturedProductsPool } from "@/lib/firebase/products";
 import { pickRandom } from "@/lib/random";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import Spinner from "@/components/ui/Spinner";
 
 const FEATURED_COUNT = 8;
+// Sampled from a capped pool rather than the whole catalog — see
+// getFeaturedProductsPool()'s comment in lib/firebase/products.ts. Large
+// enough to still feel varied across visits, small enough to stay a cheap,
+// flat-cost read regardless of how big the catalog grows.
+const POOL_SIZE = 24;
 
 export default function FeaturedProductsSection() {
   const { t } = useLanguage();
   // null = still loading; the featured pick is derived once products land,
   // not re-randomized on every re-render.
-  const [allProducts, setAllProducts] = useState<Product[] | null>(null);
+  const [loaded, setLoaded] = useState(false);
   const [featured, setFeatured] = useState<Product[]>([]);
 
   useEffect(() => {
-    getAllProducts().then((products) => {
-      setAllProducts(products);
-      setFeatured(pickRandom(products, FEATURED_COUNT));
+    getFeaturedProductsPool(POOL_SIZE).then((pool) => {
+      setFeatured(pickRandom(pool, FEATURED_COUNT));
+      setLoaded(true);
     });
   }, []);
 
@@ -37,7 +42,7 @@ export default function FeaturedProductsSection() {
           </p>
         </div>
 
-        {allProducts === null ? (
+        {!loaded ? (
           <div className="flex justify-center py-xl">
             <Spinner size={40} />
           </div>

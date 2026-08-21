@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { onAuthStateChanged, type User } from "firebase/auth";
-import { auth } from "@/lib/firebase/config";
-import { isAdminUser } from "@/lib/firebase/auth";
+import { auth, isAdminUser } from "@/lib/firebase/auth";
 import AdminShell from "@/components/admin/AdminShell";
 
 export default function AdminDashboardLayout({ children }: { children: React.ReactNode }) {

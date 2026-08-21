@@ -1,6 +1,10 @@
-import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getDownloadURL, getStorage, ref, uploadBytes } from "firebase/storage";
 import imageCompression from "browser-image-compression";
-import { storage } from "./config";
+import { app } from "./config";
+
+// Admin-only — see the comment in config.ts for why this lives here instead
+// of being initialized alongside `db`.
+export const storage = getStorage(app);
 
 // Long-lived cache header for product photos — they're never mutated in
 // place (edits/deletes create new Storage objects/URLs), so a returning

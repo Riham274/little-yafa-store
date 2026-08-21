@@ -1,7 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,5 +12,13 @@ const firebaseConfig = {
 
 export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-export const auth = getAuth(app);
-export const storage = getStorage(app);
+
+// Auth and Storage are deliberately NOT initialized here. Every
+// customer-facing page only needs `db` (Firestore reads); the Auth and
+// Storage SDKs are admin-only concerns. `getAuth()`/`getStorage()` are
+// side-effecting calls a bundler can't prove are safe to drop, so having
+// them here forced their ~680KB combined SDK weight into every storefront
+// page's JS bundle. They now live in lib/firebase/auth.ts and
+// lib/firebase/storage.ts respectively, which only admin code imports —
+// keeping them out of this shared module lets route-based code splitting
+// exclude them from the customer bundle entirely.

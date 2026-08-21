@@ -23,12 +23,19 @@ export default function SearchBar({ className = "" }: { className?: string }) {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const hasFetchedRef = useRef(false);
 
-  // Fetched once — the catalog is small enough that filtering it locally on
-  // every keystroke is instant, no need to hit Firestore per character.
-  useEffect(() => {
+  // Fetched once, lazily — only when the visitor actually engages with
+  // search (focuses the field), not on every page mount. This bar renders
+  // in the header on every single page, so an eager fetch here used to mean
+  // every page view pulled the entire catalog whether or not anyone
+  // searched. Once fetched, filtering it locally on every keystroke is
+  // instant, no need to hit Firestore per character.
+  const ensureProductsLoaded = () => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     getAllProducts().then(setAllProducts);
-  }, []);
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedQuery(query.trim()), DEBOUNCE_MS);
@@ -52,6 +59,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
   const closeDropdown = () => setOpen(false);
 
   const handleChange = (value: string) => {
+    ensureProductsLoaded();
     setQuery(value);
     setOpen(value.trim().length > 0);
   };
@@ -82,7 +90,10 @@ export default function SearchBar({ className = "" }: { className?: string }) {
           placeholder={t.nav.searchPlaceholder}
           value={query}
           onChange={(e) => handleChange(e.target.value)}
-          onFocus={() => hasQuery && setOpen(true)}
+          onFocus={() => {
+            ensureProductsLoaded();
+            if (hasQuery) setOpen(true);
+          }}
           className="w-full min-w-0 h-10 rounded-full bg-[#EFE5DC] px-4 font-body-md text-[14px] text-on-surface placeholder:text-on-surface-variant outline-none focus:ring-2 focus:ring-surface-bright/70 transition-all"
         />
       </form>
