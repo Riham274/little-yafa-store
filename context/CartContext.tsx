@@ -37,8 +37,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
+  // `color` is always the Arabic label — see CartItem.color.
   const addItem = (product: Product, qty: number, color: string, size: string) => {
-    const colorEntry = product.colors.find((c) => c.label === color);
+    const colorEntry = product.colors.find((c) => c.label.ar === color);
     const maxQty = colorEntry?.sizes.find((s) => s.label === size)?.stock ?? 0;
     const onSale = isProductOnSale(product);
     setItems((prev) => {
@@ -61,6 +62,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           originalPrice: onSale ? product.price : undefined,
           image: colorEntry?.images[0] ?? null,
           color,
+          colorLabel: colorEntry?.label ?? { ar: color, en: color, he: color },
           size,
           qty: Math.min(qty, maxQty),
           stock: maxQty,

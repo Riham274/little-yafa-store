@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
+import { getColorLabel } from "@/lib/colorLabel";
 import { placeOrder, InsufficientStockError } from "@/lib/firebase/orders";
 import { SHIPPING_RATES } from "@/lib/shipping";
 import type { ShippingRegion } from "@/lib/types";
@@ -212,7 +213,7 @@ export default function CheckoutPage() {
                 <div className="flex-1">
                   <p className="font-label-md text-label-md text-on-surface">{item.name[locale]}</p>
                   <p className="font-body-md text-[14px] text-on-surface-variant">
-                    {t.product.color}: {item.color} · {t.product.size}: {item.size} · Qty: {item.qty}
+                    {t.product.color}: {getColorLabel(item, locale)} · {t.product.size}: {item.size} · Qty: {item.qty}
                   </p>
                 </div>
                 {item.price !== undefined && (

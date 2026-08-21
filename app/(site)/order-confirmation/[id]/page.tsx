@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
+import { getColorLabel } from "@/lib/colorLabel";
 import type { CartItem } from "@/lib/types";
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
@@ -77,7 +78,7 @@ export default function OrderConfirmationPage() {
                   <div className="flex-1 min-w-0">
                     <p className="font-label-md text-label-md text-on-surface truncate">{item.name[locale]}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">
-                      {t.product.color}: {item.color} · {t.product.size}: {item.size} · × {item.qty}
+                      {t.product.color}: {getColorLabel(item, locale)} · {t.product.size}: {item.size} · × {item.qty}
                     </p>
                   </div>
                 </div>

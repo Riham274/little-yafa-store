@@ -15,14 +15,30 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { AgeGroup, Category, Product, ProductColor, ProductInput, ProductSize } from "@/lib/types";
+import type { AgeGroup, Category, LocalizedText, Product, ProductColor, ProductInput, ProductSize } from "@/lib/types";
 
 const PRODUCTS_COLLECTION = "products";
 
 // Label given to the single color variant synthesized from a pre-colors-
 // feature product's flat `images`/`sizes` fields — both here (read-time
 // fallback) and in scripts/migrate-colors.mjs (the one-time write).
-export const DEFAULT_COLOR_LABEL = "افتراضي";
+export const DEFAULT_COLOR_LABEL: LocalizedText = { ar: "افتراضي", en: "Default", he: "ברירת מחדל" };
+
+/** Color labels were a plain string before they became multi-language like
+ * name/description (see scripts/migrate-color-labels.mjs for the one-time
+ * backfill). This read-time fallback keeps any doc the migration hasn't
+ * reached yet displaying correctly — in Arabic only, everywhere — rather
+ * than crashing on the old shape. */
+function normalizeColorLabel(label: unknown): LocalizedText {
+  if (typeof label === "string") {
+    return { ar: label, en: label, he: label };
+  }
+  if (label && typeof label === "object") {
+    const l = label as Partial<LocalizedText>;
+    return { ar: l.ar ?? "", en: l.en ?? l.ar ?? "", he: l.he ?? l.ar ?? "" };
+  }
+  return { ar: "", en: "", he: "" };
+}
 
 /** Derives a product's `colors` array from raw Firestore doc data, wrapping
  * a pre-colors-feature doc's flat `images`/`sizes` (or even older single
@@ -38,11 +54,16 @@ export function deriveProductColors(data: Record<string, unknown>): ProductColor
     : legacyStock !== undefined
       ? [{ label: "One Size", stock: Number(legacyStock) || 0 }]
       : [];
-  return Array.isArray(data.colors)
-    ? (data.colors as ProductColor[])
-    : legacyImages.length > 0 || legacySizes.length > 0
-      ? [{ label: DEFAULT_COLOR_LABEL, images: legacyImages, sizes: legacySizes }]
-      : [];
+  if (Array.isArray(data.colors)) {
+    return (data.colors as Array<Record<string, unknown>>).map((c) => ({
+      label: normalizeColorLabel(c.label),
+      images: Array.isArray(c.images) ? (c.images as string[]) : [],
+      sizes: Array.isArray(c.sizes) ? (c.sizes as ProductSize[]) : [],
+    }));
+  }
+  return legacyImages.length > 0 || legacySizes.length > 0
+    ? [{ label: DEFAULT_COLOR_LABEL, images: legacyImages, sizes: legacySizes }]
+    : [];
 }
 
 function toProduct(id: string, data: Record<string, unknown>): Product {

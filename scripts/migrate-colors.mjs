@@ -25,7 +25,10 @@ import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, collection, getDocs, doc, updateDoc, deleteField } from "firebase/firestore";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DEFAULT_COLOR_LABEL = "افتراضي";
+// Color labels are multi-language ({ar, en, he}) — see
+// scripts/migrate-color-labels.mjs, which this script's output feeds into
+// if it's ever run against a still-unmigrated pre-colors-feature product.
+const DEFAULT_COLOR_LABEL = { ar: "افتراضي", en: "Default", he: "ברירת מחדל" };
 const dryRun = process.argv.includes("--dry-run");
 
 function loadEnvLocal() {

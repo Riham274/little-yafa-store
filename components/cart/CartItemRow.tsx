@@ -4,6 +4,7 @@ import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
+import { getColorLabel } from "@/lib/colorLabel";
 import type { CartItem } from "@/lib/types";
 import PriceTag from "@/components/product/PriceTag";
 
@@ -48,7 +49,7 @@ export default function CartItemRow({ item }: { item: CartItem }) {
           </p>
         )}
         <p className="font-body-md text-[14px] text-on-surface-variant mt-0.5">
-          {t.product.color}: <span className="text-on-surface">{item.color}</span>
+          {t.product.color}: <span className="text-on-surface">{getColorLabel(item, locale)}</span>
         </p>
         <p className="font-body-md text-[14px] text-on-surface-variant mt-0.5">
           {t.product.size}: <span className="text-on-surface">{item.size}</span>

@@ -89,7 +89,7 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!selectedColor || !selectedSize) return;
-    addItem(product, qty, selectedColor.label, selectedSize);
+    addItem(product, qty, selectedColor.label.ar, selectedSize);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
@@ -129,7 +129,7 @@ export default function ProductDetailPage() {
                   const active = selectedColorIndex === i;
                   return (
                     <button
-                      key={color.label + i}
+                      key={color.label.ar + i}
                       type="button"
                       onClick={() => handleSelectColor(i)}
                       className={`px-4 py-2 rounded-full border font-label-md text-label-md transition-all active:scale-95 ${
@@ -137,7 +137,7 @@ export default function ProductDetailPage() {
                       }`}
                       style={active ? { backgroundColor: "#5A5F44", borderColor: "#5A5F44" } : undefined}
                     >
-                      {color.label}
+                      {color.label[locale] || color.label.ar}
                     </button>
                   );
                 })}

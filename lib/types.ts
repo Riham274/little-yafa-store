@@ -40,8 +40,15 @@ export type ProductSize = {
 // Each color variant carries its own images and size/stock tracking — price
 // is deliberately NOT here, it stays a single top-level field shared across
 // every color of a product.
+//
+// `label` is multi-language like name/description, but it doubles as a
+// matching key (cart dedup, Firestore stock decrement, order records) —
+// everywhere that identity matters uses `label.ar` specifically (the
+// required/primary field, same convention as name/description), never the
+// whole object, so switching site language never changes which color/size
+// combination is being referenced.
 export type ProductColor = {
-  label: string;
+  label: LocalizedText;
   images: string[];
   sizes: ProductSize[];
 };
@@ -125,7 +132,14 @@ export type CartItem = {
   // cart — used purely for the strikethrough display, never in totals.
   originalPrice?: number;
   image: string | null;
+  // Canonical identifier — always the color's Arabic label, used to match
+  // against product.colors and for Firestore stock decrements. Never shown
+  // to the customer directly; see colorLabel for that.
   color: string;
+  // Multi-language snapshot for display, mirroring `name` above. Optional
+  // so carts saved to localStorage before this field existed still parse —
+  // display code falls back to the raw `color` string for those.
+  colorLabel?: LocalizedText;
   size: string;
   qty: number;
   stock: number;

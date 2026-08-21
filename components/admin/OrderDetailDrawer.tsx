@@ -11,6 +11,14 @@ import StatusBadge from "./StatusBadge";
 // undefined = still loading, null = deleted/not found
 type ProductLookup = Record<string, Product | null | undefined>;
 
+// OrderItem.color is always the Arabic label (the stable matching key —
+// see CartItem.color); resolve it to the admin's current language via the
+// live product when available, falling back to the stored Arabic text.
+function resolveColorLabel(product: Product | null | undefined, colorAr: string, locale: "en" | "ar"): string {
+  const match = product?.colors.find((c) => c.label.ar === colorAr);
+  return match ? match.label[locale] || match.label.ar : colorAr;
+}
+
 export default function OrderDetailDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
   const { t, locale } = useAdminLanguage();
   const [status, setStatus] = useState<OrderStatus>(order.status);
@@ -124,7 +132,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
                   <div className="flex-1 min-w-0">
                     <p className="font-body-md text-on-surface">{item.name}</p>
                     <p className="font-label-sm text-label-sm text-on-surface-variant">
-                      ({t.orders.color}: {item.color} · {t.orders.size}: {item.size}) × {item.qty}
+                      ({t.orders.color}: {resolveColorLabel(product, item.color, locale)} · {t.orders.size}: {item.size}) × {item.qty}
                     </p>
                     {product === null ? (
                       <p className="font-label-sm text-label-sm text-error mt-0.5">{t.orders.productUnavailable}</p>
@@ -208,7 +216,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           <div className="flex flex-col gap-1.5 font-body-md text-on-surface bg-surface-container-low rounded-2xl p-md">
             <div className="flex items-center justify-between">
               <span className="text-on-surface-variant">{t.orders.color}</span>
-              <span>{zoomedItem.color}</span>
+              <span>{resolveColorLabel(zoomedProduct, zoomedItem.color, locale)}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-on-surface-variant">{t.orders.size}</span>

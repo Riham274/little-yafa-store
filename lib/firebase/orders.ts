@@ -77,7 +77,10 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       if (!colors) {
         throw new InsufficientStockError(item.name.en, 0);
       }
-      const color = colors.find((c) => c.label === item.color);
+      // item.color is always the color's Arabic label — the stable
+      // matching key regardless of which language the customer's site was
+      // in when they added it to their cart (see CartItem.color).
+      const color = colors.find((c) => c.label.ar === item.color);
       if (!color) {
         throw new InsufficientStockError(item.name.en, 0);
       }
