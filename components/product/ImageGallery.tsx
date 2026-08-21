@@ -78,7 +78,14 @@ export default function ImageGallery({
             alt={alt}
             fill
             preload
-            sizes="(max-width: 768px) 100vw, 58vw"
+            // The 58vw share only holds up to the page's own max-width
+            // (container-max: 1280px in tailwind.config.js) — past that,
+            // the container itself stops growing, so a plain "58vw" would
+            // keep requesting larger images than the gallery can ever
+            // actually render on very wide screens. 720px approximates 58%
+            // of the container's content width once its padding/column gap
+            // are accounted for.
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 58vw, 720px"
             className="object-cover"
           />
         ) : (

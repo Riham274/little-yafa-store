@@ -10,9 +10,13 @@ import {
   query,
   serverTimestamp,
   setDoc,
+  startAfter,
   updateDoc,
   where,
   writeBatch,
+  type DocumentData,
+  type QueryConstraint,
+  type QueryDocumentSnapshot,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
@@ -153,42 +157,58 @@ export function isProductOutOfStock(product: Pick<Product, "colors">): boolean {
 // customer-facing reads fetch normally and filter client-side after
 // toProduct() has already applied the missing-field-means-visible fallback.
 
-// Short-lived in-memory cache for the two whole-catalog reads. Several
-// independent components (search bar, featured section, shop-all, sale
-// page, every category page) each call these on mount, often within the
-// same navigation — without this, browsing around re-fetches the entire
-// products collection over and over. The TTL keeps the storefront eventually
-// consistent without a real-time listener; any admin write clears it
-// immediately via invalidateProductCaches() so edits show up right away.
+// Short-lived in-memory cache for the whole-catalog read. Several
+// independent components (search bar, sale page) each call getAllProducts()
+// on mount, often within the same navigation — without this, browsing
+// around re-fetches the entire products collection over and over. The TTL
+// keeps the storefront eventually consistent without a real-time listener;
+// any admin write clears it immediately via invalidateProductCaches() so
+// edits show up right away.
 const CACHE_TTL_MS = 60_000;
 
 let allProductsCache: { data: Product[]; expiresAt: number } | null = null;
 let allProductsPromise: Promise<Product[]> | null = null;
-const categoryCache = new Map<Category, { data: Product[]; expiresAt: number }>();
-const categoryPromises = new Map<Category, Promise<Product[]>>();
 
 function invalidateProductCaches(): void {
   allProductsCache = null;
-  categoryCache.clear();
 }
 
-export async function getProductsByCategory(category: Category): Promise<Product[]> {
-  const now = Date.now();
-  const cached = categoryCache.get(category);
-  if (cached && now < cached.expiresAt) return cached.data;
+export type ProductPage = {
+  products: Product[];
+  /** Opaque cursor for the next page — pass to the next call's `cursor`
+   * param. Null once there's nothing left to page through. */
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+};
 
-  let pending = categoryPromises.get(category);
-  if (!pending) {
-    pending = (async () => {
-      const q = query(collection(db, PRODUCTS_COLLECTION), where("categories", "array-contains", category));
-      const snap = await getDocs(q);
-      const data = snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
-      categoryCache.set(category, { data, expiresAt: Date.now() + CACHE_TTL_MS });
-      return data;
-    })().finally(() => categoryPromises.delete(category));
-    categoryPromises.set(category, pending);
-  }
-  return pending;
+/** Paginated category read — category pages fetch one bounded page at a
+ * time (a "Load More" button requests the next) instead of the whole
+ * category in one unbounded query, so a listing page stays cheap and fast
+ * to first-render even once the catalog grows to hundreds of products.
+ *
+ * Deliberately has no `orderBy` (falls back to Firestore's implicit
+ * document-ID ordering for the `startAfter` cursor): ordering by a field
+ * like `createdAt` would need a composite index AND would silently exclude
+ * any product missing that field from the results entirely (Firestore's
+ * behavior for docs missing the ordered-by field), which matters here since
+ * plenty of products predate that field.
+ *
+ * Not cached — pagination's own boundedness is the main win; caching a
+ * cursor-keyed sequence of pages isn't worth the complexity here. */
+export async function getProductsByCategoryPage(
+  category: Category,
+  pageSize: number,
+  cursor: QueryDocumentSnapshot<DocumentData> | null
+): Promise<ProductPage> {
+  const constraints: QueryConstraint[] = [where("categories", "array-contains", category), limit(pageSize)];
+  if (cursor) constraints.push(startAfter(cursor));
+
+  const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
+  const snap = await getDocs(q);
+  const products = snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+  const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : cursor;
+
+  return { products, lastDoc, hasMore: snap.docs.length === pageSize };
 }
 
 export async function getAllProducts(): Promise<Product[]> {

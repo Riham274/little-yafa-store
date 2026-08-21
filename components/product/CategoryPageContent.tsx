@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
-import { getProductsByCategory } from "@/lib/firebase/products";
+import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { AgeGroup, Category, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
@@ -11,6 +12,8 @@ import AgeFilterPills from "./AgeFilterPills";
 import GenderFilterPills, { type GenderFilterValue } from "./GenderFilterPills";
 import ProductGrid from "./ProductGrid";
 import SortSelect from "./SortSelect";
+
+const PAGE_SIZE = 24;
 
 export default function CategoryPageContent({
   category,
@@ -28,6 +31,9 @@ export default function CategoryPageContent({
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMore, setHasMore] = useState(false);
   const [sort, setSort] = useState<SortOption | null>(null);
 
   const activeAge = (searchParams.get("age") as AgeGroup | null) ?? null;
@@ -35,11 +41,25 @@ export default function CategoryPageContent({
 
   useEffect(() => {
     setLoading(true);
-    getProductsByCategory(category)
-      .then(setProducts)
+    setProducts([]);
+    setCursor(null);
+    setHasMore(false);
+    getProductsByCategoryPage(category, PAGE_SIZE, null)
+      .then((page) => {
+        setProducts(page.products);
+        setCursor(page.lastDoc);
+        setHasMore(page.hasMore);
+      })
       .finally(() => setLoading(false));
   }, [category]);
 
+  // Age/gender filtering and sorting apply to whatever pages have been
+  // loaded so far, not the whole category — a filter can show fewer results
+  // than actually exist until "Load More" pulls in the page that has them.
+  // That's the standard tradeoff of client-side filtering over paginated
+  // data; solving it properly would mean filtered server-side queries (and
+  // their own composite indexes) per filter combination, which is well
+  // beyond what this pagination change is for.
   const filtered = useMemo(() => {
     let result = products;
     if (showAgeFilter && activeAge) {
@@ -68,6 +88,18 @@ export default function CategoryPageContent({
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
+  const handleLoadMore = () => {
+    if (!hasMore || loadingMore) return;
+    setLoadingMore(true);
+    getProductsByCategoryPage(category, PAGE_SIZE, cursor)
+      .then((page) => {
+        setProducts((prev) => [...prev, ...page.products]);
+        setCursor(page.lastDoc);
+        setHasMore(page.hasMore);
+      })
+      .finally(() => setLoadingMore(false));
+  };
+
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
       <h1 className="font-headline-md text-headline-md md:text-display-lg-mobile text-on-surface mb-md">{title}</h1>
@@ -85,10 +117,29 @@ export default function CategoryPageContent({
       <div className="mt-lg">
         {loading ? (
           <PageLoader />
-        ) : filtered.length === 0 ? (
-          <div className="py-xl text-center text-on-surface-variant font-body-md">{t.category.noProducts}</div>
         ) : (
-          <ProductGrid products={filtered} />
+          <>
+            {filtered.length === 0 ? (
+              <div className="py-xl text-center text-on-surface-variant font-body-md">{t.category.noProducts}</div>
+            ) : (
+              <ProductGrid products={filtered} />
+            )}
+            {hasMore && (
+              <div className="flex justify-center mt-lg">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="flex items-center gap-2 px-lg py-3 rounded-full border border-outline-variant font-label-md text-label-md text-on-surface hover:border-primary/50 transition-colors disabled:opacity-50"
+                >
+                  {loadingMore && (
+                    <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                  )}
+                  {t.category.loadMore}
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

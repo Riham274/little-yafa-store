@@ -32,6 +32,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" dir="ltr" className="scroll-smooth">
       <head>
+        {/* Opens the TLS connection to Firestore/Storage before the app's JS
+            even finishes loading, so the first read/image request doesn't
+            also pay for DNS+TLS handshake latency. Storage needs
+            crossOrigin since images are fetched cross-origin by next/image;
+            Firestore's WebChannel connection doesn't use CORS credentials,
+            so it's left off there. */}
+        <link rel="preconnect" href="https://firestore.googleapis.com" />
+        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
         {/* Material Symbols is a variable icon font referenced by ligature
             name throughout the ported markup (e.g. "shopping_bag"); it isn't
             available via next/font/google, so it's loaded the same way the
