@@ -32,9 +32,12 @@ export default function ProductDetailPage() {
     getProductById(params.id).then(async (p) => {
       if (!active) return;
       setProduct(p);
-      // A single-color product is auto-selected (and its selector hidden) —
-      // multi-color products start with nothing picked.
-      setSelectedColorIndex(p && p.colors.length === 1 ? 0 : null);
+      // Always default to the first color so the gallery/size selector show
+      // something immediately on load, regardless of how many colors the
+      // product has — the color-picker UI itself is separately hidden for
+      // single-color products (see `product.colors.length > 1` below), so
+      // this doesn't change anything about that.
+      setSelectedColorIndex(p ? 0 : null);
       setSelectedSize(null);
       setLoading(false);
       if (p) {
