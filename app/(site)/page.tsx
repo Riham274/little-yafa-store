@@ -47,6 +47,14 @@ export default async function HomePage() {
           width={628}
           height={397}
           preload
+          // Without `sizes`, next/image can't tell this is rendered at a
+          // fraction of its intrinsic width — it falls back to 1x/2x
+          // device-pixel-ratio srcset entries sized off the full 628px
+          // intrinsic width, so every visitor (mobile included) downloads
+          // the ~640-1920px bucket regardless of the ~96-160px it's
+          // actually displayed at. This matches the fixed w-24/sm:w-28/
+          // md:w-36/lg:w-40 breakpoints in className below.
+          sizes="(max-width: 640px) 96px, (max-width: 768px) 112px, (max-width: 1024px) 144px, 160px"
           className="w-24 sm:w-28 md:w-36 lg:w-40 h-auto"
         />
       </section>
@@ -59,6 +67,12 @@ export default async function HomePage() {
           width={1364}
           height={768}
           preload
+          // Same missing-`sizes` issue as the logo above, but with more
+          // headroom to go wrong: this section has no max-width wrapper
+          // (see app/(site)/layout.tsx — `<main>` is unconstrained), so the
+          // image is genuinely edge-to-edge on every viewport, not capped
+          // at the site's usual 1280px container. 100vw matches that.
+          sizes="100vw"
           className="w-full h-auto block"
         />
       </section>
