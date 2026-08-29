@@ -1,87 +1,41 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { Boxes } from "lucide-react";
-import { useLanguage } from "@/context/LanguageContext";
 import { getHeroBannerUrl } from "@/lib/firebase/siteSettings";
-import FeaturedProductsSection from "@/components/home/FeaturedProductsSection";
+import HomePageBelowFold from "@/components/home/HomePageBelowFold";
 
 // Shown until an admin uploads a replacement through the admin Settings
 // page (app/admin/dashboard/settings) — kept in public/ as the permanent
 // fallback, not deleted once a live banner exists.
 const DEFAULT_HERO_BANNER = "/new-hero-banner.png";
 
-// Icon source files aren't guaranteed to share the same intrinsic aspect
-// ratio (e.g. icon-sale-olive.png is a tall 304x597 tag glyph vs. the square
-// ~280x280 garment icons), which previously threw off the card's computed
-// size when width/height props were used. Rendering into a fixed square box
-// with `fill` + `object-contain` keeps every card the same size regardless
-// of the source image's own dimensions.
-function CategoryCard({
-  href,
-  label,
-  icon,
-  labelColor = "#5A5F44",
-}: {
-  href: string;
-  label: string;
-  icon: string;
-  labelColor?: string;
-}) {
-  return (
-    <Link href={href} className="group flex flex-col items-center">
-      <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-        <div className="relative w-[84%] aspect-square">
-          <Image src={icon} alt={label} fill sizes="120px" className="object-contain" />
-        </div>
-        <span
-          className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
-          style={{ color: labelColor, fontWeight: 500 }}
-        >
-          {label}
-        </span>
-      </div>
-    </Link>
-  );
-}
+// Deliberately a Server Component (no "use client"): the hero banner below
+// is this page's LCP element, and neither it nor the logo above it need any
+// translated text (both alt strings are fixed, non-localized copy) — so
+// there's no reason this section has to wait for the client JS bundle to
+// download, parse, and hydrate before it can even start loading. Rendering
+// it server-side means the <img> tag (and the correct src, custom banner or
+// default) is present in the very first HTML response, so the browser's
+// preload scanner can start fetching it immediately, in parallel with the
+// JS bundle — instead of only being able to request it once React has
+// hydrated enough to render it, which is what the old fully-client version
+// did.
+//
+// This is real ISR (`revalidate` below), not force-dynamic — a plain
+// server-rendered-per-request page would re-hit Firestore on every single
+// visit, which works against the whole point of this pass. The locale-flash
+// concern that previously ruled ISR out for the rest of the site doesn't
+// apply here: this section has no translated text at all to render in the
+// wrong language, so there's nothing for a stale cache to get wrong beyond
+// the banner image itself, which is already the intentional tradeoff below.
+export const revalidate = 60;
 
-export default function HomePage() {
-  const { t } = useLanguage();
-  const [heroBannerUrl, setHeroBannerUrl] = useState(DEFAULT_HERO_BANNER);
-
-  useEffect(() => {
-    getHeroBannerUrl()
-      .then((url) => {
-        if (url) setHeroBannerUrl(url);
-      })
-      .catch(() => {
-        // Keep showing the static fallback — e.g. rules not deployed yet,
-        // or the client is offline.
-      });
-  }, []);
-
-  const categories = [
-    { href: "/new-in", label: t.nav.newIn, icon: "/icon-new-in.png" },
-    { href: "/newborn", label: t.home.categoryBaby, icon: "/icon-baby.png" },
-    { href: "/girls", label: t.home.categoryGirl, icon: "/icon-girl.png" },
-    { href: "/boys", label: t.home.categoryBoy, icon: "/icon-boy.png" },
-  ];
-  const categoriesRow2 = [
-    { href: "/sale", label: t.home.categoryDiscounts, icon: "/icon-sale-olive.png", labelColor: "#AC7557" },
-    { href: "/shoes", label: t.home.categoryShoes, icon: "/icon-shoes.png" },
-    { href: "/dresses", label: t.home.categoryDresses, icon: "/icon-dresses.png" },
-    { href: "/winter", label: t.home.categoryWinter, icon: "/icon-winter.png" },
-  ];
-  const services = [
-    { href: "/bath", label: t.home.bathEssentials, icon: "/icon2-bath-essentials.png" },
-    { href: "/blankets", label: t.home.babyBlankets, icon: "/icon2-baby-blankets.png" },
-    { href: "/accessories", label: t.home.babyAccessories, icon: "/icon2-baby-accessories.png" },
-    { href: "/gift-wrapping", label: t.home.giftWrapping, icon: "/icon2-gift-wrapping.png" },
-    // No PNG icon — wholesale uses a lucide line-art icon instead (see render below).
-    { href: "/wholesale", label: t.home.wholesale, icon: null },
-  ];
+export default async function HomePage() {
+  let heroBannerUrl = DEFAULT_HERO_BANNER;
+  try {
+    const url = await getHeroBannerUrl();
+    if (url) heroBannerUrl = url;
+  } catch {
+    // Keep the static fallback — e.g. a transient Firestore hiccup.
+  }
 
   return (
     <>
@@ -104,91 +58,12 @@ export default function HomePage() {
           alt="Little Yafa — a little touch of magic"
           width={1364}
           height={768}
+          preload
           className="w-full h-auto block"
         />
       </section>
 
-      {/* Categories */}
-      <section className="bg-[#5A5F44] px-gutter py-lg md:py-xl fade-in-up">
-        <div className="max-w-[640px] mx-auto flex flex-col gap-3 sm:gap-4 md:gap-6">
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-            {categories.map((cat) => (
-              <CategoryCard key={cat.href + cat.label} {...cat} />
-            ))}
-          </div>
-          <div className="grid grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-            {categoriesRow2.map((cat) => (
-              <CategoryCard key={cat.href + cat.label} {...cat} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Trust Badges */}
-      <section className="bg-[#EFE5DC] px-gutter py-lg md:py-xl fade-in-up">
-        <div className="max-w-[640px] mx-auto grid grid-cols-4 gap-1.5 sm:gap-4 md:gap-6">
-          {[
-            { icon: "spa", title: t.home.organic, desc: t.home.organicDesc },
-            { icon: "workspace_premium", title: t.home.premiumPieces, desc: t.home.premiumPiecesDesc },
-            { icon: "local_shipping", title: t.home.shipping, desc: t.home.shippingDesc },
-            { icon: "swap_horiz", title: t.home.exchange, desc: t.home.exchangeDesc },
-          ].map((badge) => (
-            <div key={badge.icon} className="flex flex-col items-center text-center gap-0.5 sm:gap-1">
-              <span
-                className="material-symbols-outlined text-[40px] sm:text-[48px] md:text-[56px]"
-                style={{ color: "#5A5F44", fontVariationSettings: "'FILL' 1" }}
-              >
-                {badge.icon}
-              </span>
-              <h3 className="font-body-md text-[9px] sm:text-[12px] md:text-[14px] font-semibold text-on-surface leading-tight px-0.5">{badge.title}</h3>
-              <p className="font-body-md text-[7px] sm:text-[9px] md:text-[11px] text-on-surface-variant leading-snug px-0.5">{badge.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Stripe Divider */}
-      <section
-        className="w-full h-[192px] sm:h-[240px] md:h-[288px]"
-        style={{
-          backgroundImage: "url('/stripe-divider.jpg')",
-          backgroundRepeat: "no-repeat",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      />
-
-      {/* Services */}
-      <section className="relative bg-[#EFE5DC] px-gutter py-lg md:py-xl fade-in-up">
-        <div className="max-w-[760px] mx-auto flex sm:grid sm:grid-cols-5 gap-3 sm:gap-4 md:gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory sm:overflow-visible">
-          {services.map((service) => (
-            <Link
-              key={service.href}
-              href={service.href}
-              className="group shrink-0 w-[100px] sm:w-auto snap-start flex flex-col items-center"
-            >
-              <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#5A5F44] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-                {service.icon ? (
-                  <Image src={service.icon} alt={service.label} width={96} height={96} className="w-[84%] h-auto object-contain" />
-                ) : (
-                  <Boxes className="w-[84%] h-auto" style={{ aspectRatio: "1 / 1" }} color="#EFE5DC" strokeWidth={1.5} />
-                )}
-                <span
-                  className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
-                  style={{ color: "#EFE5DC", fontWeight: 500 }}
-                >
-                  {service.label}
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
-        {/* Hint that the row scrolls further when it overflows the viewport */}
-        <div className="sm:hidden pointer-events-none absolute inset-y-0 end-0 w-10 bg-gradient-to-l rtl:bg-gradient-to-r from-[#EFE5DC] to-transparent" />
-      </section>
-
-      {/* Discover Products */}
-      <FeaturedProductsSection />
+      <HomePageBelowFold />
     </>
   );
 }
