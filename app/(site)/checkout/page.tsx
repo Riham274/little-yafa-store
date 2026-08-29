@@ -33,6 +33,7 @@ export default function CheckoutPage() {
     { value: "westBank", label: t.checkout.regionWestBank },
     { value: "jerusalem", label: t.checkout.regionJerusalem },
     { value: "inside", label: t.checkout.regionInside },
+    { value: "pickup", label: t.checkout.regionPickup },
   ];
 
   const shipping = region ? SHIPPING_RATES[region] : 0;
@@ -172,7 +173,7 @@ export default function CheckoutPage() {
             <label className="block font-label-md text-label-md text-on-surface-variant mb-2">
               {t.checkout.deliveryRegion}
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-sm">
               {REGIONS.map(({ value, label }) => {
                 const active = region === value;
                 return (
@@ -189,8 +190,17 @@ export default function CheckoutPage() {
                     style={active ? { backgroundColor: "#5A5F44", borderColor: "#5A5F44" } : undefined}
                   >
                     <span>{label}</span>
+                    {value === "pickup" && (
+                      <span
+                        className={`font-body-md text-[11px] text-center leading-tight ${
+                          active ? "text-white/80" : "text-on-surface-variant/80"
+                        }`}
+                      >
+                        {t.checkout.pickupAddress}
+                      </span>
+                    )}
                     <span className={active ? "text-white/90" : "text-on-surface-variant"}>
-                      {formatPrice(SHIPPING_RATES[value])}
+                      {SHIPPING_RATES[value] === 0 ? t.checkout.shippingFree : formatPrice(SHIPPING_RATES[value])}
                     </span>
                   </button>
                 );
@@ -235,7 +245,7 @@ export default function CheckoutPage() {
             </div>
             <div className="flex justify-between font-body-md text-on-surface-variant">
               <span>{t.checkout.shipping}</span>
-              <span>{region ? formatPrice(shipping) : "—"}</span>
+              <span>{!region ? "—" : shipping === 0 ? t.checkout.shippingFree : formatPrice(shipping)}</span>
             </div>
             <div className="flex justify-between font-headline-sm text-headline-sm text-on-surface">
               <span>{t.checkout.total}</span>

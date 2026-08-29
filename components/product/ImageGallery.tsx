@@ -4,9 +4,11 @@ import { useRef, useState } from "react";
 import type { ReactNode, TouchEvent, MouseEvent } from "react";
 import Image from "next/image";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
+import ImageLightbox from "@/components/product/ImageLightbox";
 import { useLanguage } from "@/context/LanguageContext";
 
 const SWIPE_THRESHOLD = 40; // px of horizontal movement before it counts as a swipe
+const TAP_MOVE_THRESHOLD = 10; // px of movement still small enough to count as a tap, not a swipe
 
 export default function ImageGallery({
   images,
@@ -19,6 +21,7 @@ export default function ImageGallery({
 }) {
   const { dir } = useLanguage();
   const [active, setActive] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
   const pics = images.length > 0 ? images : [null];
 
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -48,7 +51,17 @@ export default function ImageGallery({
     touchStart.current = null;
     // Only treat it as a swipe if the motion was predominantly horizontal —
     // otherwise this was a vertical scroll and should be left alone.
-    if (Math.abs(dx) > Math.abs(dy)) handleSwipe(dx);
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+        handleSwipe(dx);
+        return;
+      }
+    }
+    // Small enough movement in every direction to have been a tap, not a
+    // swipe or scroll — open the zoomed lightbox view.
+    if (Math.abs(dx) < TAP_MOVE_THRESHOLD && Math.abs(dy) < TAP_MOVE_THRESHOLD) {
+      setLightboxOpen(true);
+    }
   };
 
   const onMouseDown = (e: MouseEvent) => {
@@ -57,14 +70,19 @@ export default function ImageGallery({
 
   const onMouseUp = (e: MouseEvent) => {
     if (mouseStartX.current === null) return;
-    handleSwipe(e.clientX - mouseStartX.current);
+    const dx = e.clientX - mouseStartX.current;
     mouseStartX.current = null;
+    if (Math.abs(dx) >= SWIPE_THRESHOLD) {
+      handleSwipe(dx);
+      return;
+    }
+    setLightboxOpen(true);
   };
 
   return (
     <div>
       <div
-        className="relative aspect-[4/5] rounded-[2rem] overflow-hidden cloud-shadow bg-surface-container-low mb-sm select-none"
+        className="relative aspect-[4/5] rounded-[2rem] overflow-hidden cloud-shadow bg-surface-container-low mb-sm select-none cursor-zoom-in"
         style={{ touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
@@ -108,6 +126,16 @@ export default function ImageGallery({
             </button>
           ))}
         </div>
+      )}
+      {lightboxOpen && (
+        <ImageLightbox
+          images={pics}
+          active={active}
+          onNavigate={goTo}
+          onClose={() => setLightboxOpen(false)}
+          alt={alt}
+          dir={dir}
+        />
       )}
     </div>
   );

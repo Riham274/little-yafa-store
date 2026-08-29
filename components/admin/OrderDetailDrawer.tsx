@@ -48,6 +48,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
     westBank: t.orders.regionWestBank,
     jerusalem: t.orders.regionJerusalem,
     inside: t.orders.regionInside,
+    pickup: t.orders.regionPickup,
   };
   const subtotal = order.total - order.shippingCost;
 
