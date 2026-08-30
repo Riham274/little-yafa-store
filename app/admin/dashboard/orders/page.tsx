@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
 import { archiveOrder, subscribeToOrders, unarchiveOrder } from "@/lib/firebase/orders";
 import { formatPrice } from "@/lib/format";
 import type { Order, OrderStatus } from "@/lib/types";
@@ -18,7 +19,6 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [view, setView] = useState<OrdersView>("active");
   const [selected, setSelected] = useState<Order | null>(null);
-  const [autoPrintId, setAutoPrintId] = useState<string | null>(null);
 
   useEffect(() => subscribeToOrders(setOrders), []);
 
@@ -50,10 +50,20 @@ export default function AdminOrdersPage() {
     await unarchiveOrder(order.id);
   };
 
+  // iOS Safari only allows window.print() when it's called synchronously
+  // inside the event handler that the user's tap directly triggered — a
+  // setTimeout (even a short one) or an awaited state update breaks that
+  // chain and Safari silently no-ops it. flushSync forces the drawer (and
+  // its print-only markup) to actually render and commit to the DOM before
+  // this function returns, so window.print() below is still running inside
+  // the original tap's call stack, not deferred to a later tick.
   const handleQuickPrint = (order: Order, e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelected(order);
-    setAutoPrintId(order.id);
+    flushSync(() => {
+      setSelected(order);
+    });
+    console.log("print button clicked");
+    window.print();
   };
 
   return (
@@ -245,16 +255,7 @@ export default function AdminOrdersPage() {
         )}
       </div>
 
-      {selected && (
-        <OrderDetailDrawer
-          order={selected}
-          autoPrint={autoPrintId === selected.id}
-          onClose={() => {
-            setSelected(null);
-            setAutoPrintId(null);
-          }}
-        />
-      )}
+      {selected && <OrderDetailDrawer order={selected} onClose={() => setSelected(null)} />}
     </div>
   );
 }

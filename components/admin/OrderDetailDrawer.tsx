@@ -22,19 +22,7 @@ export function resolveColorLabel(product: Product | null | undefined, colorAr: 
   return match ? match.label[locale] || match.label.ar : colorAr;
 }
 
-export default function OrderDetailDrawer({
-  order,
-  onClose,
-  autoPrint = false,
-}: {
-  order: Order;
-  onClose: () => void;
-  // Set when opened via the Orders list row's quick-print button, so the
-  // print dialog fires as soon as the order's data (and print-only markup)
-  // has actually mounted, instead of the admin needing to open the drawer
-  // and then separately find/click the print button inside it.
-  autoPrint?: boolean;
-}) {
+export default function OrderDetailDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
   const { t, locale } = useAdminLanguage();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [saving, setSaving] = useState(false);
@@ -49,14 +37,6 @@ export default function OrderDetailDrawer({
       });
     });
   }, [order.items]);
-
-  useEffect(() => {
-    if (!autoPrint) return;
-    // A tick to let the print-only markup actually mount before the browser
-    // snapshots the page for the print dialog.
-    const id = setTimeout(() => window.print(), 300);
-    return () => clearTimeout(id);
-  }, [autoPrint]);
 
   useEffect(() => {
     if (zoomedItemIndex === null) return;
@@ -101,7 +81,10 @@ export default function OrderDetailDrawer({
           </h2>
           <div className="flex items-center -my-2 -me-2">
             <button
-              onClick={() => window.print()}
+              onClick={() => {
+                console.log("print button clicked");
+                window.print();
+              }}
               title={t.orders.print}
               className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors"
             >
