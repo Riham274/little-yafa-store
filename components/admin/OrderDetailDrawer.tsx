@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import { formatPrice } from "@/lib/format";
 import { updateOrderStatus } from "@/lib/firebase/orders";
 import { getProductByIdForAdmin } from "@/lib/firebase/products";
@@ -28,6 +29,11 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
   const [saving, setSaving] = useState(false);
   const [productsById, setProductsById] = useState<ProductLookup>({});
   const [zoomedItemIndex, setZoomedItemIndex] = useState<number | null>(null);
+  // TEMPORARY diagnostic for a real-device bug report (print button silently
+  // unresponsive on iPhone Safari): console.log isn't reachable without a
+  // Mac + cable, so this on-screen banner proves whether the tap is even
+  // registering. Remove once the on-device report comes back either way.
+  const [showPrintTappedBanner, setShowPrintTappedBanner] = useState(false);
 
   useEffect(() => {
     const ids = [...new Set(order.items.map((item) => item.productId))];
@@ -72,6 +78,13 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
 
   return (
     <>
+    {showPrintTappedBanner && (
+      <div className="fixed top-4 inset-x-4 z-[200] flex justify-center pointer-events-none">
+        <div className="bg-primary text-on-primary rounded-full px-6 py-3 font-label-md text-label-md shadow-lg">
+          {t.orders.printTappedDebug}
+        </div>
+      </div>
+    )}
     <OrderPrintView order={order} status={status} productsById={productsById} />
     <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-end md:items-center md:justify-center p-0 md:p-gutter">
       <div className="bg-surface rounded-t-[2rem] md:rounded-[2rem] cloud-shadow w-full md:max-w-lg max-h-[90vh] overflow-y-auto p-lg">
@@ -83,7 +96,14 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
             <button
               onClick={() => {
                 console.log("print button clicked");
+                // flushSync so the banner actually paints before
+                // window.print() runs — without it, React could batch this
+                // update to run after print() returns, and on iOS the
+                // print UI can take over the screen before the banner ever
+                // shows, making it look like it "never appeared" either way.
+                flushSync(() => setShowPrintTappedBanner(true));
                 window.print();
+                setTimeout(() => setShowPrintTappedBanner(false), 3000);
               }}
               title={t.orders.print}
               className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors"
