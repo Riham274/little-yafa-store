@@ -94,3 +94,26 @@ html[lang="ar"] body {
   --font-playfair: var(--font-arabic);
   --font-inter: var(--font-arabic);
 }
+
+/* Order print view (OrderPrintView.tsx): the classic "print only this
+   element" trick. Everything is hidden by default when printing — sidebar,
+   buttons, the drawer's own on-screen chrome, all of it — and only
+   .print-area (kept off-screen at all other times via `hidden print:block`)
+   is made visible again and pulled out to the page origin, so it prints as
+   its own clean single document instead of wherever it happened to sit in
+   the admin layout. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

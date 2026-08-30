@@ -18,6 +18,7 @@ export default function AdminOrdersPage() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all");
   const [view, setView] = useState<OrdersView>("active");
   const [selected, setSelected] = useState<Order | null>(null);
+  const [autoPrintId, setAutoPrintId] = useState<string | null>(null);
 
   useEffect(() => subscribeToOrders(setOrders), []);
 
@@ -47,6 +48,12 @@ export default function AdminOrdersPage() {
 
   const handleUnarchive = async (order: Order) => {
     await unarchiveOrder(order.id);
+  };
+
+  const handleQuickPrint = (order: Order, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelected(order);
+    setAutoPrintId(order.id);
   };
 
   return (
@@ -127,7 +134,14 @@ export default function AdminOrdersPage() {
                   {new Date(order.createdAt).toLocaleDateString()}
                 </td>
                 <td className="py-3 px-md text-end">
-                  <div className="flex justify-end">
+                  <div className="flex justify-end items-center gap-3">
+                    <button
+                      onClick={(e) => handleQuickPrint(order, e)}
+                      title={t.orders.print}
+                      className="text-on-surface-variant hover:text-primary transition-colors"
+                    >
+                      <span className="material-symbols-outlined">print</span>
+                    </button>
                     {order.archived ? (
                       <button
                         onClick={(e) => {
@@ -166,7 +180,16 @@ export default function AdminOrdersPage() {
         </table>
       </div>
 
-      {selected && <OrderDetailDrawer order={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <OrderDetailDrawer
+          order={selected}
+          autoPrint={autoPrintId === selected.id}
+          onClose={() => {
+            setSelected(null);
+            setAutoPrintId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

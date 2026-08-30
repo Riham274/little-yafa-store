@@ -7,6 +7,7 @@ import { getProductByIdForAdmin } from "@/lib/firebase/products";
 import type { Order, OrderStatus, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatusBadge from "./StatusBadge";
+import OrderPrintView from "./OrderPrintView";
 
 // undefined = still loading, null = deleted/not found
 type ProductLookup = Record<string, Product | null | undefined>;
@@ -14,12 +15,26 @@ type ProductLookup = Record<string, Product | null | undefined>;
 // OrderItem.color is always the Arabic label (the stable matching key —
 // see CartItem.color); resolve it to the admin's current language via the
 // live product when available, falling back to the stored Arabic text.
-function resolveColorLabel(product: Product | null | undefined, colorAr: string, locale: "en" | "ar"): string {
+// Exported so OrderPrintView can resolve the same labels for the printed
+// items table without duplicating the lookup logic.
+export function resolveColorLabel(product: Product | null | undefined, colorAr: string, locale: "en" | "ar"): string {
   const match = product?.colors.find((c) => c.label.ar === colorAr);
   return match ? match.label[locale] || match.label.ar : colorAr;
 }
 
-export default function OrderDetailDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
+export default function OrderDetailDrawer({
+  order,
+  onClose,
+  autoPrint = false,
+}: {
+  order: Order;
+  onClose: () => void;
+  // Set when opened via the Orders list row's quick-print button, so the
+  // print dialog fires as soon as the order's data (and print-only markup)
+  // has actually mounted, instead of the admin needing to open the drawer
+  // and then separately find/click the print button inside it.
+  autoPrint?: boolean;
+}) {
   const { t, locale } = useAdminLanguage();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [saving, setSaving] = useState(false);
@@ -34,6 +49,14 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
       });
     });
   }, [order.items]);
+
+  useEffect(() => {
+    if (!autoPrint) return;
+    // A tick to let the print-only markup actually mount before the browser
+    // snapshots the page for the print dialog.
+    const id = setTimeout(() => window.print(), 300);
+    return () => clearTimeout(id);
+  }, [autoPrint]);
 
   useEffect(() => {
     if (zoomedItemIndex === null) return;
@@ -69,15 +92,25 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
 
   return (
     <>
+    <OrderPrintView order={order} status={status} productsById={productsById} />
     <div className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-end md:items-center md:justify-center p-0 md:p-gutter">
       <div className="bg-surface rounded-t-[2rem] md:rounded-[2rem] cloud-shadow w-full md:max-w-lg max-h-[90vh] overflow-y-auto p-lg">
         <div className="flex items-center justify-between mb-md">
           <h2 className="font-headline-sm text-headline-sm text-on-surface">
             {t.orders.orderPrefix}{order.id.slice(0, 6).toUpperCase()}
           </h2>
-          <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors">
-            <span className="material-symbols-outlined">close</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.print()}
+              title={t.orders.print}
+              className="text-on-surface-variant hover:text-primary transition-colors"
+            >
+              <span className="material-symbols-outlined">print</span>
+            </button>
+            <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors">
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center justify-between mb-lg">
