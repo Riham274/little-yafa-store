@@ -50,7 +50,8 @@ export default function AdminOverviewPage() {
               {t.overview.viewAll}
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-start">
               <thead>
                 <tr className="border-b border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase">
@@ -80,6 +81,26 @@ export default function AdminOverviewPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile cards — same pattern used everywhere else in the admin
+              panel, so this preview never needs pinch-zoom on a phone. */}
+          <div className="md:hidden flex flex-col gap-sm">
+            {orders.slice(0, 5).map((order) => (
+              <div key={order.id} className="bg-surface-container-low rounded-xl p-sm flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-label-md text-label-md text-primary">#{order.id.slice(0, 6).toUpperCase()}</p>
+                  <p className="font-body-md text-on-surface truncate">{order.customerName}</p>
+                  <div className="mt-1">
+                    <StatusBadge status={order.status} />
+                  </div>
+                </div>
+                <p className="font-body-md text-secondary font-semibold shrink-0">{formatPrice(order.total)}</p>
+              </div>
+            ))}
+            {orders.length === 0 && (
+              <p className="py-6 text-center text-on-surface-variant font-body-md">{t.overview.noOrdersYet}</p>
+            )}
           </div>
           <p className="font-label-sm text-label-sm text-on-surface-variant mt-md">
             {t.overview.totalRevenue} <span className="text-secondary font-semibold">{formatPrice(totalRevenue)}</span>

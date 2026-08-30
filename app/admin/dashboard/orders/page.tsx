@@ -105,7 +105,8 @@ export default function AdminOrdersPage() {
         </select>
       </div>
 
-      <div className="bg-surface-container-lowest rounded-2xl cloud-shadow border border-outline-variant/50 overflow-hidden overflow-x-auto">
+      {/* Desktop table */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-2xl cloud-shadow border border-outline-variant/50 overflow-hidden overflow-x-auto">
         <table className="w-full text-start">
           <thead>
             <tr className="border-b border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase">
@@ -178,6 +179,70 @@ export default function AdminOrdersPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards — same pattern as the Products page: key info stacked
+          in one column, tapping the card opens the same detail drawer a
+          row-click would, and every action is its own ≥44px touch target
+          in a dedicated row so nothing needs pinch-zoom or horizontal
+          hunting to reach. */}
+      <div className="md:hidden flex flex-col gap-sm">
+        {filtered.map((order) => (
+          <div
+            key={order.id}
+            onClick={() => setSelected(order)}
+            className="bg-surface-container-lowest rounded-2xl cloud-shadow p-md cursor-pointer active:bg-surface-container-low transition-colors"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-label-md text-label-md text-primary">#{order.id.slice(0, 6).toUpperCase()}</p>
+                <p className="font-body-md text-on-surface">{order.customerName}</p>
+              </div>
+              <p className="font-body-md text-secondary font-bold whitespace-nowrap">{formatPrice(order.total)}</p>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <StatusBadge status={order.status} />
+              <span className="font-label-sm text-label-sm text-on-surface-variant">
+                {new Date(order.createdAt).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-outline-variant/50">
+              <button
+                onClick={(e) => handleQuickPrint(order, e)}
+                title={t.orders.print}
+                className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-[22px]">print</span>
+              </button>
+              {order.archived ? (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUnarchive(order);
+                  }}
+                  title={t.orders.unarchiveOrder}
+                  className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[22px]">unarchive</span>
+                </button>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleArchive(order);
+                  }}
+                  title={t.orders.archiveOrder}
+                  className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-error active:bg-error-container/20 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[22px]">archive</span>
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        {filtered.length === 0 && (
+          <p className="py-8 text-center text-on-surface-variant font-body-md">{t.orders.noOrdersFound}</p>
+        )}
       </div>
 
       {selected && (

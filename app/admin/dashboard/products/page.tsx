@@ -183,7 +183,7 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Desktop table */}
-      <div className="hidden md:block bg-surface-container-lowest rounded-2xl cloud-shadow border border-outline-variant/50 overflow-hidden">
+      <div className="hidden md:block bg-surface-container-lowest rounded-2xl cloud-shadow border border-outline-variant/50 overflow-hidden overflow-x-auto">
         <table className="w-full text-start">
           <thead>
             <tr className="border-b border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase">
@@ -281,54 +281,70 @@ export default function AdminProductsPage() {
         </table>
       </div>
 
-      {/* Mobile cards */}
+      {/* Mobile cards — a wide table with many columns is unusable on a
+          phone even with horizontal scroll/pinch-zoom, so this is a
+          different layout entirely (not a squeezed table): key info stacked
+          in one column, and every action as its own real ≥44px touch
+          target in a dedicated row, never floating over text it could
+          overlap. */}
       <div className="md:hidden flex flex-col gap-sm">
         {filteredProducts.map((product) => (
           <div
             key={product.id}
-            className={`relative bg-surface-container-lowest rounded-2xl cloud-shadow p-md flex gap-md ${
-              !product.isVisible ? "opacity-45" : ""
-            }`}
+            className={`bg-surface-container-lowest rounded-2xl cloud-shadow p-md ${!product.isVisible ? "opacity-45" : ""}`}
           >
-            <div className="w-16 h-16 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
-              {product.colors[0]?.images[0] && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={product.colors[0].images[0]} alt="" className="w-full h-full object-cover" />
-              )}
+            <div className="flex gap-md">
+              <div className="w-16 h-16 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
+                {product.colors[0]?.images[0] && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={product.colors[0].images[0]} alt="" className="w-full h-full object-cover" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h5 className="font-label-md text-label-md text-on-surface">{product.name.en}</h5>
+                <p className="font-label-sm text-label-sm text-on-surface-variant capitalize">
+                  {product.categories.join(", ")} {product.ageGroups.length > 0 ? `• ${product.ageGroups.join(", ")}` : ""}
+                </p>
+                <p className="font-body-md text-secondary font-semibold mt-1">
+                  {product.price !== undefined ? formatPrice(product.price) : "—"}
+                </p>
+                <span
+                  className={`inline-block mt-1 px-2 py-0.5 rounded-full font-label-sm text-label-sm ${
+                    getTotalStock(product) <= LOW_STOCK_THRESHOLD ? "bg-error-container/20 text-error" : "bg-surface-container-high"
+                  }`}
+                >
+                  {t.products.stockLabel} {getTotalStock(product)}
+                </span>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h5 className="font-label-md text-label-md text-on-surface truncate">{product.name.en}</h5>
-              <p className="font-label-sm text-label-sm text-on-surface-variant capitalize">
-                {product.categories.join(", ")} {product.ageGroups.length > 0 ? `• ${product.ageGroups.join(", ")}` : ""}
-              </p>
-              <p className="font-body-md text-secondary font-semibold mt-1">
-                {product.price !== undefined ? formatPrice(product.price) : "—"}
-              </p>
-              <span
-                className={`inline-block mt-1 px-2 py-0.5 rounded-full font-label-sm text-label-sm ${
-                  getTotalStock(product) <= LOW_STOCK_THRESHOLD ? "bg-error-container/20 text-error" : "bg-surface-container-high"
-                }`}
-              >
-                {t.products.stockLabel} {getTotalStock(product)}
-              </span>
-            </div>
-            <div className="absolute top-3 end-3 flex gap-2">
+            <div className="flex items-center justify-end gap-1 mt-2 pt-2 border-t border-outline-variant/50">
               <button
                 onClick={() => handleToggleVisibility(product)}
                 title={product.isVisible ? t.products.hideProduct : t.products.showProduct}
-                className="text-on-surface-variant hover:text-primary"
+                className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors"
               >
-                <span className="material-symbols-outlined text-[20px]">{product.isVisible ? "visibility" : "visibility_off"}</span>
+                <span className="material-symbols-outlined text-[22px]">{product.isVisible ? "visibility" : "visibility_off"}</span>
               </button>
-              <button onClick={() => openEdit(product)} className="text-on-surface-variant hover:text-primary">
-                <span className="material-symbols-outlined text-[20px]">edit</span>
+              <button
+                onClick={() => openEdit(product)}
+                title={t.common.edit}
+                className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors"
+              >
+                <span className="material-symbols-outlined text-[22px]">edit</span>
               </button>
-              <button onClick={() => handleDelete(product)} className="text-on-surface-variant hover:text-error">
-                <span className="material-symbols-outlined text-[20px]">delete</span>
+              <button
+                onClick={() => handleDelete(product)}
+                title={t.common.delete}
+                className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-error active:bg-error-container/20 transition-colors"
+              >
+                <span className="material-symbols-outlined text-[22px]">delete</span>
               </button>
             </div>
           </div>
         ))}
+        {filteredProducts.length === 0 && (
+          <p className="py-8 text-center text-on-surface-variant font-body-md">{t.products.noProductsYet}</p>
+        )}
       </div>
 
       {modalOpen && (

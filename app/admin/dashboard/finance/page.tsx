@@ -86,7 +86,7 @@ export default function AdminFinancePage() {
       )}
 
       <div className="bg-surface-container-lowest rounded-2xl cloud-shadow border border-outline-variant/50 overflow-hidden">
-        <div className="flex items-center justify-between p-md pb-0">
+        <div className="flex items-center justify-between flex-wrap gap-2 p-md pb-0">
           <h2 className="font-headline-sm text-headline-sm text-on-surface">{t.products.tableProduct}</h2>
           <div className="flex gap-2">
             <button
@@ -112,7 +112,8 @@ export default function AdminFinancePage() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Desktop table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-start">
             <thead>
               <tr className="border-b border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase">
@@ -165,6 +166,49 @@ export default function AdminFinancePage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile cards — same pattern used everywhere else in the admin
+            panel, so a wide data table never needs pinch-zoom on a phone. */}
+        <div className="md:hidden flex flex-col gap-sm p-md">
+          {sortedByProduct.map((row) => {
+            const product = productById.get(row.productId);
+            const name = product ? product.name[locale] : row.fallbackName;
+            const image = product?.colors[0]?.images[0];
+            return (
+              <div key={row.productId} className="bg-surface-container-low rounded-xl p-sm flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden shrink-0">
+                  {image && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={image} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1">
+                    <span className="font-body-md text-on-surface">{name}</span>
+                    {row.missingCostPrice && (
+                      <span
+                        title={t.finance.missingCostPriceWarning}
+                        className="material-symbols-outlined text-[16px] text-on-secondary-container"
+                      >
+                        warning
+                      </span>
+                    )}
+                  </div>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">
+                    {t.finance.tableQtySold}: {row.qty}
+                  </p>
+                </div>
+                <div className="text-end shrink-0">
+                  <p className="font-body-md text-secondary font-semibold">{formatPrice(row.revenue)}</p>
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">{formatPrice(row.profit)}</p>
+                </div>
+              </div>
+            );
+          })}
+          {sortedByProduct.length === 0 && (
+            <p className="py-8 text-center text-on-surface-variant font-body-md">{t.finance.noSales}</p>
+          )}
         </div>
       </div>
     </div>

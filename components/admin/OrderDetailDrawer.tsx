@@ -99,15 +99,18 @@ export default function OrderDetailDrawer({
           <h2 className="font-headline-sm text-headline-sm text-on-surface">
             {t.orders.orderPrefix}{order.id.slice(0, 6).toUpperCase()}
           </h2>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center -my-2 -me-2">
             <button
               onClick={() => window.print()}
               title={t.orders.print}
-              className="text-on-surface-variant hover:text-primary transition-colors"
+              className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors"
             >
               <span className="material-symbols-outlined">print</span>
             </button>
-            <button onClick={onClose} className="text-on-surface-variant hover:text-error transition-colors">
+            <button
+              onClick={onClose}
+              className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-error active:bg-error-container/20 transition-colors"
+            >
               <span className="material-symbols-outlined">close</span>
             </button>
           </div>
@@ -224,7 +227,7 @@ export default function OrderDetailDrawer({
             <h2 className="font-headline-sm text-headline-sm text-on-surface">{zoomedItem.name}</h2>
             <button
               onClick={() => setZoomedItemIndex(null)}
-              className="text-on-surface-variant hover:text-error transition-colors shrink-0"
+              className="flex items-center justify-center w-11 h-11 -my-2 -me-2 rounded-full text-on-surface-variant hover:text-error active:bg-error-container/20 transition-colors shrink-0"
             >
               <span className="material-symbols-outlined">close</span>
             </button>

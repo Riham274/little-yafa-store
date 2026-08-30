@@ -124,9 +124,9 @@ export default function AdminMessagesPage() {
                 <button
                   onClick={() => handleMarkAsRead(message)}
                   title={t.messages.markAsRead}
-                  className="text-on-surface-variant hover:text-primary shrink-0"
+                  className="flex items-center justify-center w-11 h-11 -my-2 -me-2 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container transition-colors shrink-0"
                 >
-                  <span className="material-symbols-outlined text-[20px]">mark_email_read</span>
+                  <span className="material-symbols-outlined text-[22px]">mark_email_read</span>
                 </button>
               )}
             </div>
