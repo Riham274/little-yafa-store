@@ -138,6 +138,10 @@ const en = {
     age2to10y: "2-10 Years",
     images: "Images",
     saveProduct: "Save Product",
+    draftFoundMessage: "We found a saved draft from a previous attempt. Would you like to continue it?",
+    draftImagesNote: "You may need to re-upload images",
+    draftRestore: "Continue Draft",
+    draftDiscard: "Start Fresh",
   },
   orders: {
     title: "Orders",
@@ -366,6 +370,10 @@ const ar: AdminDictionary = {
     age2to10y: "2-10 سنوات",
     images: "الصور",
     saveProduct: "حفظ المنتج",
+    draftFoundMessage: "لقينا مسودة محفوظة من محاولة سابقة، هل تريدين استكمالها؟",
+    draftImagesNote: "قد تحتاجين لإعادة رفع الصور",
+    draftRestore: "استكمال المسودة",
+    draftDiscard: "بدء جديد",
   },
   orders: {
     title: "الطلبات",
