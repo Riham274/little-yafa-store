@@ -247,6 +247,12 @@ export async function getFeaturedProductsPool(poolSize: number): Promise<Product
   return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
 }
 
+// Used by shop-all: each "Load More" round re-fetches the same category
+// with a larger `poolSize` (no cursor) rather than paginating forward, so a
+// doc fetched-but-not-picked in an earlier round is never lost — it just
+// stays in the (growing) pool as a candidate for a future round's random
+// pick, matching the initial load's own "pool of N, pick 2 at random" logic
+// exactly instead of a different pagination-based one for subsequent loads.
 export async function getProductsByCategoryPool(category: Category, poolSize: number): Promise<Product[]> {
   const q = query(
     collection(db, PRODUCTS_COLLECTION),
