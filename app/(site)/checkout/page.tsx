@@ -200,7 +200,11 @@ export default function CheckoutPage() {
                       </span>
                     )}
                     <span className={active ? "text-white/90" : "text-on-surface-variant"}>
-                      {SHIPPING_RATES[value] === 0 ? t.checkout.shippingFree : formatPrice(SHIPPING_RATES[value])}
+                      {value === "pickup"
+                        ? t.checkout.pickupFeeLabel
+                        : SHIPPING_RATES[value] === 0
+                          ? t.checkout.shippingFree
+                          : formatPrice(SHIPPING_RATES[value])}
                     </span>
                   </button>
                 );
