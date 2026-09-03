@@ -12,11 +12,11 @@ export default function NewbornPage() {
   const { t } = useLanguage();
 
   return (
-    // Full-bleed olive background, same color as the homepage's main
-    // category section (bg-[#5A5F44]) — the cards themselves keep their own
-    // cream/beige background unchanged, only the page background around
-    // them changes.
-    <section className="bg-[#5A5F44] px-gutter py-xl min-h-[calc(100vh-72px)]">
+    // Full-bleed olive background, same color AND same padding pattern as
+    // the homepage's main category section (bg-[#5A5F44] px-gutter py-lg
+    // md:py-xl) — sized to its content like that section is, not to the
+    // viewport, so it doesn't leave a large empty gap before the footer.
+    <section className="bg-[#5A5F44] px-gutter py-lg md:py-xl">
       <div className="max-w-container-max mx-auto">
         <h1 className="font-headline-md text-headline-md md:text-display-lg-mobile mb-lg text-center text-[#EFE5DC]">
           {t.category.newbornTitle}
@@ -27,8 +27,15 @@ export default function NewbornPage() {
             label={t.category.newbornCottonTitle}
             icon="/icon-cotton.png"
             sizes="200px"
+            gapClassName="gap-2 sm:gap-3"
           />
-          <CategoryCard href="/newborn/wool" label={t.category.newbornWoolTitle} icon="/icon-wool.png" sizes="200px" />
+          <CategoryCard
+            href="/newborn/wool"
+            label={t.category.newbornWoolTitle}
+            icon="/icon-wool.png"
+            sizes="200px"
+            gapClassName="gap-2 sm:gap-3"
+          />
         </div>
       </div>
     </section>

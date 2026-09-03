@@ -17,6 +17,7 @@ export default function CategoryCard({
   icon,
   labelColor = "#5A5F44",
   sizes = "120px",
+  gapClassName = "gap-0.5 sm:gap-1",
 }: {
   href: string;
   label: string;
@@ -26,10 +27,18 @@ export default function CategoryCard({
   // at — the homepage's 4-per-row grid vs. e.g. a 2-per-row sub-category
   // picker are meaningfully different rendered widths.
   sizes?: string;
+  // The default gap only ever had to hold up against the homepage's short,
+  // single-line labels (e.g. "أولاد"). A caller with longer, wrapping
+  // labels (the Newborn sub-category cards) can pass a roomier value
+  // instead — kept opt-in so the homepage's own cards render byte-for-byte
+  // unchanged.
+  gapClassName?: string;
 }) {
   return (
     <Link href={href} className="group flex flex-col items-center">
-      <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
+      <div
+        className={`w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center ${gapClassName} px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg`}
+      >
         <div className="relative w-[84%] aspect-square">
           <Image src={icon} alt={label} fill sizes={sizes} className="object-contain" />
         </div>
