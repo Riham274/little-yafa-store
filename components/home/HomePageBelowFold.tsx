@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Boxes } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import CategoryCard from "@/components/product/CategoryCard";
 
 // Below the fold and does its own Firestore fetch + loading spinner — no
 // reason its code has to be in the same chunk the browser needs for
@@ -13,40 +14,6 @@ import { useLanguage } from "@/context/LanguageContext";
 const FeaturedProductsSection = dynamic(() => import("@/components/home/FeaturedProductsSection"), {
   ssr: false,
 });
-
-// Icon source files aren't guaranteed to share the same intrinsic aspect
-// ratio (e.g. icon-sale-olive.png is a tall 304x597 tag glyph vs. the square
-// ~280x280 garment icons), which previously threw off the card's computed
-// size when width/height props were used. Rendering into a fixed square box
-// with `fill` + `object-contain` keeps every card the same size regardless
-// of the source image's own dimensions.
-function CategoryCard({
-  href,
-  label,
-  icon,
-  labelColor = "#5A5F44",
-}: {
-  href: string;
-  label: string;
-  icon: string;
-  labelColor?: string;
-}) {
-  return (
-    <Link href={href} className="group flex flex-col items-center">
-      <div className="w-full aspect-[1/1.3] rounded-t-full bg-[#EFE5DC] cloud-shadow flex flex-col items-center justify-center gap-0.5 sm:gap-1 px-1 pb-0.5 transition-all duration-300 group-hover:scale-105 group-hover:shadow-lg">
-        <div className="relative w-[84%] aspect-square">
-          <Image src={icon} alt={label} fill sizes="120px" className="object-contain" />
-        </div>
-        <span
-          className="font-headline-sm text-[11px] sm:text-[13px] md:text-[15px] leading-tight text-center px-1"
-          style={{ color: labelColor, fontWeight: 500 }}
-        >
-          {label}
-        </span>
-      </div>
-    </Link>
-  );
-}
 
 // Everything on the homepage below the hero logo/banner — split out of
 // page.tsx so that hero section can be a Server Component (see page.tsx for

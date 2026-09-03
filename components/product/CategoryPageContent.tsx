@@ -6,7 +6,7 @@ import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
-import type { AgeGroup, Category, Product } from "@/lib/types";
+import type { AgeGroup, Category, NewbornFabricType, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import AgeFilterPills from "./AgeFilterPills";
 import GenderFilterPills, { type GenderFilterValue } from "./GenderFilterPills";
@@ -20,11 +20,18 @@ export default function CategoryPageContent({
   title,
   showAgeFilter,
   showGenderFilter = false,
+  fabricType,
 }: {
   category: Category;
   title: string;
   showAgeFilter: boolean;
   showGenderFilter?: boolean;
+  // Newborn-only sub-classification (Cotton/Muslin vs Wool/Winter) — when
+  // set, further narrows this category's products to that fabric type on
+  // top of everything else. Independent of showGenderFilter's Boys/Girls
+  // tabs, same as newbornGender and newbornFabricType are independent of
+  // each other on the product itself.
+  fabricType?: NewbornFabricType;
 }) {
   const { t } = useLanguage();
   const router = useRouter();
@@ -71,8 +78,15 @@ export default function CategoryPageContent({
     if (showGenderFilter && activeGender) {
       result = result.filter((p) => p.newbornGender === activeGender || p.newbornGender === "unisex");
     }
+    // Products saved before this field existed (or never classified) have
+    // newbornFabricType undefined — they simply don't match either fabric
+    // sub-page rather than being guessed into one (see toProduct()'s
+    // comment in lib/firebase/products.ts).
+    if (fabricType) {
+      result = result.filter((p) => p.newbornFabricType === fabricType);
+    }
     return sortProducts(result, sort ?? "newest");
-  }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter, sort]);
+  }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
 
   const handleAgeChange = (age: AgeGroup | null) => {
     const params = new URLSearchParams(searchParams.toString());

@@ -32,6 +32,14 @@ export type AgeGroup = "0-3m" | "3-24m" | "2-10y";
 // whether a product appears on the main Boys/Girls pages.
 export type NewbornGender = "boys" | "girls" | "unisex";
 
+// Same independence rule as NewbornGender — only meaningful on "newborn"
+// products, unrelated to any other category. Unlike NewbornGender, this has
+// no "unisex"-style fallback value: a newborn product without a fabric type
+// set is deliberately left unclassified (see toProduct() in
+// lib/firebase/products.ts) rather than guessed, so it simply doesn't
+// appear under either fabric sub-page until an admin sets it.
+export type NewbornFabricType = "cotton" | "wool";
+
 export type ProductSize = {
   label: string;
   stock: number;
@@ -71,6 +79,7 @@ export type Product = {
   colors: ProductColor[];
   categories: Category[];
   newbornGender?: NewbornGender;
+  newbornFabricType?: NewbornFabricType;
   ageGroups: AgeGroup[];
   isVisible: boolean;
   // Server-set at creation time (see createProduct()) — powers the "New"

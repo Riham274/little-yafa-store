@@ -102,6 +102,14 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
       : "unisex"
     : rawNewbornGender;
 
+  // Unlike newbornGender above, deliberately no fallback value — a newborn
+  // product saved before this field existed (or never classified) stays
+  // undefined, so it's excluded from both the Cotton/Muslin and Wool/Winter
+  // sub-pages until an admin sets it, rather than guessed into one.
+  const rawNewbornFabricType = data.newbornFabricType as Product["newbornFabricType"];
+  const newbornFabricType: Product["newbornFabricType"] =
+    rawNewbornFabricType === "cotton" || rawNewbornFabricType === "wool" ? rawNewbornFabricType : undefined;
+
   // Absent on any doc created before this field existed — defaults to epoch
   // (not Date.now()) so those older products never register as "new".
   const rawCreatedAt = data.createdAt as { toMillis?: () => number } | undefined;
@@ -121,6 +129,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
     colors: deriveProductColors(data),
     categories,
     newbornGender,
+    newbornFabricType,
     ageGroups: Array.isArray(data.ageGroups)
       ? (data.ageGroups as AgeGroup[])
       : legacyAgeGroup

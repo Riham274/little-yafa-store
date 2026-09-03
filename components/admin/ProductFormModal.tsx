@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import type { AgeGroup, Category, NewbornGender, Product, ProductColor, ProductInput } from "@/lib/types";
+import type { AgeGroup, Category, NewbornFabricType, NewbornGender, Product, ProductColor, ProductInput } from "@/lib/types";
 import { db } from "@/lib/firebase/config";
 import { auth } from "@/lib/firebase/auth";
 import { storage, uploadProductImage } from "@/lib/firebase/storage";
@@ -74,6 +74,7 @@ type ProductDraft = {
   costPrice: string;
   categories: Category[];
   newbornGender: NewbornGender | null;
+  newbornFabricType: NewbornFabricType | null;
   ageGroups: AgeGroup[];
   colors: ColorDraft[];
 };
@@ -113,6 +114,10 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     { value: "girls", label: t.products.newbornGenderGirls },
     { value: "unisex", label: t.products.newbornGenderUnisex },
   ];
+  const NEWBORN_FABRIC_TYPES: { value: NewbornFabricType; label: string }[] = [
+    { value: "cotton", label: t.products.newbornFabricCotton },
+    { value: "wool", label: t.products.newbornFabricWool },
+  ];
 
   const [nameEn, setNameEn] = useState(product?.name.en ?? "");
   const [nameAr, setNameAr] = useState(product?.name.ar ?? "");
@@ -125,6 +130,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const [costPrice, setCostPrice] = useState(product?.costPrice?.toString() ?? "");
   const [categories, setCategories] = useState<Category[]>(product?.categories ?? []);
   const [newbornGender, setNewbornGender] = useState<NewbornGender | null>(product?.newbornGender ?? null);
+  const [newbornFabricType, setNewbornFabricType] = useState<NewbornFabricType | null>(
+    product?.newbornFabricType ?? null
+  );
   const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(product?.ageGroups ?? []);
   const [colors, setColors] = useState<ColorFormState[]>(
     product?.colors.map((c) => ({
@@ -295,6 +303,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         costPrice,
         categories,
         newbornGender,
+        newbornFabricType,
         ageGroups,
         colors: colors.map(({ labelAr, labelEn, labelHe, existingImages, sizes }) => ({
           labelAr,
@@ -326,6 +335,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     costPrice,
     categories,
     newbornGender,
+    newbornFabricType,
     ageGroups,
     colors,
   ]);
@@ -357,6 +367,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     setCostPrice(pendingDraft.costPrice);
     setCategories(pendingDraft.categories);
     setNewbornGender(pendingDraft.newbornGender);
+    setNewbornFabricType(pendingDraft.newbornFabricType);
     setAgeGroups(pendingDraft.ageGroups);
     setColors(pendingDraft.colors.map((c) => ({ ...c, newFiles: [] })));
     setPendingDraft(null);
@@ -396,6 +407,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   const toggleCategory = (value: Category) => {
     if (value === "newborn" && categories.includes(value)) {
       setNewbornGender(null);
+      setNewbornFabricType(null);
     }
     setCategories((prev) => (prev.includes(value) ? prev.filter((c) => c !== value) : [...prev, value]));
   };
@@ -452,7 +464,8 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       (priceRequired && !price) ||
       categories.length === 0 ||
       !colorsValid ||
-      (showNewbornGender && !newbornGender)
+      (showNewbornGender && !newbornGender) ||
+      (showNewbornGender && !newbornFabricType)
     ) {
       setError(t.products.errorRequiredFields);
       return;
@@ -517,6 +530,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       };
       if (showNewbornGender && newbornGender) {
         data.newbornGender = newbornGender;
+      }
+      if (showNewbornGender && newbornFabricType) {
+        data.newbornFabricType = newbornFabricType;
       }
       if (price.trim()) {
         data.price = Number(price);
@@ -816,6 +832,23 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                       name="newbornGender"
                       checked={newbornGender === value}
                       onChange={() => setNewbornGender(value)}
+                      className="w-4 h-4 accent-primary"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+            {showNewbornGender && (
+              <div className="mt-2 flex items-center gap-md bg-surface-container-low rounded-xl border border-outline-variant px-3 py-2.5">
+                <span className="font-label-sm text-label-sm text-on-surface-variant">{t.products.newbornFabricTypeLabel}</span>
+                {NEWBORN_FABRIC_TYPES.map(({ value, label }) => (
+                  <label key={value} className="flex items-center gap-1.5 font-body-md text-on-surface cursor-pointer">
+                    <input
+                      type="radio"
+                      name="newbornFabricType"
+                      checked={newbornFabricType === value}
+                      onChange={() => setNewbornFabricType(value)}
                       className="w-4 h-4 accent-primary"
                     />
                     {label}
