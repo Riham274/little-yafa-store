@@ -152,6 +152,21 @@ export function isProductOutOfStock(product: Pick<Product, "colors">): boolean {
   return product.colors.every((c) => c.sizes.every((s) => s.stock <= 0));
 }
 
+/** Distinct size labels across every color, in first-seen order — used by
+ * product cards to give a general sense of what's available without
+ * needing per-color stock detail (that lives on the product detail page).
+ * Deliberately doesn't filter out 0-stock sizes: this is a summary, not a
+ * live availability check. */
+export function getAvailableSizeLabels(product: Pick<Product, "colors">): string[] {
+  const seen = new Set<string>();
+  for (const color of product.colors) {
+    for (const size of color.sizes) {
+      if (size.label.trim()) seen.add(size.label.trim());
+    }
+  }
+  return [...seen];
+}
+
 // Firestore can't query "isVisible == true OR field missing" in one
 // constraint (an equality filter never matches an absent field), so
 // customer-facing reads fetch normally and filter client-side after

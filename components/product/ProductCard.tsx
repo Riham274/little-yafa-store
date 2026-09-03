@@ -3,15 +3,16 @@
 import Link from "next/link";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
-import { getTotalStock } from "@/lib/firebase/products";
+import { getAvailableSizeLabels, getTotalStock } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
 import PriceTag from "./PriceTag";
 import ProductStatusBadge from "./ProductStatusBadge";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { locale } = useLanguage();
+  const { t, locale } = useLanguage();
   const outOfStock = getTotalStock(product) <= 0;
   const image = product.colors[0]?.images[0];
+  const sizeLabels = getAvailableSizeLabels(product);
 
   return (
     <Link
@@ -43,6 +44,11 @@ export default function ProductCard({ product }: { product: Product }) {
             priceClassName="font-label-sm text-label-sm"
             priceStyle={{ color: "#5A5F44" }}
           />
+        )}
+        {sizeLabels.length > 0 && (
+          <p className="font-label-sm text-[11px] text-on-surface-variant/70 line-clamp-1">
+            {t.product.sizesAvailable}: {sizeLabels.join(", ")}
+          </p>
         )}
       </div>
     </Link>
