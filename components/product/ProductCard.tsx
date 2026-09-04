@@ -9,7 +9,7 @@ import PriceTag from "./PriceTag";
 import ProductStatusBadge from "./ProductStatusBadge";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
   const outOfStock = getTotalStock(product) <= 0;
   const image = product.colors[0]?.images[0];
   const sizeLabels = getAvailableSizeLabels(product);
@@ -46,9 +46,16 @@ export default function ProductCard({ product }: { product: Product }) {
           />
         )}
         {sizeLabels.length > 0 && (
-          <p className="font-label-sm text-[11px] text-on-surface-variant/70 line-clamp-1">
-            {t.product.sizesAvailable}: {sizeLabels.join(", ")}
-          </p>
+          <div className="flex flex-wrap gap-1 mt-1">
+            {sizeLabels.map((label) => (
+              <span
+                key={label}
+                className="inline-flex items-center rounded-full border border-outline-variant/60 bg-surface-container-low px-2 py-0.5 font-label-sm text-[10px] text-on-surface-variant"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
         )}
       </div>
     </Link>

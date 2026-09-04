@@ -161,17 +161,19 @@ export function isProductOutOfStock(product: Pick<Product, "colors">): boolean {
   return product.colors.every((c) => c.sizes.every((s) => s.stock <= 0));
 }
 
-/** Distinct size labels across every color, in first-seen order — used by
- * product cards to give a general sense of what's available without
- * needing per-color stock detail (that lives on the product detail page).
- * Deliberately doesn't filter out 0-stock sizes: this is a summary, not a
- * live availability check. */
+/** In-stock size labels for the product's first color only (the same color
+ * whose image is the card's default thumbnail) — used by product cards to
+ * give a general sense of what's available without needing per-color stock
+ * detail (that lives on the product detail page). Deliberately scoped to
+ * just colors[0] rather than a union across every color: a merged list
+ * misleadingly implies sizes from different colors belong together, when
+ * what's actually shown on the card is only that first color's photo. */
 export function getAvailableSizeLabels(product: Pick<Product, "colors">): string[] {
   const seen = new Set<string>();
-  for (const color of product.colors) {
-    for (const size of color.sizes) {
-      if (size.label.trim()) seen.add(size.label.trim());
-    }
+  const firstColor = product.colors[0];
+  if (!firstColor) return [];
+  for (const size of firstColor.sizes) {
+    if (size.label.trim() && size.stock > 0) seen.add(size.label.trim());
   }
   return [...seen];
 }

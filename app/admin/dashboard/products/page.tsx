@@ -19,15 +19,17 @@ import ProductFormModal from "@/components/admin/ProductFormModal";
 const LOW_STOCK_THRESHOLD = 10;
 
 type StockFilter = "all" | "low" | "out";
+type VisibilityFilter = "all" | "visible" | "hidden";
 
 export default function AdminProductsPage() {
-  const { t } = useAdminLanguage();
+  const { t, locale } = useAdminLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [ageGroupFilter, setAgeGroupFilter] = useState<AgeGroup | "all">("all");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
 
   useEffect(() => subscribeToProducts(setProducts), []);
 
@@ -46,9 +48,13 @@ export default function AdminProductsPage() {
         stockFilter === "all" ||
         (stockFilter === "low" && isProductLowStock(p)) ||
         (stockFilter === "out" && isProductOutOfStock(p));
-      return matchesCategory && matchesAge && matchesStock;
+      const matchesVisibility =
+        visibilityFilter === "all" ||
+        (visibilityFilter === "visible" && p.isVisible) ||
+        (visibilityFilter === "hidden" && !p.isVisible);
+      return matchesCategory && matchesAge && matchesStock && matchesVisibility;
     });
-  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter]);
+  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter, visibilityFilter]);
 
   const handleCategoryFilterChange = (value: Category | "all") => {
     setCategoryFilter(value);
@@ -110,6 +116,30 @@ export default function AdminProductsPage() {
     { value: "3-24m", label: t.products.age3to24m },
     { value: "2-10y", label: t.products.age2to10y },
   ];
+
+  // Full label lookups for the table's display columns — separate from
+  // CATEGORIES above (which is only the filter dropdown's option list, and
+  // deliberately omits shoes/dresses/winter there), since every category a
+  // product can actually be tagged with needs a translated label here.
+  const CATEGORY_LABELS: Record<Category, string> = {
+    boys: t.products.sectionBoys,
+    girls: t.products.sectionGirls,
+    newborn: t.products.sectionNewborn,
+    "new-in": t.products.sectionNewIn,
+    "gift-wrapping": t.products.sectionGiftWrapping,
+    wholesale: t.products.sectionWholesale,
+    blankets: t.products.sectionBlankets,
+    accessories: t.products.sectionAccessories,
+    bath: t.products.sectionBath,
+    shoes: t.products.sectionShoes,
+    dresses: t.products.sectionDresses,
+    winter: t.products.sectionWinter,
+  };
+  const AGE_GROUP_LABELS: Record<AgeGroup, string> = {
+    "0-3m": t.products.age0to3m,
+    "3-24m": t.products.age3to24m,
+    "2-10y": t.products.age2to10y,
+  };
 
   return (
     <div>
@@ -180,6 +210,18 @@ export default function AdminProductsPage() {
             <option value="out">{t.products.filterOutOfStock}</option>
           </select>
         </div>
+        <div className="flex-1">
+          <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.filterVisibility}</label>
+          <select
+            value={visibilityFilter}
+            onChange={(e) => setVisibilityFilter(e.target.value as VisibilityFilter)}
+            className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface"
+          >
+            <option value="all">{t.products.filterAllVisibility}</option>
+            <option value="visible">{t.products.filterVisible}</option>
+            <option value="hidden">{t.products.filterHidden}</option>
+          </select>
+        </div>
       </div>
 
       {/* Desktop table */}
@@ -224,15 +266,17 @@ export default function AdminProductsPage() {
                         <img src={product.colors[0].images[0]} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
-                    <span className="font-body-md text-on-surface">{product.name.en}</span>
+                    <span className="font-body-md text-on-surface">{product.name[locale]}</span>
                   </div>
                 </td>
-                <td className="py-3 px-md font-body-md text-on-surface-variant capitalize">{product.categories.join(", ")}</td>
+                <td className="py-3 px-md font-body-md text-on-surface-variant">
+                  {product.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
+                </td>
                 <td className="py-3 px-md">
                   <div className="flex flex-wrap gap-1">
                     {product.ageGroups.map((age) => (
                       <span key={age} className="bg-primary/10 text-primary rounded-full px-3 py-1 font-label-sm text-label-sm">
-                        {age}
+                        {AGE_GROUP_LABELS[age]}
                       </span>
                     ))}
                   </div>
@@ -301,9 +345,12 @@ export default function AdminProductsPage() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h5 className="font-label-md text-label-md text-on-surface">{product.name.en}</h5>
-                <p className="font-label-sm text-label-sm text-on-surface-variant capitalize">
-                  {product.categories.join(", ")} {product.ageGroups.length > 0 ? `• ${product.ageGroups.join(", ")}` : ""}
+                <h5 className="font-label-md text-label-md text-on-surface">{product.name[locale]}</h5>
+                <p className="font-label-sm text-label-sm text-on-surface-variant">
+                  {product.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
+                  {product.ageGroups.length > 0
+                    ? ` • ${product.ageGroups.map((a) => AGE_GROUP_LABELS[a]).join(", ")}`
+                    : ""}
                 </p>
                 <p className="font-body-md text-secondary font-semibold mt-1">
                   {product.price !== undefined ? formatPrice(product.price) : "—"}
