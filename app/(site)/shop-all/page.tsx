@@ -102,10 +102,14 @@ export default function ShopAllPage() {
       .finally(() => setLoadingMore(false));
   };
 
-  const sorted = useMemo(
-    () => (products ? sortProducts(products, sort ?? "newest") : []),
-    [products, sort]
-  );
+  // Only re-sort once the customer has actually picked a sort option —
+  // otherwise each "Load More" batch must simply stay appended at the end
+  // in fetch order. Defaulting to a "newest" sort here used to re-sort the
+  // whole accumulated list by createdAt on every append, which could move
+  // newly-loaded items above ones already on screen (whichever had the
+  // more recent createdAt), reading as a scroll jump/reorder bug even
+  // though nothing about the scroll position itself changed.
+  const sorted = useMemo(() => (!products ? [] : sort ? sortProducts(products, sort) : products), [products, sort]);
 
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">

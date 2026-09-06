@@ -12,9 +12,10 @@ export default function SortSelect({
 }: {
   // null = the user hasn't picked a sort yet, so the closed control shows a
   // neutral "Sort by" placeholder instead of pre-announcing "Newest" as if
-  // it were chosen. Products still sort newest-first underneath — callers
-  // fall back to "newest" when applying the sort, this only affects the
-  // visible label.
+  // it were chosen. Callers must leave the list in its natural fetch/append
+  // order while this is null, not silently sort by "newest" underneath —
+  // doing so used to re-sort the whole accumulated list by createdAt on
+  // every "Load More" append, reshuffling products already on screen.
   value: SortOption | null;
   onChange: (value: SortOption) => void;
   className?: string;

@@ -85,7 +85,16 @@ export default function CategoryPageContent({
     if (fabricType) {
       result = result.filter((p) => p.newbornFabricType === fabricType);
     }
-    return sortProducts(result, sort ?? "newest");
+    // Only re-sort when the admin has actually picked a sort option —
+    // otherwise (the default state) the list must stay in whatever order
+    // it was fetched/appended in. Falling back to a "newest" sort here
+    // unconditionally used to re-sort the *entire* accumulated list by
+    // createdAt on every render, including right after "Load More"
+    // appended a page — which could reshuffle products already on screen
+    // (a newly-fetched item with a more recent createdAt would jump above
+    // ones the customer had already scrolled past), reading as a scroll
+    // jump even though the actual scroll offset never changed.
+    return sort ? sortProducts(result, sort) : result;
   }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
 
   const handleAgeChange = (age: AgeGroup | null) => {
