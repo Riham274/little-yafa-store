@@ -113,6 +113,7 @@ const en = {
     remove: "Remove",
     secureCheckout: "Secure 256-bit SSL encrypted checkout",
     freeShippingNote: "Free shipping on orders over ₪200",
+    qtyAdjustedNote: "Quantity adjusted to match available stock",
   },
   checkout: {
     title: "Checkout",
@@ -291,6 +292,7 @@ const ar: Dictionary = {
     remove: "إزالة",
     secureCheckout: "دفع آمن ومشفر بتقنية SSL 256-bit",
     freeShippingNote: "شحن مجاني للطلبات فوق ₪200",
+    qtyAdjustedNote: "تم تعديل الكمية لتطابق المخزون المتاح",
   },
   checkout: {
     title: "إتمام الشراء",
@@ -470,6 +472,7 @@ const he: Dictionary = {
     remove: "הסר",
     secureCheckout: "תשלום מאובטח בהצפנת SSL 256-bit",
     freeShippingNote: "משלוח חינם בהזמנות מעל ₪200",
+    qtyAdjustedNote: "הכמות עודכנה בהתאם למלאי הזמין",
   },
   checkout: {
     title: "תשלום",

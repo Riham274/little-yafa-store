@@ -1,14 +1,35 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
+import { getProductById } from "@/lib/firebase/products";
+import type { Product } from "@/lib/types";
 import CartItemRow from "@/components/cart/CartItemRow";
+
+// undefined = not fetched yet, null = deleted/hidden since it was added
+type ProductLookup = Record<string, Product | null | undefined>;
 
 export default function CartPage() {
   const { t } = useLanguage();
   const { items, subtotal } = useCart();
+  const [productsById, setProductsById] = useState<ProductLookup>({});
+  // Guards against re-fetching a product every time `items` changes (qty
+  // bumps, variant swaps) — only fetch each distinct product once per visit.
+  const requestedIds = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const ids = [...new Set(items.map((item) => item.productId))];
+    ids.forEach((id) => {
+      if (requestedIds.current.has(id)) return;
+      requestedIds.current.add(id);
+      getProductById(id).then((product) => {
+        setProductsById((prev) => ({ ...prev, [id]: product }));
+      });
+    });
+  }, [items]);
 
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
@@ -28,7 +49,11 @@ export default function CartPage() {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-md">
           <div className="md:col-span-8 flex flex-col gap-md">
             {items.map((item) => (
-              <CartItemRow key={`${item.productId}-${item.color}-${item.size}`} item={item} />
+              <CartItemRow
+                key={`${item.productId}-${item.color}-${item.size}`}
+                item={item}
+                product={productsById[item.productId]}
+              />
             ))}
           </div>
           <aside className="md:col-span-4">

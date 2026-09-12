@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
 import { getProductById, getSimilarProducts, getTotalStock } from "@/lib/firebase/products";
@@ -15,6 +15,7 @@ import PageLoader from "@/components/ui/PageLoader";
 export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { locale, t } = useLanguage();
   const { addItem } = useCart();
 
@@ -25,6 +26,14 @@ export default function ProductDetailPage() {
   const [selectedColorIndex, setSelectedColorIndex] = useState<number | null>(null);
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
+
+  // Arriving from the cart's "change color/size" or its now-clickable
+  // image/name (see CartItemRow) carries the exact variant already selected
+  // there via ?color=<Arabic label>&size=<label> — the same canonical color
+  // key CartItem.color already uses — so the page opens on that variant
+  // instead of resetting to the default first color with no size chosen.
+  const requestedColor = searchParams.get("color");
+  const requestedSize = searchParams.get("size");
 
   useEffect(() => {
     let active = true;
@@ -37,8 +46,12 @@ export default function ProductDetailPage() {
       // product has — the color-picker UI itself is separately hidden for
       // single-color products (see `product.colors.length > 1` below), so
       // this doesn't change anything about that.
-      setSelectedColorIndex(p ? 0 : null);
-      setSelectedSize(null);
+      const requestedIndex = requestedColor ? (p?.colors.findIndex((c) => c.label.ar === requestedColor) ?? -1) : -1;
+      const resolvedIndex = requestedIndex >= 0 ? requestedIndex : p ? 0 : null;
+      setSelectedColorIndex(resolvedIndex);
+      const resolvedColor = resolvedIndex !== null ? p?.colors[resolvedIndex] : null;
+      const sizeIsValid = requestedSize && resolvedColor?.sizes.some((s) => s.label === requestedSize);
+      setSelectedSize(sizeIsValid ? requestedSize : null);
       setLoading(false);
       if (p) {
         const sim = await getSimilarProducts(p);
@@ -48,7 +61,8 @@ export default function ProductDetailPage() {
     return () => {
       active = false;
     };
-  }, [params.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, requestedColor, requestedSize]);
 
   if (loading) {
     return <PageLoader />;
