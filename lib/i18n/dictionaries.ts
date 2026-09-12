@@ -173,6 +173,7 @@ const en = {
     backHome: "Back to Home",
   },
   footer: {
+    backToHome: "Back to Home",
     brandDescription:
       "Soft fabrics, timeless style, and carefully selected pieces for your little one.",
     categories: "Categories",
@@ -352,6 +353,7 @@ const ar: Dictionary = {
     backHome: "العودة إلى الرئيسية",
   },
   footer: {
+    backToHome: "العودة للصفحة الرئيسية",
     brandDescription:
       "أقمشة ناعمة، تصميم أنيق يدوم، وقطع مختارة بعناية لطفلك.",
     categories: "الأقسام",
@@ -532,6 +534,7 @@ const he: Dictionary = {
     backHome: "חזרה לדף הבית",
   },
   footer: {
+    backToHome: "חזרה לדף הבית",
     brandDescription:
       "בדים רכים, סגנון נצחי ופריטים שנבחרו בקפידה לקטנטן שלכם.",
     categories: "קטגוריות",

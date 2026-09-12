@@ -14,6 +14,22 @@ export default function Footer() {
   return (
     <footer className="w-full pt-lg pb-lg sm:pt-xl sm:pb-xl px-gutter" style={{ backgroundColor: "#EFE5DC", color: OLIVE }}>
       <div className="max-w-container-max mx-auto">
+        {/* A full row above the whole grid (not just the Brand column)
+            keeps it "at the top of the footer" the same way on every
+            breakpoint, rather than only reading as above-the-logo on the
+            mobile single-column stack. Same olive-filled pill treatment as
+            the site's other primary CTAs (e.g. checkout's Confirm Order),
+            since the actual "عرض المزيد"/Load More button elsewhere on the
+            site is an outline style, not olive-filled. */}
+        <div className="flex justify-start mb-lg">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center px-md py-2 rounded-full text-on-primary font-label-sm text-label-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
+            style={{ backgroundColor: OLIVE }}
+          >
+            {t.footer.backToHome}
+          </Link>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-lg gap-x-lg md:gap-x-xl">
           {/* Brand */}
           <div className="flex flex-col items-start gap-sm md:gap-md">
