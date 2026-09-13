@@ -69,10 +69,6 @@ export default function CartPage() {
               >
                 {t.cart.confirmOrder}
               </Link>
-              <div className="flex items-center gap-2 justify-center mt-4 text-on-surface-variant">
-                <span className="material-symbols-outlined text-[18px]">lock</span>
-                <p className="font-label-sm text-label-sm">{t.cart.secureCheckout}</p>
-              </div>
             </div>
           </aside>
         </div>

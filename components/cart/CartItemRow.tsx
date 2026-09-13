@@ -88,7 +88,6 @@ export default function CartItemRow({
               salePrice={item.originalPrice !== undefined ? item.price : undefined}
               priceClassName="text-on-surface-variant"
             />
-            <span>/ {t.product.quantity.toLowerCase()}</span>
           </p>
         )}
 
@@ -116,7 +115,7 @@ export default function CartItemRow({
                 value={item.color}
                 onChange={(e) => handleColorChange(e.target.value)}
                 aria-label={t.product.color}
-                className="appearance-none bg-none bg-surface-container rounded-lg border border-outline-variant ps-8 pe-2 py-1 font-body-md text-[13px] text-on-surface"
+                className="appearance-none bg-none bg-surface-container rounded-lg border border-outline-variant ps-8 pe-2 py-0.5 sm:py-1 font-body-md text-[12px] sm:text-[13px] text-on-surface"
               >
                 {/* The currently-selected color might not be in colorOptions
                     if it just sold out — keep it selectable so the <select>
@@ -139,7 +138,7 @@ export default function CartItemRow({
                 value={item.size}
                 onChange={(e) => handleSizeChange(e.target.value)}
                 aria-label={t.product.size}
-                className="appearance-none bg-none bg-surface-container rounded-lg border border-outline-variant ps-8 pe-2 py-1 font-body-md text-[13px] text-on-surface"
+                className="appearance-none bg-none bg-surface-container rounded-lg border border-outline-variant ps-8 pe-2 py-0.5 sm:py-1 font-body-md text-[12px] sm:text-[13px] text-on-surface"
               >
                 {!sizeOptions.some((s) => s.label === item.size) && (
                   <option value={item.size}>{item.size}</option>
