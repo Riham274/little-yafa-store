@@ -19,7 +19,7 @@ export default function ProductCard({ product }: { product: Product }) {
       href={`/product/${product.id}`}
       className={`group flex flex-col gap-sm ${outOfStock ? "opacity-50" : ""}`}
     >
-      <div className="relative aspect-[3/4] rounded-xl overflow-hidden bg-surface-container-low cloud-shadow">
+      <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-container-low cloud-shadow">
         {image ? (
           <ImageWithSpinner
             src={image}

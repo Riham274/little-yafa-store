@@ -82,7 +82,7 @@ export default function ImageGallery({
   return (
     <div>
       <div
-        className="relative aspect-[4/5] rounded-[2rem] overflow-hidden cloud-shadow bg-surface-container-low mb-sm select-none cursor-zoom-in"
+        className="relative aspect-square rounded-[2rem] overflow-hidden cloud-shadow bg-surface-container-low mb-sm select-none cursor-zoom-in"
         style={{ touchAction: "pan-y" }}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
