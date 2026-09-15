@@ -3,8 +3,16 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { CartItem, Product } from "@/lib/types";
 import { isProductOnSale } from "@/lib/sale";
+import { getCartSessionId } from "@/lib/cartSession";
+import { syncCartSession } from "@/lib/firebase/cartSessions";
 
 const STORAGE_KEY = "little-yafa-cart";
+
+// Same debounce window as the admin product-form draft autosave — long
+// enough that a rapid burst of changes (qty +/- clicks, a color swap that
+// immediately picks a size) only produces one write, short enough that the
+// "pending carts" admin view still reflects a cart within a few seconds.
+const CART_SESSION_SYNC_MS = 2500;
 
 type CartContextValue = {
   items: CartItem[];
@@ -53,6 +61,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  }, [items, hydrated]);
+
+  // Debounced, anonymous sync to Firestore for the admin "Pending Carts"
+  // insight page — see lib/cartSession.ts and lib/firebase/cartSessions.ts.
+  // Gated on `hydrated` so the brief empty-array initial state (before the
+  // real cart loads from localStorage) never overwrites a real session with
+  // nothing; best-effort (errors swallowed) since this must never surface
+  // anywhere in the actual shopping flow.
+  useEffect(() => {
+    if (!hydrated) return;
+    const sessionId = getCartSessionId();
+    if (!sessionId) return;
+    const timer = setTimeout(() => {
+      syncCartSession(sessionId, items).catch(() => {});
+    }, CART_SESSION_SYNC_MS);
+    return () => clearTimeout(timer);
   }, [items, hydrated]);
 
   // `color` is always the Arabic label — see CartItem.color.

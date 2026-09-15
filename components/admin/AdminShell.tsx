@@ -17,6 +17,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     { href: "/admin/dashboard", label: t.nav.overview, icon: "dashboard" },
     { href: "/admin/dashboard/products", label: t.nav.products, icon: "inventory_2" },
     { href: "/admin/dashboard/orders", label: t.nav.orders, icon: "receipt_long" },
+    { href: "/admin/dashboard/pending-carts", label: t.nav.pendingCarts, icon: "shopping_cart" },
     { href: "/admin/dashboard/messages", label: t.nav.messages, icon: "mail" },
     { href: "/admin/dashboard/finance", label: t.nav.finance, icon: "account_balance" },
     { href: "/admin/dashboard/settings", label: t.nav.settings, icon: "settings" },

@@ -12,6 +12,8 @@ import { placeOrder, InsufficientStockError } from "@/lib/firebase/orders";
 import { SHIPPING_RATES } from "@/lib/shipping";
 import type { ShippingRegion } from "@/lib/types";
 import PriceTag from "@/components/product/PriceTag";
+import { getCartSessionId } from "@/lib/cartSession";
+import { deleteCartSession } from "@/lib/firebase/cartSessions";
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
 
@@ -80,6 +82,12 @@ export default function CheckoutPage() {
           createdAt: Date.now(),
         })
       );
+
+      // The order is now the durable record of what was in this cart — its
+      // anonymous "pending" tracking doc is no longer pending anything.
+      // Best-effort: a failure here shouldn't block the order confirmation
+      // the customer is already past.
+      deleteCartSession(getCartSessionId()).catch(() => {});
 
       clear();
       router.push(`/order-confirmation/${orderId}`);

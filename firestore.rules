@@ -79,5 +79,23 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    // Cart sessions: anonymous demand-insight tracking, keyed by a random
+    // client-generated id (see lib/cartSession.ts) — never tied to auth, no
+    // personal data ever written here (see syncCartSession() in
+    // lib/firebase/cartSessions.ts). Any visitor may create/update their own
+    // session doc as their cart changes, and delete it once it becomes a
+    // real order (see checkout's success handler) or once they empty their
+    // cart — but only admins can read the collection, so a customer can
+    // never see another session's cart contents. There's no ownership check
+    // on write (Firestore rules have no way to verify "this really is the
+    // browser that created this id" without an auth token), but the id is
+    // an unguessable UUID, and the collection holds nothing more sensitive
+    // than "some anonymous cart has these line items" — not worth adding
+    // auth to a feature specifically designed to stay anonymous.
+    match /cartSessions/{sessionId} {
+      allow create, update, delete: if true;
+      allow read: if isAdmin();
+    }
   }
 }
