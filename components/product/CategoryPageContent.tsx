@@ -6,11 +6,13 @@ import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import type { AgeGroup, Category, NewbornFabricType, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import AgeFilterPills from "./AgeFilterPills";
 import GenderFilterPills, { type GenderFilterValue } from "./GenderFilterPills";
 import ProductGrid from "./ProductGrid";
+import SizeAgeFilterSelect from "./SizeAgeFilterSelect";
 import SortSelect from "./SortSelect";
 
 const PAGE_SIZE = 24;
@@ -44,6 +46,10 @@ export default function CategoryPageContent({
   const [sort, setSort] = useState<SortOption | null>(null);
 
   const activeAge = (searchParams.get("age") as AgeGroup | null) ?? null;
+  // Independent of activeAge above (the original admin-tagged ageGroups
+  // tabs) — its own query param so the two filters never collide and can
+  // both be active at once. See lib/sizeAge.ts.
+  const activeSizeAge = (searchParams.get("sizeAge") as SizeAgeFilter | null) ?? null;
   const activeGender = (searchParams.get("gender") as GenderFilterValue | null) ?? null;
 
   useEffect(() => {
@@ -72,6 +78,11 @@ export default function CategoryPageContent({
     if (showAgeFilter && activeAge) {
       result = result.filter((p) => p.ageGroups.includes(activeAge));
     }
+    // Applies on top of (ANDed with) the ageGroups filter above — both are
+    // independent and can narrow the list together.
+    if (showAgeFilter && activeSizeAge) {
+      result = result.filter((p) => productMatchesSizeAgeFilter(p, activeSizeAge));
+    }
     // Boys/Girls tabs on the Newborn page filter on the independent
     // newbornGender sub-field, not the main categories array — unrelated to
     // whether the product is also tagged the main "boys"/"girls" category.
@@ -95,12 +106,19 @@ export default function CategoryPageContent({
     // ones the customer had already scrolled past), reading as a scroll
     // jump even though the actual scroll offset never changed.
     return sort ? sortProducts(result, sort) : result;
-  }, [products, activeAge, showAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
+  }, [products, activeAge, activeSizeAge, showAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
 
   const handleAgeChange = (age: AgeGroup | null) => {
     const params = new URLSearchParams(searchParams.toString());
     if (age) params.set("age", age);
     else params.delete("age");
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  const handleSizeAgeChange = (age: SizeAgeFilter | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (age) params.set("sizeAge", age);
+    else params.delete("sizeAge");
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
@@ -127,14 +145,20 @@ export default function CategoryPageContent({
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
       <h1 className="font-headline-md text-headline-md md:text-display-lg-mobile text-on-surface mb-md">{title}</h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-sm flex-wrap">
         {(showAgeFilter || showGenderFilter) && (
           <div className="min-w-0 sm:flex-1">
             {showAgeFilter && <AgeFilterPills active={activeAge} onChange={handleAgeChange} />}
             {showGenderFilter && <GenderFilterPills active={activeGender} onChange={handleGenderChange} />}
           </div>
         )}
-        <SortSelect value={sort} onChange={setSort} className="self-end sm:self-auto sm:ms-auto" />
+        <div className="flex items-center gap-sm sm:ms-auto">
+          {/* Separate, additional filter alongside the original age tabs
+              above — parses size labels automatically, doesn't replace or
+              read from anything the tabs use. See lib/sizeAge.ts. */}
+          {showAgeFilter && <SizeAgeFilterSelect active={activeSizeAge} onChange={handleSizeAgeChange} />}
+          <SortSelect value={sort} onChange={setSort} className="self-end sm:self-auto" />
+        </div>
       </div>
 
       <div className="mt-lg">
