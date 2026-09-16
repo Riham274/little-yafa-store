@@ -21,12 +21,23 @@ export default function CategoryPageContent({
   category,
   title,
   showAgeFilter,
+  showSizeAgeFilter = false,
   showGenderFilter = false,
   fabricType,
 }: {
   category: Category;
   title: string;
+  // The ORIGINAL admin-tagged ageGroups tabs (0-3m/3-24m/2-10y) — only ever
+  // meaningful for Boys/Girls, since the admin product form only exposes
+  // that checkbox section for those two categories (see ProductFormModal's
+  // showAgeGroups). Stays exactly as before; unrelated to showSizeAgeFilter.
   showAgeFilter: boolean;
+  // The separate, automatic size-label-parsed age dropdown (lib/sizeAge.ts)
+  // — independent of showAgeFilter above, since it works off actual size
+  // text rather than the admin-tagged ageGroups field, so it's meaningful
+  // on any category with sized products. Defaults to false so every
+  // existing call site keeps its current behavior unless opted in.
+  showSizeAgeFilter?: boolean;
   showGenderFilter?: boolean;
   // Newborn-only sub-classification (Cotton/Muslin vs Wool/Winter) — when
   // set, further narrows this category's products to that fabric type on
@@ -80,7 +91,7 @@ export default function CategoryPageContent({
     }
     // Applies on top of (ANDed with) the ageGroups filter above — both are
     // independent and can narrow the list together.
-    if (showAgeFilter && activeSizeAge) {
+    if (showSizeAgeFilter && activeSizeAge) {
       result = result.filter((p) => productMatchesSizeAgeFilter(p, activeSizeAge));
     }
     // Boys/Girls tabs on the Newborn page filter on the independent
@@ -106,7 +117,7 @@ export default function CategoryPageContent({
     // ones the customer had already scrolled past), reading as a scroll
     // jump even though the actual scroll offset never changed.
     return sort ? sortProducts(result, sort) : result;
-  }, [products, activeAge, activeSizeAge, showAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
+  }, [products, activeAge, activeSizeAge, showAgeFilter, showSizeAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
 
   const handleAgeChange = (age: AgeGroup | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -153,10 +164,11 @@ export default function CategoryPageContent({
           </div>
         )}
         <div className="flex items-center gap-sm sm:ms-auto">
-          {/* Separate, additional filter alongside the original age tabs
-              above — parses size labels automatically, doesn't replace or
-              read from anything the tabs use. See lib/sizeAge.ts. */}
-          {showAgeFilter && <SizeAgeFilterSelect active={activeSizeAge} onChange={handleSizeAgeChange} />}
+          {/* Separate, additional filter from the original age tabs above —
+              parses size labels automatically, doesn't replace or read from
+              anything the tabs use, and works on its own on categories that
+              never set the tabs' ageGroups field at all. See lib/sizeAge.ts. */}
+          {showSizeAgeFilter && <SizeAgeFilterSelect active={activeSizeAge} onChange={handleSizeAgeChange} />}
           <SortSelect value={sort} onChange={setSort} className="self-end sm:self-auto" />
         </div>
       </div>

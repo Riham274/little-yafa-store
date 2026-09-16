@@ -8,7 +8,7 @@ export default function AccessoriesPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="accessories" title={t.category.accessoriesTitle} showAgeFilter={false} />
+      <CategoryPageContent category="accessories" title={t.category.accessoriesTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

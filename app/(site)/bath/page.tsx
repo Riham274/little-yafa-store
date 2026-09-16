@@ -8,7 +8,7 @@ export default function BathPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="bath" title={t.category.bathTitle} showAgeFilter={false} />
+      <CategoryPageContent category="bath" title={t.category.bathTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

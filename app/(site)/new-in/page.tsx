@@ -8,7 +8,7 @@ export default function NewInPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="new-in" title={t.category.newInTitle} showAgeFilter={false} />
+      <CategoryPageContent category="new-in" title={t.category.newInTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

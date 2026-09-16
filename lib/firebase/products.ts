@@ -20,7 +20,17 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
-import type { AgeGroup, Category, LocalizedText, Product, ProductColor, ProductInput, ProductSize } from "@/lib/types";
+import type {
+  AgeGroup,
+  Category,
+  LocalizedText,
+  Product,
+  ProductColor,
+  ProductImage,
+  ProductInput,
+  ProductSize,
+} from "@/lib/types";
+import { DEFAULT_FOCAL_POINT } from "@/lib/types";
 import { ageRangeOverlapScore } from "@/lib/sizeAge";
 import { themeWordOverlapScore } from "@/lib/productTheme";
 
@@ -47,6 +57,35 @@ function normalizeColorLabel(label: unknown): LocalizedText {
   return { ar: "", en: "", he: "" };
 }
 
+/** Images were a plain URL string before focal-point cropping existed (see
+ * scripts/migrate-images-focal-point.mjs for the one-time backfill). This
+ * read-time fallback wraps any still-unmigrated string into the new
+ * `{url, focalPoint}` shape (centered, i.e. today's existing crop behavior)
+ * rather than crashing — the same pattern normalizeColorLabel() uses above
+ * for the label string→LocalizedText migration. Also defends against a
+ * malformed/partial focalPoint object (e.g. a doc written mid-migration). */
+function normalizeProductImage(img: unknown): ProductImage {
+  if (typeof img === "string") {
+    return { url: img, focalPoint: DEFAULT_FOCAL_POINT };
+  }
+  const i = img as Partial<ProductImage> | null | undefined;
+  const fp = i?.focalPoint;
+  return {
+    url: i?.url ?? "",
+    focalPoint: {
+      x: typeof fp?.x === "number" ? fp.x : DEFAULT_FOCAL_POINT.x,
+      y: typeof fp?.y === "number" ? fp.y : DEFAULT_FOCAL_POINT.y,
+      // Also covers a doc written by the earlier pan-only version of this
+      // feature, whose focalPoint never had a `scale` field at all.
+      scale: typeof fp?.scale === "number" && fp.scale > 0 ? fp.scale : DEFAULT_FOCAL_POINT.scale,
+    },
+  };
+}
+
+function normalizeProductImages(images: unknown): ProductImage[] {
+  return Array.isArray(images) ? images.map(normalizeProductImage) : [];
+}
+
 /** Derives a product's `colors` array from raw Firestore doc data, wrapping
  * a pre-colors-feature doc's flat `images`/`sizes` (or even older single
  * `stock`) fields into one synthesized color if `colors` itself is absent.
@@ -55,7 +94,7 @@ function normalizeColorLabel(label: unknown): LocalizedText {
  * unmigrated product can still be browsed AND successfully ordered. */
 export function deriveProductColors(data: Record<string, unknown>): ProductColor[] {
   const legacyStock = data.stock as number | undefined;
-  const legacyImages = Array.isArray(data.images) ? (data.images as string[]) : [];
+  const legacyImages = normalizeProductImages(data.images);
   const legacySizes = Array.isArray(data.sizes)
     ? (data.sizes as ProductSize[])
     : legacyStock !== undefined
@@ -64,7 +103,7 @@ export function deriveProductColors(data: Record<string, unknown>): ProductColor
   if (Array.isArray(data.colors)) {
     return (data.colors as Array<Record<string, unknown>>).map((c) => ({
       label: normalizeColorLabel(c.label),
-      images: Array.isArray(c.images) ? (c.images as string[]) : [],
+      images: normalizeProductImages(c.images),
       sizes: Array.isArray(c.sizes) ? (c.sizes as ProductSize[]) : [],
     }));
   }

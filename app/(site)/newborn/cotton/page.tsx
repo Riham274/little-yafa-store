@@ -12,6 +12,7 @@ export default function NewbornCottonPage() {
         category="newborn"
         title={t.category.newbornCottonTitle}
         showAgeFilter={false}
+        showSizeAgeFilter
         showGenderFilter
         fabricType="cotton"
       />

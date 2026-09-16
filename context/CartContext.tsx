@@ -126,7 +126,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
           name: product.name,
           price: onSale ? product.salePrice : product.price,
           originalPrice: onSale ? product.price : undefined,
-          image: colorEntry?.images[0] ?? null,
+          // The cart/checkout thumbnail always shows the plain centered
+          // crop — focal point is a storefront-browsing (card/gallery)
+          // affordance only, not carried into CartItem.
+          image: colorEntry?.images[0]?.url ?? null,
           color,
           colorLabel: colorEntry?.label ?? { ar: color, en: color, he: color },
           size,
@@ -203,7 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ...oldItem,
           price: onSale ? product.salePrice : product.price,
           originalPrice: onSale ? product.price : undefined,
-          image: colorEntry?.images[0] ?? null,
+          image: colorEntry?.images[0]?.url ?? null,
           color: newColor,
           colorLabel: colorEntry?.label ?? { ar: newColor, en: newColor, he: newColor },
           size: newSize,

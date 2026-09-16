@@ -115,7 +115,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                     <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-surface-container-low shrink-0">
                       {product.colors[0]?.images[0] ? (
                         <Image
-                          src={product.colors[0].images[0]}
+                          src={product.colors[0].images[0].url}
                           alt=""
                           fill
                           sizes="40px"

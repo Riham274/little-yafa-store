@@ -8,7 +8,7 @@ export default function BlanketsPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="blankets" title={t.category.blanketsTitle} showAgeFilter={false} />
+      <CategoryPageContent category="blankets" title={t.category.blanketsTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

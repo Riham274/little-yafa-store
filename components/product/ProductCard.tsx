@@ -22,11 +22,21 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-container-low cloud-shadow">
         {image ? (
           <ImageWithSpinner
-            src={image}
+            src={image.url}
             alt={product.name[locale]}
             fill
             sizes="(max-width: 768px) 50vw, 25vw"
-            className="object-cover transition-transform duration-500 group-hover:scale-105"
+            // The admin's chosen zoom (--focal-scale) has to compose with
+            // the existing group-hover zoom effect — an inline `transform`
+            // style would just override the hover class outright (inline
+            // styles always win), so the base scale is carried as a CSS
+            // variable instead and both the resting and hover transforms
+            // read it via Tailwind arbitrary values.
+            className="object-cover transition-transform duration-500 [transform:scale(var(--focal-scale))] group-hover:[transform:scale(calc(var(--focal-scale)*1.05))]"
+            style={{
+              objectPosition: `${image.focalPoint.x}% ${image.focalPoint.y}%`,
+              ["--focal-scale" as string]: image.focalPoint.scale,
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">

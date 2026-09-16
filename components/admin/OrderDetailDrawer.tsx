@@ -73,7 +73,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
 
   const zoomedItem = zoomedItemIndex !== null ? order.items[zoomedItemIndex] : null;
   const zoomedProduct = zoomedItem ? productsById[zoomedItem.productId] : undefined;
-  const zoomedImage = zoomedProduct?.colors[0]?.images[0];
+  const zoomedImage = zoomedProduct?.colors[0]?.images[0]?.url;
   const zoomedDescription = zoomedProduct ? zoomedProduct.description[locale] : null;
 
   return (
@@ -150,7 +150,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           <div className="flex flex-col gap-3">
             {order.items.map((item, i) => {
               const product = productsById[item.productId];
-              const image = product?.colors[0]?.images[0];
+              const image = product?.colors[0]?.images[0]?.url;
               const description = product ? product.description[locale] : null;
               return (
                 <button

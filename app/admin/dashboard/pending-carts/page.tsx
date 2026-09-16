@@ -102,7 +102,7 @@ export default function PendingCartsPage() {
           <tbody>
             {mostWanted.map((row) => {
               const product = productsById[row.productId];
-              const image = product?.colors[0]?.images[0];
+              const image = product?.colors[0]?.images[0]?.url;
               return (
                 <tr key={row.productId} className="border-b border-outline-variant/50">
                   <td className="py-3 px-md">
@@ -155,7 +155,7 @@ export default function PendingCartsPage() {
       <div className="md:hidden flex flex-col gap-sm mb-lg">
         {mostWanted.map((row) => {
           const product = productsById[row.productId];
-          const image = product?.colors[0]?.images[0];
+          const image = product?.colors[0]?.images[0]?.url;
           const thumb = (
             <div className="w-11 h-11 rounded-lg bg-surface-container overflow-hidden shrink-0">
               {image ? (
@@ -224,7 +224,7 @@ export default function PendingCartsPage() {
             <div className="flex flex-col gap-2 border-t border-outline-variant/50 pt-2">
               {session.items.map((item, idx) => {
                 const product = productsById[item.productId];
-                const image = product?.colors[0]?.images[0];
+                const image = product?.colors[0]?.images[0]?.url;
                 const thumb = (
                   <div className="w-11 h-11 rounded-lg bg-surface-container overflow-hidden shrink-0">
                     {image ? (

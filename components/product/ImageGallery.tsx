@@ -6,6 +6,7 @@ import Image from "next/image";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import ImageLightbox from "@/components/product/ImageLightbox";
 import { useLanguage } from "@/context/LanguageContext";
+import type { ProductImage } from "@/lib/types";
 
 const SWIPE_THRESHOLD = 40; // px of horizontal movement before it counts as a swipe
 const TAP_MOVE_THRESHOLD = 10; // px of movement still small enough to count as a tap, not a swipe
@@ -15,7 +16,7 @@ export default function ImageGallery({
   alt,
   badge,
 }: {
-  images: string[];
+  images: ProductImage[];
   alt: string;
   badge?: ReactNode;
 }) {
@@ -92,7 +93,7 @@ export default function ImageGallery({
       >
         {pics[active] ? (
           <ImageWithSpinner
-            src={pics[active] as string}
+            src={(pics[active] as ProductImage).url}
             alt={alt}
             fill
             preload
@@ -105,6 +106,10 @@ export default function ImageGallery({
             // are accounted for.
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 58vw, 720px"
             className="object-cover"
+            style={{
+              objectPosition: `${(pics[active] as ProductImage).focalPoint.x}% ${(pics[active] as ProductImage).focalPoint.y}%`,
+              transform: `scale(${(pics[active] as ProductImage).focalPoint.scale})`,
+            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
@@ -122,14 +127,30 @@ export default function ImageGallery({
               className="relative aspect-square w-20 rounded-xl overflow-hidden border-2 transition-colors"
               style={{ borderColor: active === i ? "#5A5F44" : "transparent" }}
             >
-              {pic && <Image src={pic} alt="" fill sizes="80px" className="object-cover" />}
+              {pic && (
+                <Image
+                  src={pic.url}
+                  alt=""
+                  fill
+                  sizes="80px"
+                  className="object-cover"
+                  style={{
+                    objectPosition: `${pic.focalPoint.x}% ${pic.focalPoint.y}%`,
+                    transform: `scale(${pic.focalPoint.scale})`,
+                  }}
+                />
+              )}
             </button>
           ))}
         </div>
       )}
       {lightboxOpen && (
         <ImageLightbox
-          images={pics}
+          // The lightbox always shows the COMPLETE, uncropped image
+          // (object-contain — see ImageLightbox.tsx) regardless of any
+          // focal point, so it only ever needs the plain URL, never the
+          // crop metadata.
+          images={pics.map((p) => p?.url ?? null)}
           active={active}
           onNavigate={goTo}
           onClose={() => setLightboxOpen(false)}

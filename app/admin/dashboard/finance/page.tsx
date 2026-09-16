@@ -127,7 +127,7 @@ export default function AdminFinancePage() {
               {sortedByProduct.map((row) => {
                 const product = productById.get(row.productId);
                 const name = product ? product.name[locale] : row.fallbackName;
-                const image = product?.colors[0]?.images[0];
+                const image = product?.colors[0]?.images[0]?.url;
                 return (
                   <tr key={row.productId} className="border-b border-outline-variant/50">
                     <td className="py-3 px-md">
@@ -174,7 +174,7 @@ export default function AdminFinancePage() {
           {sortedByProduct.map((row) => {
             const product = productById.get(row.productId);
             const name = product ? product.name[locale] : row.fallbackName;
-            const image = product?.colors[0]?.images[0];
+            const image = product?.colors[0]?.images[0]?.url;
             return (
               <div key={row.productId} className="bg-surface-container-low rounded-xl p-sm flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden shrink-0">

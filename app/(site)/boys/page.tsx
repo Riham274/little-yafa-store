@@ -8,7 +8,7 @@ export default function BoysPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="boys" title={t.category.boysTitle} showAgeFilter />
+      <CategoryPageContent category="boys" title={t.category.boysTitle} showAgeFilter showSizeAgeFilter />
     </Suspense>
   );
 }

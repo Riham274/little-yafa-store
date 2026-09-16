@@ -2,7 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import { doc, getDoc } from "firebase/firestore";
-import type { AgeGroup, Category, NewbornFabricType, NewbornGender, Product, ProductColor, ProductInput } from "@/lib/types";
+import type {
+  AgeGroup,
+  Category,
+  ImageFocalPoint,
+  NewbornFabricType,
+  NewbornGender,
+  Product,
+  ProductColor,
+  ProductImage,
+  ProductInput,
+} from "@/lib/types";
+import { DEFAULT_FOCAL_POINT } from "@/lib/types";
 import { db } from "@/lib/firebase/config";
 import { auth } from "@/lib/firebase/auth";
 import { storage, uploadProductImage } from "@/lib/firebase/storage";
@@ -16,6 +27,7 @@ import {
 } from "@/lib/firebase/products";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import Spinner from "@/components/ui/Spinner";
+import FocalPointPickerModal from "@/components/admin/FocalPointPickerModal";
 
 const TRANSLATE_DEBOUNCE_MS = 800;
 type TranslateTarget = "en" | "he";
@@ -38,12 +50,14 @@ type Props = {
   onSaved: () => void;
 };
 
+type NewImageFile = { file: File; focalPoint: ImageFocalPoint };
+
 type ColorFormState = {
   labelAr: string;
   labelEn: string;
   labelHe: string;
-  existingImages: string[];
-  newFiles: File[];
+  existingImages: ProductImage[];
+  newFiles: NewImageFile[];
   sizes: { label: string; stock: string }[];
 };
 
@@ -148,6 +162,40 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Caches one object URL per File so re-rendering while the focal-point
+  // modal is open (which happens on every drag-move, to show the live
+  // preview) doesn't call URL.createObjectURL again for the same file —
+  // the File reference itself stays stable across a focal-point-only edit,
+  // only its `focalPoint` field changes.
+  const blobUrlCache = useRef(new Map<File, string>());
+  const getBlobUrl = (file: File): string => {
+    let url = blobUrlCache.current.get(file);
+    if (!url) {
+      url = URL.createObjectURL(file);
+      blobUrlCache.current.set(file, url);
+    }
+    return url;
+  };
+
+  // Which image's focal-point picker modal is currently open, if any (the
+  // OPTIONAL re-edit flow — an image already committed to existingImages or
+  // newFiles) — identifies the image by color index + either its existing
+  // url or its newFiles index, since those are the two places an image can
+  // live in form state before save.
+  const [focalPointTarget, setFocalPointTarget] = useState<
+    { colorIndex: number; kind: "existing"; url: string } | { colorIndex: number; kind: "new"; fileIndex: number } | null
+  >(null);
+
+  // Newly selected files awaiting their MANDATORY crop/zoom confirmation
+  // before they're committed into a color's newFiles — a FIFO queue so
+  // selecting several files at once (the file input is `multiple`) walks
+  // the admin through each one in turn, one modal at a time. Only the
+  // front of the queue (index 0) is ever shown; confirming it commits that
+  // file into `colors` and advances to the next.
+  const [pendingNewImages, setPendingNewImages] = useState<
+    { colorIndex: number; file: File; focalPoint: ImageFocalPoint }[]
+  >([]);
 
   const draftKey = getDraftKey(product);
   // A found-but-not-yet-decided draft, offered via the restore banner below.
@@ -431,15 +479,53 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         return { ...c, labelHe: value };
       })
     );
-  const addColorFiles = (index: number, files: File[]) =>
-    setColors((prev) => prev.map((c, i) => (i === index ? { ...c, newFiles: [...c.newFiles, ...files] } : c)));
+  // Selecting files no longer adds them to the color directly — each one
+  // must go through the mandatory crop/zoom confirmation first (see
+  // pendingNewImages above). This only queues them.
+  const queueNewColorFiles = (index: number, files: File[]) => {
+    if (files.length === 0) return;
+    setPendingNewImages((prev) => [
+      ...prev,
+      ...files.map((file) => ({ colorIndex: index, file, focalPoint: DEFAULT_FOCAL_POINT })),
+    ]);
+  };
+  const updatePendingImageFocalPoint = (focalPoint: ImageFocalPoint) =>
+    setPendingNewImages((prev) => prev.map((p, i) => (i === 0 ? { ...p, focalPoint } : p)));
+  const confirmPendingImage = () => {
+    const pending = pendingNewImages[0];
+    if (!pending) return;
+    setColors((prev) =>
+      prev.map((c, i) =>
+        i === pending.colorIndex
+          ? { ...c, newFiles: [...c.newFiles, { file: pending.file, focalPoint: pending.focalPoint }] }
+          : c
+      )
+    );
+    setPendingNewImages((prev) => prev.slice(1));
+  };
   const removeColorExistingImage = (index: number, url: string) =>
     setColors((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, existingImages: c.existingImages.filter((u) => u !== url) } : c))
+      prev.map((c, i) => (i === index ? { ...c, existingImages: c.existingImages.filter((img) => img.url !== url) } : c))
     );
   const removeColorNewFile = (index: number, fileIndex: number) =>
     setColors((prev) =>
       prev.map((c, i) => (i === index ? { ...c, newFiles: c.newFiles.filter((_, fi) => fi !== fileIndex) } : c))
+    );
+  const updateColorExistingImageFocalPoint = (index: number, url: string, focalPoint: ImageFocalPoint) =>
+    setColors((prev) =>
+      prev.map((c, i) =>
+        i === index
+          ? { ...c, existingImages: c.existingImages.map((img) => (img.url === url ? { ...img, focalPoint } : img)) }
+          : c
+      )
+    );
+  const updateColorNewFileFocalPoint = (index: number, fileIndex: number, focalPoint: ImageFocalPoint) =>
+    setColors((prev) =>
+      prev.map((c, i) =>
+        i === index
+          ? { ...c, newFiles: c.newFiles.map((nf, fi) => (fi === fileIndex ? { ...nf, focalPoint } : nf)) }
+          : c
+      )
     );
   const addColorSizeRow = (index: number) =>
     setColors((prev) => prev.map((c, i) => (i === index ? { ...c, sizes: [...c.sizes, { label: "", stock: "" }] } : c)));
@@ -496,7 +582,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
 
       const colorsPayload: ProductColor[] = await Promise.all(
         colors.map(async (c) => {
-          const uploadedUrls = await Promise.all(c.newFiles.map((file) => uploadProductImage(id, file)));
+          const uploadedImages: ProductImage[] = await Promise.all(
+            c.newFiles.map(async (nf) => ({ url: await uploadProductImage(id, nf.file), focalPoint: nf.focalPoint }))
+          );
           return {
             label: {
               ar: c.labelAr.trim(),
@@ -508,7 +596,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
               en: c.labelEn.trim() || c.labelAr.trim(),
               he: c.labelHe.trim() || c.labelAr.trim(),
             },
-            images: [...c.existingImages, ...uploadedUrls],
+            images: [...c.existingImages, ...uploadedImages],
             sizes: c.sizes
               .filter((s) => s.label.trim())
               .map((s) => ({ label: s.label.trim(), stock: Math.max(0, Number(s.stock) || 0) })),
@@ -569,7 +657,35 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     }
   };
 
+  // Resolves the currently-open focal-point target (if any) to the actual
+  // image src + focal point it needs to display/edit — looked up fresh from
+  // `colors` state on every render rather than stored in focalPointTarget
+  // itself, so it always reflects the latest value even if something else
+  // changed it in the meantime.
+  const focalPointEditing = (() => {
+    if (!focalPointTarget) return null;
+    const color = colors[focalPointTarget.colorIndex];
+    if (!color) return null;
+    if (focalPointTarget.kind === "existing") {
+      const img = color.existingImages.find((i) => i.url === focalPointTarget.url);
+      if (!img) return null;
+      return { src: img.url, focalPoint: img.focalPoint };
+    }
+    const nf = color.newFiles[focalPointTarget.fileIndex];
+    if (!nf) return null;
+    return { src: getBlobUrl(nf.file), focalPoint: nf.focalPoint };
+  })();
+
+  // The front of the mandatory queue, if any — shown instead of (takes
+  // priority over) the optional focalPointEditing modal above, though in
+  // practice the two can never be open at once since this one covers the
+  // whole screen with no way to reach the buttons that open the other.
+  const pendingImageEditing = pendingNewImages[0]
+    ? { src: getBlobUrl(pendingNewImages[0].file), focalPoint: pendingNewImages[0].focalPoint }
+    : null;
+
   return (
+    <>
     <div
       dir={dir}
       className="fixed inset-0 z-[70] bg-black/40 backdrop-blur-sm flex items-center justify-center p-gutter overflow-y-auto"
@@ -717,26 +833,56 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                   <div>
                     <label className="block font-label-sm text-label-sm text-on-surface-variant mb-2">{t.products.images}</label>
                     <div className="flex flex-wrap gap-sm mb-sm">
-                      {color.existingImages.map((url) => (
-                        <div key={url} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container">
+                      {color.existingImages.map((img) => (
+                        <div key={img.url} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={url} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={img.url}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            style={{ objectPosition: `${img.focalPoint.x}% ${img.focalPoint.y}%` }}
+                          />
                           <button
                             type="button"
-                            onClick={() => removeColorExistingImage(ci, url)}
+                            onClick={() => setFocalPointTarget({ colorIndex: ci, kind: "existing", url: img.url })}
+                            aria-label={t.products.setFocalPoint}
+                            title={t.products.setFocalPoint}
+                            className="absolute bottom-0.5 start-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">center_focus_weak</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => removeColorExistingImage(ci, img.url)}
+                            aria-label={t.products.removeImage}
                             className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
                           >
                             <span className="material-symbols-outlined text-[14px]">close</span>
                           </button>
                         </div>
                       ))}
-                      {color.newFiles.map((file, fi) => (
+                      {color.newFiles.map((nf, fi) => (
                         <div key={fi} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                          <img
+                            src={getBlobUrl(nf.file)}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            style={{ objectPosition: `${nf.focalPoint.x}% ${nf.focalPoint.y}%` }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setFocalPointTarget({ colorIndex: ci, kind: "new", fileIndex: fi })}
+                            aria-label={t.products.setFocalPoint}
+                            title={t.products.setFocalPoint}
+                            className="absolute bottom-0.5 start-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
+                          >
+                            <span className="material-symbols-outlined text-[14px]">center_focus_weak</span>
+                          </button>
                           <button
                             type="button"
                             onClick={() => removeColorNewFile(ci, fi)}
+                            aria-label={t.products.removeImage}
                             className="absolute top-0.5 end-0.5 w-5 h-5 bg-black/60 rounded-full flex items-center justify-center text-white"
                           >
                             <span className="material-symbols-outlined text-[14px]">close</span>
@@ -748,7 +894,14 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                       type="file"
                       accept="image/*"
                       multiple
-                      onChange={(e) => addColorFiles(ci, Array.from(e.target.files ?? []))}
+                      onChange={(e) => {
+                        queueNewColorFiles(ci, Array.from(e.target.files ?? []));
+                        // Clears the input's own file list so re-selecting
+                        // the exact same file again later still fires a
+                        // fresh change event (browsers otherwise treat an
+                        // unchanged file list as a no-op change).
+                        e.target.value = "";
+                      }}
                       className="text-on-surface-variant font-body-md text-[14px]"
                     />
                   </div>
@@ -907,6 +1060,27 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         </form>
       </div>
     </div>
+    {focalPointTarget && focalPointEditing && (
+      <FocalPointPickerModal
+        src={focalPointEditing.src}
+        focalPoint={focalPointEditing.focalPoint}
+        onChange={(fp) =>
+          focalPointTarget.kind === "existing"
+            ? updateColorExistingImageFocalPoint(focalPointTarget.colorIndex, focalPointTarget.url, fp)
+            : updateColorNewFileFocalPoint(focalPointTarget.colorIndex, focalPointTarget.fileIndex, fp)
+        }
+        onClose={() => setFocalPointTarget(null)}
+      />
+    )}
+    {pendingImageEditing && (
+      <FocalPointPickerModal
+        src={pendingImageEditing.src}
+        focalPoint={pendingImageEditing.focalPoint}
+        onChange={updatePendingImageFocalPoint}
+        onConfirm={confirmPendingImage}
+      />
+    )}
+    </>
   );
 }
 

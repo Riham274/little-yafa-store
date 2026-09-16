@@ -8,7 +8,7 @@ export default function WholesalePage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="wholesale" title={t.category.wholesaleTitle} showAgeFilter={false} />
+      <CategoryPageContent category="wholesale" title={t.category.wholesaleTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

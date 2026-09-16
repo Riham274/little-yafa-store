@@ -8,7 +8,7 @@ export default function GiftWrappingPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="gift-wrapping" title={t.category.giftWrappingTitle} showAgeFilter={false} />
+      <CategoryPageContent category="gift-wrapping" title={t.category.giftWrappingTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

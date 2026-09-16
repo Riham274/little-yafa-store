@@ -8,7 +8,7 @@ export default function WinterPage() {
   const { t } = useLanguage();
   return (
     <Suspense>
-      <CategoryPageContent category="winter" title={t.category.winterTitle} showAgeFilter={false} />
+      <CategoryPageContent category="winter" title={t.category.winterTitle} showAgeFilter={false} showSizeAgeFilter />
     </Suspense>
   );
 }

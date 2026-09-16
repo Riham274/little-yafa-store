@@ -45,6 +45,23 @@ export type ProductSize = {
   stock: number;
 };
 
+// x/y are percentages (0-100): the point within the image that should stay
+// visible/centered when it's cropped to a square thumbnail (rendered as
+// object-position). `scale` is a zoom multiplier applied on top of that
+// crop (rendered as a CSS transform: scale(), see ProductCard.tsx/
+// ImageGallery.tsx) — 1 means no zoom (the image's normal cover-fit crop),
+// values > 1 zoom in around the x/y center point. Neither ever affects the
+// full uncropped image in the zoom lightbox — object-fit: contain there
+// shows the whole photo regardless of these values.
+export type ImageFocalPoint = { x: number; y: number; scale: number };
+
+export const DEFAULT_FOCAL_POINT: ImageFocalPoint = { x: 50, y: 50, scale: 1 };
+
+export type ProductImage = {
+  url: string;
+  focalPoint: ImageFocalPoint;
+};
+
 // Each color variant carries its own images and size/stock tracking — price
 // is deliberately NOT here, it stays a single top-level field shared across
 // every color of a product.
@@ -57,7 +74,7 @@ export type ProductSize = {
 // combination is being referenced.
 export type ProductColor = {
   label: LocalizedText;
-  images: string[];
+  images: ProductImage[];
   sizes: ProductSize[];
 };
 
