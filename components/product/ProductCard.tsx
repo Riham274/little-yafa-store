@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAvailableSizeLabels, getTotalStock } from "@/lib/firebase/products";
 import type { Product } from "@/lib/types";
+import CroppedThumbnail from "./CroppedThumbnail";
 import PriceTag from "./PriceTag";
 import ProductStatusBadge from "./ProductStatusBadge";
 
@@ -21,22 +21,17 @@ export default function ProductCard({ product }: { product: Product }) {
     >
       <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-container-low cloud-shadow">
         {image ? (
-          <ImageWithSpinner
+          <CroppedThumbnail
             src={image.url}
             alt={product.name[locale]}
-            fill
+            focalPoint={image.focalPoint}
             sizes="(max-width: 768px) 50vw, 25vw"
-            // The admin's chosen zoom (--focal-scale) has to compose with
-            // the existing group-hover zoom effect — an inline `transform`
-            // style would just override the hover class outright (inline
-            // styles always win), so the base scale is carried as a CSS
-            // variable instead and both the resting and hover transforms
-            // read it via Tailwind arbitrary values.
-            className="object-cover transition-transform duration-500 [transform:scale(var(--focal-scale))] group-hover:[transform:scale(calc(var(--focal-scale)*1.05))]"
-            style={{
-              objectPosition: `${image.focalPoint.x}% ${image.focalPoint.y}%`,
-              ["--focal-scale" as string]: image.focalPoint.scale,
-            }}
+            // The hover-zoom effect is layered on top of the already-
+            // correctly-cropped wrapper — it's a transient visual nicety,
+            // not part of the saved crop, so a plain transform class here
+            // is fine (nothing for it to conflict with, unlike the old
+            // object-position + transform:scale technique).
+            wrapperClassName="transition-transform duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">

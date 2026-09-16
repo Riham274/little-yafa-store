@@ -2,8 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { ReactNode, TouchEvent, MouseEvent } from "react";
-import Image from "next/image";
-import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
+import CroppedThumbnail from "@/components/product/CroppedThumbnail";
 import ImageLightbox from "@/components/product/ImageLightbox";
 import { useLanguage } from "@/context/LanguageContext";
 import type { ProductImage } from "@/lib/types";
@@ -92,10 +91,10 @@ export default function ImageGallery({
         onMouseLeave={() => (mouseStartX.current = null)}
       >
         {pics[active] ? (
-          <ImageWithSpinner
+          <CroppedThumbnail
             src={(pics[active] as ProductImage).url}
             alt={alt}
-            fill
+            focalPoint={(pics[active] as ProductImage).focalPoint}
             preload
             // The 58vw share only holds up to the page's own max-width
             // (container-max: 1280px in tailwind.config.js) — past that,
@@ -105,11 +104,6 @@ export default function ImageGallery({
             // of the container's content width once its padding/column gap
             // are accounted for.
             sizes="(max-width: 768px) 100vw, (max-width: 1280px) 58vw, 720px"
-            className="object-cover"
-            style={{
-              objectPosition: `${(pics[active] as ProductImage).focalPoint.x}% ${(pics[active] as ProductImage).focalPoint.y}%`,
-              transform: `scale(${(pics[active] as ProductImage).focalPoint.scale})`,
-            }}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
@@ -127,19 +121,7 @@ export default function ImageGallery({
               className="relative aspect-square w-20 rounded-xl overflow-hidden border-2 transition-colors"
               style={{ borderColor: active === i ? "#5A5F44" : "transparent" }}
             >
-              {pic && (
-                <Image
-                  src={pic.url}
-                  alt=""
-                  fill
-                  sizes="80px"
-                  className="object-cover"
-                  style={{
-                    objectPosition: `${pic.focalPoint.x}% ${pic.focalPoint.y}%`,
-                    transform: `scale(${pic.focalPoint.scale})`,
-                  }}
-                />
-              )}
+              {pic && <CroppedThumbnail src={pic.url} alt="" focalPoint={pic.focalPoint} sizes="80px" />}
             </button>
           ))}
         </div>

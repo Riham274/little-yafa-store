@@ -1,14 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent } from "react";
 import { DEFAULT_FOCAL_POINT, type ImageFocalPoint } from "@/lib/types";
+import { getCropBox, recenterFocalPoint } from "@/lib/imageCrop";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 
-// Fixed CSS px side length of the interactive square viewport below — kept
-// as a constant (rather than measured via getBoundingClientRect) so the
-// cover-scale math is simple and exact, matching the box's actual Tailwind
-// size (w-55/h-55 = 220px at the default root font size).
+// CSS px side length of the interactive square viewport below — purely a
+// display size now (the crop math itself, in lib/imageCrop.ts, is
+// percentage-based and doesn't depend on this value).
 const VIEWPORT_SIZE = 220;
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -21,23 +21,20 @@ function touchDistance(a: React.Touch, b: React.Touch) {
   return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
 }
 
-/** The interactive square crop viewport: renders the photo with the exact
- * same technique the real storefront thumbnail uses — object-fit: cover +
- * object-position: x% y% for the base crop, then a CSS transform: scale()
- * layered on top (anchored at the viewport's center) for zoom — so this
- * viewport IS the live preview, not a separate approximation of one.
+/** The interactive square crop viewport. Renders the image at its true
+ * (natural-aspect-ratio) size, scaled by the current zoom and positioned by
+ * left/top — both as percentages of the frame (see lib/imageCrop.ts) — so
+ * nothing is ever cropped away before zoom/pan gets applied to it. This is
+ * the exact same technique CroppedThumbnail.tsx uses for the real
+ * storefront thumbnails, so this viewport IS the live preview, not a
+ * separate approximation of one.
  *
- * Pan (click/drag, or single-finger touch) re-centers the base crop on the
+ * Pan (click/drag, or single-finger touch) re-centers the crop on the
  * point under the pointer, "grab the photo and move it" style (similar to
- * Instagram's cover-photo reposition tool). Zoom (scroll wheel, or two-
- * finger pinch) only ever changes `scale`, independent of x/y — because the
- * scale transform is anchored at the viewport's center, changing it alone
- * can't shift what's centered, it only magnifies/shrinks around it. That
- * decoupling is what keeps the pan math below unchanged from a plain
- * (unzoomed) picker: a pan gesture's screen coordinates just need to be
- * un-zoomed first (divided by the current scale, relative to the
- * viewport's center) before feeding into the same base-crop recentering
- * formula. */
+ * Instagram's cover-photo reposition tool) — and because the rendered size
+ * itself grows with zoom, the reachable pan range grows with it too, all
+ * the way to the image's true corners. Zoom (scroll wheel, or two-finger
+ * pinch) only ever changes `scale`, independent of x/y. */
 function FocalPointPad({
   src,
   focalPoint,
@@ -51,9 +48,8 @@ function FocalPointPad({
   const viewportRef = useRef<HTMLDivElement>(null);
   // The x/y as they were when the current pan gesture started — kept fixed
   // for the whole gesture so every pointer position during the drag maps
-  // through the same, consistent linear conversion (see recenterOnPoint
-  // below), rather than compounding relative to a value that's itself
-  // changing every frame.
+  // through the same, consistent linear conversion, rather than
+  // compounding relative to a value that's itself changing every frame.
   const panBasis = useRef<{ x: number; y: number } | null>(null);
   const pinchStart = useRef<{ dist: number; scale: number } | null>(null);
 
@@ -61,37 +57,10 @@ function FocalPointPad({
     const rect = viewportRef.current?.getBoundingClientRect();
     if (!rect || !naturalSize) return;
 
-    // Undo the zoom transform (anchored at the viewport's center) to find
-    // where this screen point falls in the unzoomed base-crop view.
-    const rawX = clientX - rect.left;
-    const rawY = clientY - rect.top;
-    const baseViewX = VIEWPORT_SIZE / 2 + (rawX - VIEWPORT_SIZE / 2) / focalPoint.scale;
-    const baseViewY = VIEWPORT_SIZE / 2 + (rawY - VIEWPORT_SIZE / 2) / focalPoint.scale;
-
-    const coverScale = Math.max(VIEWPORT_SIZE / naturalSize.w, VIEWPORT_SIZE / naturalSize.h);
-    const renderedW = naturalSize.w * coverScale;
-    const renderedH = naturalSize.h * coverScale;
-    const slackX = renderedW - VIEWPORT_SIZE;
-    const slackY = renderedH - VIEWPORT_SIZE;
-
-    // Where the basis x/y places the image's rendered top-left corner
-    // relative to the viewport, per CSS object-position's own percentage
-    // semantics (0% = image's edge flush with viewport's edge on that
-    // side, 100% = flush on the opposite side).
-    const offsetXBasis = slackX > 0 ? -slackX * (basis.x / 100) : 0;
-    const offsetYBasis = slackY > 0 ? -slackY * (basis.y / 100) : 0;
-
-    // The point in the rendered (base-crop) image under the pointer, then
-    // choose a new offset that puts that exact point at the viewport's
-    // center.
-    const imagePxX = baseViewX - offsetXBasis;
-    const imagePxY = baseViewY - offsetYBasis;
-    const newOffsetX = VIEWPORT_SIZE / 2 - imagePxX;
-    const newOffsetY = VIEWPORT_SIZE / 2 - imagePxY;
-
-    const newX = slackX > 0 ? clamp((-newOffsetX / slackX) * 100, 0, 100) : basis.x;
-    const newY = slackY > 0 ? clamp((-newOffsetY / slackY) * 100, 0, 100) : basis.y;
-    onChange({ ...focalPoint, x: Math.round(newX), y: Math.round(newY) });
+    const pointerXPct = ((clientX - rect.left) / rect.width) * 100;
+    const pointerYPct = ((clientY - rect.top) / rect.height) * 100;
+    const next = recenterFocalPoint(pointerXPct, pointerYPct, basis, focalPoint.scale, naturalSize.w, naturalSize.h);
+    onChange({ ...focalPoint, x: next.x, y: next.y });
   };
 
   const startPan = (clientX: number, clientY: number) => {
@@ -110,7 +79,12 @@ function FocalPointPad({
   const onMouseMove = (e: ReactMouseEvent) => continuePan(e.clientX, e.clientY);
 
   const onWheel = (e: ReactWheelEvent) => {
-    e.preventDefault();
+    // No e.preventDefault() here — React attaches wheel listeners as
+    // passive, so calling it throws a console warning without actually
+    // stopping the browser's default scroll (same reasoning as
+    // ImageLightbox's own onWheel, which also skips it). The modal instead
+    // locks document.body scroll entirely while it's open (see the effect
+    // in FocalPointPickerModal below), the same way ImageLightbox does.
     const next = clamp(focalPoint.scale - e.deltaY * 0.0025, MIN_SCALE, MAX_SCALE);
     onChange({ ...focalPoint, scale: next });
   };
@@ -141,6 +115,8 @@ function FocalPointPad({
     }
   };
 
+  const box = naturalSize ? getCropBox(focalPoint, naturalSize.w, naturalSize.h) : null;
+
   return (
     <div
       ref={viewportRef}
@@ -155,25 +131,62 @@ function FocalPointPad({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt=""
-        draggable={false}
-        onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
-        className="w-full h-full object-cover pointer-events-none"
-        style={{
-          objectPosition: `${focalPoint.x}% ${focalPoint.y}%`,
-          transform: `scale(${focalPoint.scale})`,
-          transformOrigin: "center",
-        }}
-      />
+      <div
+        className="absolute"
+        style={
+          box
+            ? { width: `${box.widthPct}%`, height: `${box.heightPct}%`, left: `${box.leftPct}%`, top: `${box.topPct}%` }
+            : { width: "100%", height: "100%", left: 0, top: 0 }
+        }
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+          className="w-full h-full pointer-events-none"
+        />
+      </div>
       {/* Fixed center marker — the crop is always re-centered on the chosen
           point by construction, so the marker never needs to move. */}
       <div
         className="absolute top-1/2 start-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white pointer-events-none"
         style={{ backgroundColor: "#5A5F44", boxShadow: "0 0 0 1px rgba(0,0,0,0.3)" }}
       />
+    </div>
+  );
+}
+
+/** Same explicit-size crop technique as the pad above, at a smaller fixed
+ * display size — used for both the modal's own live preview and can be
+ * reused wherever a static (non-interactive) preview of a given crop is
+ * needed. */
+function CropPreview({ src, focalPoint, size }: { src: string; focalPoint: ImageFocalPoint; size: number }) {
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const box = naturalSize ? getCropBox(focalPoint, naturalSize.w, naturalSize.h) : null;
+
+  return (
+    <div
+      className="relative rounded-lg overflow-hidden bg-surface-container border border-outline-variant"
+      style={{ width: size, height: size }}
+    >
+      <div
+        className="absolute"
+        style={
+          box
+            ? { width: `${box.widthPct}%`, height: `${box.heightPct}%`, left: `${box.leftPct}%`, top: `${box.topPct}%` }
+            : { width: "100%", height: "100%", left: 0, top: 0 }
+        }
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt=""
+          onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
+          className="w-full h-full"
+        />
+      </div>
     </div>
   );
 }
@@ -200,6 +213,18 @@ export default function FocalPointPickerModal({
 }) {
   const { t, dir } = useAdminLanguage();
   const dismissible = Boolean(onClose);
+
+  // Locks background scroll while this full-screen modal is open — same
+  // pattern as ImageLightbox.tsx. Without it, a scroll/wheel gesture meant
+  // for zooming the pad (onWheel above) could also scroll the page behind
+  // this overlay, since the wheel listener can't reliably preventDefault().
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   const handleBackdropClick = () => {
     if (dismissible) onClose?.();
@@ -234,19 +259,7 @@ export default function FocalPointPickerModal({
               <span className="font-label-sm text-label-sm text-on-surface-variant">
                 {t.products.focalPointPreviewLabel}
               </span>
-              <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-surface-container border border-outline-variant">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  style={{
-                    objectPosition: `${focalPoint.x}% ${focalPoint.y}%`,
-                    transform: `scale(${focalPoint.scale})`,
-                    transformOrigin: "center",
-                  }}
-                />
-              </div>
+              <CropPreview src={src} focalPoint={focalPoint} size={64} />
             </div>
             <button
               type="button"
