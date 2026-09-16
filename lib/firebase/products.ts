@@ -21,6 +21,8 @@ import {
 } from "firebase/firestore";
 import { db } from "./config";
 import type { AgeGroup, Category, LocalizedText, Product, ProductColor, ProductInput, ProductSize } from "@/lib/types";
+import { ageRangeOverlapScore } from "@/lib/sizeAge";
+import { themeWordOverlapScore } from "@/lib/productTheme";
 
 const PRODUCTS_COLLECTION = "products";
 
@@ -310,6 +312,10 @@ export async function getProductByIdForAdmin(id: string): Promise<Product | null
 export async function getSimilarProducts(product: Product, limitCount = 4): Promise<Product[]> {
   if (product.categories.length === 0) return [];
 
+  // Candidate pool is scoped to products sharing at least one category —
+  // both the age-range and theme-word scores below only ever re-rank
+  // *within* this pool, never expand it. A product with zero shared
+  // categories is excluded before either of those scores is even computed.
   const q = query(collection(db, PRODUCTS_COLLECTION), where("categories", "array-contains-any", product.categories));
   const snap = await getDocs(q);
   const candidates = snap.docs
@@ -318,8 +324,18 @@ export async function getSimilarProducts(product: Product, limitCount = 4): Prom
 
   const scored = candidates.map((p) => {
     const categoryOverlap = p.categories.filter((c) => product.categories.includes(c)).length;
-    const ageOverlap = p.ageGroups.filter((age) => product.ageGroups.includes(age)).length;
-    return { product: p, score: categoryOverlap * 10 + ageOverlap };
+    // Fine-grained, size-label-derived age overlap (lib/sizeAge.ts) — the
+    // same parsing/overlap logic the Boys/Girls age filter uses — replaces
+    // the old broad ageGroups-array comparison.
+    const ageOverlap = ageRangeOverlapScore(product, p);
+    // Shared distinctive "theme" words in the Arabic name (e.g. both
+    // products mention "حصان") — a secondary boost weighted below a shared
+    // category (×10) but above a shared age range, so it can meaningfully
+    // move a differently-categorized-but-same-theme product up the
+    // ranking without ever letting theme alone outrank real category
+    // relevance.
+    const themeOverlap = themeWordOverlapScore(product, p);
+    return { product: p, score: categoryOverlap * 10 + ageOverlap + themeOverlap * 5 };
   });
 
   scored.sort((a, b) => b.score - a.score);

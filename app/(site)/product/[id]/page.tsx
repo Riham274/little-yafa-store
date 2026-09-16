@@ -54,7 +54,10 @@ export default function ProductDetailPage() {
       setSelectedSize(sizeIsValid ? requestedSize : null);
       setLoading(false);
       if (p) {
-        const sim = await getSimilarProducts(p);
+        // Fetches a larger, already-ranked batch in one query so
+        // SimilarProducts' "Load More" can reveal further items
+        // client-side without re-querying Firestore on each click.
+        const sim = await getSimilarProducts(p, 20);
         if (active) setSimilar(sim);
       }
     });

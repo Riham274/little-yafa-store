@@ -32,7 +32,7 @@ export const SIZE_AGE_FILTERS: SizeAgeFilter[] = [
   "5-6y",
 ];
 
-type MonthRange = { min: number; max: number };
+export type MonthRange = { min: number; max: number };
 
 // Each filter's own range, in months — "1-2y" (12-24m) deliberately overlaps
 // "12-18m"/"18-24m" in month-space; these are distinct selectable buckets
@@ -88,8 +88,42 @@ function toRange(a: number, b: number): MonthRange {
 // as overlapping — each size range is treated as covering its span up to
 // but not including the next bracket, matching how these labels are
 // actually used (a "0-3" item isn't also a "3-6" item).
-function rangesOverlap(a: MonthRange, b: MonthRange): boolean {
+export function rangesOverlap(a: MonthRange, b: MonthRange): boolean {
   return a.min < b.max && b.min < a.max;
+}
+
+/** Every distinct, in-stock, parseable size-age range a product offers,
+ * across all of its colors — the shared building block behind both the
+ * Boys/Girls age filter (productMatchesSizeAgeFilter below) and the
+ * "Similar Products" age-overlap score (see getSimilarProducts() in
+ * lib/firebase/products.ts). Deduped so a product with several colors all
+ * carrying the same size list doesn't inflate an overlap count. */
+export function getProductAgeRanges(product: Product): MonthRange[] {
+  const seen = new Set<string>();
+  const ranges: MonthRange[] = [];
+  for (const color of product.colors) {
+    for (const size of color.sizes) {
+      if (size.stock <= 0) continue;
+      const range = parseSizeLabelAgeRange(size.label);
+      if (!range) continue;
+      const key = `${range.min}-${range.max}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      ranges.push(range);
+    }
+  }
+  return ranges;
+}
+
+/** How much two products' age ranges overlap, as a small integer: the
+ * number of `a`'s distinct size-age ranges that find at least one
+ * genuinely overlapping range on `b` — bounded by `a`'s own distinct range
+ * count (typically 1-6), so it stays a secondary signal alongside a
+ * category-match score, never a dominant one. */
+export function ageRangeOverlapScore(a: Product, b: Product): number {
+  const rangesA = getProductAgeRanges(a);
+  const rangesB = getProductAgeRanges(b);
+  return rangesA.filter((ra) => rangesB.some((rb) => rangesOverlap(ra, rb))).length;
 }
 
 /** Whether `product` should show under `filter`. `filter: null` ("All")
@@ -112,13 +146,5 @@ function rangesOverlap(a: MonthRange, b: MonthRange): boolean {
 export function productMatchesSizeAgeFilter(product: Product, filter: SizeAgeFilter | null): boolean {
   if (!filter) return true;
   const filterRange = FILTER_RANGES[filter];
-
-  for (const color of product.colors) {
-    for (const size of color.sizes) {
-      if (size.stock <= 0) continue;
-      const range = parseSizeLabelAgeRange(size.label);
-      if (range && rangesOverlap(range, filterRange)) return true;
-    }
-  }
-  return false;
+  return getProductAgeRanges(product).some((range) => rangesOverlap(range, filterRange));
 }
