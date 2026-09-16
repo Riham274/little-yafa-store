@@ -34,18 +34,28 @@ export default function SizeAgeFilterSelect({
   };
 
   return (
-    <select
-      value={active ?? ""}
-      onChange={(e) => onChange((e.target.value || null) as SizeAgeFilter | null)}
-      aria-label={t.category.sizeAgeFilterLabel}
-      className={`shrink-0 bg-surface rounded-xl border border-outline-variant px-3 py-2 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors ${className}`}
-    >
-      <option value="">{t.category.sizeAgeAll}</option>
-      {SIZE_AGE_FILTERS.map((age) => (
-        <option key={age} value={age}>
-          {labels[age]}
-        </option>
-      ))}
-    </select>
+    // Same appearance-none + custom icon fix as SortSelect/CartItemRow —
+    // the native <select> arrow doesn't reliably mirror under dir="rtl"
+    // and was rendering stacked above the text instead of inline beside
+    // it. Positioned at the logical `start` side (right edge in RTL, left
+    // edge in LTR) so it mirrors automatically.
+    <div className={`relative shrink-0 ${className}`}>
+      <select
+        value={active ?? ""}
+        onChange={(e) => onChange((e.target.value || null) as SizeAgeFilter | null)}
+        aria-label={t.category.sizeAgeFilterLabel}
+        className="appearance-none w-full bg-surface rounded-xl border border-outline-variant ps-8 pe-3 py-2 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+      >
+        <option value="">{t.category.sizeAgeAll}</option>
+        {SIZE_AGE_FILTERS.map((age) => (
+          <option key={age} value={age}>
+            {labels[age]}
+          </option>
+        ))}
+      </select>
+      <span className="absolute start-2 top-1/2 -translate-y-1/2 pointer-events-none">
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+      </span>
+    </div>
   );
 }

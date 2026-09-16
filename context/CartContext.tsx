@@ -1,10 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { CartItem, Product } from "@/lib/types";
 import { isProductOnSale } from "@/lib/sale";
 import { getCartSessionId } from "@/lib/cartSession";
 import { syncCartSession } from "@/lib/firebase/cartSessions";
+import { useLanguage } from "@/context/LanguageContext";
+import CartAddedToast from "@/components/ui/CartAddedToast";
 
 const STORAGE_KEY = "little-yafa-cart";
 
@@ -40,13 +42,26 @@ type CartContextValue = {
 };
 
 const CAPPED_NOTICE_MS = 4000;
+const ADDED_TOAST_MS = 2000;
 
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [cappedNoticeProductId, setCappedNoticeProductId] = useState<string | null>(null);
+  const [showAddedToast, setShowAddedToast] = useState(false);
+  // A ref (not state) since it only ever drives a synchronous clearTimeout
+  // call — using state here would need its own effect to stay in sync,
+  // for no benefit over just reading/writing the ref directly.
+  const addedToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (addedToastTimer.current) clearTimeout(addedToastTimer.current);
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -84,6 +99,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const colorEntry = product.colors.find((c) => c.label.ar === color);
     const maxQty = colorEntry?.sizes.find((s) => s.label === size)?.stock ?? 0;
     const onSale = isProductOnSale(product);
+
+    // Purely a confirmation toast — fires alongside the state update below,
+    // never gating or delaying it. Restarts the 2s window on every add
+    // (rather than letting an earlier timer hide a toast a rapid second tap
+    // just re-triggered).
+    setShowAddedToast(true);
+    if (addedToastTimer.current) clearTimeout(addedToastTimer.current);
+    addedToastTimer.current = setTimeout(() => setShowAddedToast(false), ADDED_TOAST_MS);
+
     setItems((prev) => {
       const existing = prev.find(
         (item) => item.productId === product.id && item.color === color && item.size === size
@@ -210,6 +234,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{ items, count, subtotal, addItem, removeItem, setQty, updateItemVariant, cappedNoticeProductId, clear }}
     >
       {children}
+      <CartAddedToast visible={showAddedToast} message={t.product.addedToCartToast} />
     </CartContext.Provider>
   );
 }

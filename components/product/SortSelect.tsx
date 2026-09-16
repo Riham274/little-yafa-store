@@ -29,20 +29,32 @@ export default function SortSelect({
   };
 
   return (
-    <select
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value as SortOption)}
-      aria-label={t.category.filterSort}
-      className={`shrink-0 bg-surface rounded-xl border border-outline-variant px-3 py-2 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors ${className}`}
-    >
-      <option value="" disabled hidden>
-        {t.category.sortByLabel}
-      </option>
-      {SORT_OPTIONS.map((opt) => (
-        <option key={opt} value={opt}>
-          {labels[opt]}
+    // Native <select> arrows don't reliably mirror to the correct edge
+    // under dir="rtl" across browsers (same fix as CartItemRow's color/size
+    // selects) — appearance-none strips the native arrow (which was
+    // rendering stacked above the text instead of inline beside it) and
+    // this custom one is positioned at the logical `start` side (right
+    // edge in RTL, left edge in LTR) so it mirrors automatically and stays
+    // vertically centered next to the text.
+    <div className={`relative shrink-0 ${className}`}>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value as SortOption)}
+        aria-label={t.category.filterSort}
+        className="appearance-none w-full bg-surface rounded-xl border border-outline-variant ps-8 pe-3 py-2 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+      >
+        <option value="" disabled hidden>
+          {t.category.sortByLabel}
         </option>
-      ))}
-    </select>
+        {SORT_OPTIONS.map((opt) => (
+          <option key={opt} value={opt}>
+            {labels[opt]}
+          </option>
+        ))}
+      </select>
+      <span className="absolute start-2 top-1/2 -translate-y-1/2 pointer-events-none">
+        <span className="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+      </span>
+    </div>
   );
 }

@@ -61,6 +61,12 @@ const en = {
     saveWishlist: "Save to Wishlist",
     reviews: "Reviews",
     addedToCart: "Added to cart",
+    // The toast shown site-wide whenever addItem() succeeds (see
+    // CartContext) — distinct from addedToCart above, which is the brief
+    // in-place label swap on the Add to Cart button itself. Deliberately
+    // worded as its own sentence (not reused from addedToCart) since it
+    // stands alone in a toast with no surrounding "Add to Cart" context.
+    addedToCartToast: "Product added to cart",
     lowStockOne: "Only 1 left!",
     lowStockTwo: "Only 2 left!",
     lowStockMany: "Only {count} left!",
@@ -257,6 +263,7 @@ const ar: Dictionary = {
     saveWishlist: "أضيفي إلى المفضلة",
     reviews: "تقييمات",
     addedToCart: "تمت الإضافة إلى السلة",
+    addedToCartToast: "تمت إضافة المنتج إلى السلة",
     lowStockOne: "بقيت قطعة واحدة فقط",
     lowStockTwo: "بقيت قطعتان فقط",
     lowStockMany: "بقي {count} قطع فقط",
@@ -449,6 +456,7 @@ const he: Dictionary = {
     saveWishlist: "שמור למועדפים",
     reviews: "ביקורות",
     addedToCart: "נוסף לעגלה",
+    addedToCartToast: "המוצר נוסף לעגלה",
     lowStockOne: "נשארה יחידה אחת בלבד!",
     lowStockTwo: "נשארו שתי יחידות בלבד!",
     lowStockMany: "נשארו {count} יחידות בלבד!",
