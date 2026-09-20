@@ -22,15 +22,21 @@ import { COUNTRY_CODES, DEFAULT_COUNTRY_DIAL, countryName } from "@/lib/countryC
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
 
+// Strips everything but digits, then a leading 0 — customers used to
+// dialing locally (e.g. "0599999999") often type it that way out of habit,
+// but the international form drops it (e.g. "599999999"). Used both to
+// build the stored phone number below and to compare the main phone field
+// against its confirmation field, so "0599999999" and "599 999 999" are
+// correctly treated as the same number rather than a false mismatch.
+function normalizePhoneDigits(number: string): string {
+  return number.replace(/\D/g, "").replace(/^0+/, "");
+}
+
 // Combines a country-code select's value with the free-text local number
 // into the single "+<dial><digits>" international format used for storage
 // and everywhere else phone numbers appear (e.g. the admin WhatsApp link).
-// Strips a leading 0 from the local part — customers used to dialing
-// locally (e.g. "0599999999") often type it that way out of habit, but the
-// international form drops it (e.g. "+970599999999").
 function combinePhone(dial: string, number: string): string {
-  const digits = number.replace(/\D/g, "").replace(/^0+/, "");
-  return `+${dial}${digits}`;
+  return `+${dial}${normalizePhoneDigits(number)}`;
 }
 
 export default function CheckoutPage() {
@@ -41,6 +47,13 @@ export default function CheckoutPage() {
   const [fullName, setFullName] = useState("");
   const [phoneCountryCode, setPhoneCountryCode] = useState(DEFAULT_COUNTRY_DIAL);
   const [phoneNumber, setPhoneNumber] = useState("");
+  // Deliberately NOT restored from/written to the checkout draft (see the
+  // draft restore/autosave effects below) — the whole point of asking for
+  // this twice is an independently retyped check, so silently re-filling it
+  // from localStorage after a reload would just restore any typo right
+  // alongside the original instead of catching it.
+  const [phoneConfirmCountryCode, setPhoneConfirmCountryCode] = useState(DEFAULT_COUNTRY_DIAL);
+  const [phoneConfirmNumber, setPhoneConfirmNumber] = useState("");
   const [phoneBackupCountryCode, setPhoneBackupCountryCode] = useState(DEFAULT_COUNTRY_DIAL);
   const [phoneBackupNumber, setPhoneBackupNumber] = useState("");
   const [address, setAddress] = useState("");
@@ -107,7 +120,17 @@ export default function CheckoutPage() {
 
   const shipping = region ? SHIPPING_RATES[region] : 0;
   const total = subtotal + shipping;
-  const canSubmit = Boolean(fullName.trim() && phoneNumber.trim() && address.trim() && region);
+  // Compares the full combined number (country code + digits), not just the
+  // digits — a different country code selected in the confirm field counts
+  // as a mismatch even if the digits happen to match, since combinePhone()
+  // already normalizes the digits themselves ("0599999999" vs
+  // "599 999 999" typed differently still combine to the same string).
+  const phonesMatch =
+    combinePhone(phoneCountryCode, phoneNumber) === combinePhone(phoneConfirmCountryCode, phoneConfirmNumber);
+  const showPhoneMismatch = phoneConfirmNumber.trim() !== "" && !phonesMatch;
+  const canSubmit = Boolean(
+    fullName.trim() && phoneNumber.trim() && phoneConfirmNumber.trim() && phonesMatch && address.trim() && region
+  );
 
   if (items.length === 0) {
     return (
@@ -129,6 +152,11 @@ export default function CheckoutPage() {
       return;
     }
     setRegionError(null);
+    // The submit button is already disabled while mismatched (see
+    // canSubmit) and showPhoneMismatch already renders the inline error
+    // below — this only guards the Enter-key-submits-the-form path, which
+    // bypasses a disabled submit button.
+    if (!phonesMatch) return;
     setSubmitting(true);
     const fullPhone = combinePhone(phoneCountryCode, phoneNumber);
     const fullBackupPhone = phoneBackupNumber.trim() ? combinePhone(phoneBackupCountryCode, phoneBackupNumber) : undefined;
@@ -260,6 +288,18 @@ export default function CheckoutPage() {
               required
               locale={locale}
               t={t}
+            />
+            <PhoneNumberField
+              idPrefix="phoneConfirm"
+              label={t.checkout.phoneConfirm}
+              countryCode={phoneConfirmCountryCode}
+              onCountryCodeChange={setPhoneConfirmCountryCode}
+              number={phoneConfirmNumber}
+              onNumberChange={setPhoneConfirmNumber}
+              required
+              locale={locale}
+              t={t}
+              error={showPhoneMismatch ? t.checkout.phoneMismatch : null}
             />
             <PhoneNumberField
               idPrefix="phoneBackup"
@@ -425,6 +465,7 @@ function PhoneNumberField({
   required,
   locale,
   t,
+  error,
 }: {
   idPrefix: string;
   label: string;
@@ -435,6 +476,7 @@ function PhoneNumberField({
   required?: boolean;
   locale: Locale;
   t: Dictionary;
+  error?: string | null;
 }) {
   return (
     <div>
@@ -470,6 +512,7 @@ function PhoneNumberField({
           className="flex-1 min-w-0 bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
         />
       </div>
+      {error && <p className="font-label-sm text-label-sm text-error mt-2">{error}</p>}
     </div>
   );
 }

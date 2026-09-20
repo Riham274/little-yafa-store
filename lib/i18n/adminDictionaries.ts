@@ -274,6 +274,15 @@ const en = {
     uploading: "Uploading...",
     uploadSuccess: "Banner updated successfully.",
     uploadError: "Failed to upload the new banner. Please try again.",
+    seasonalCategoryTitle: "Seasonal Category",
+    seasonalCategoryDescription:
+      "The second homepage category row's fourth card (currently \"Winter Collection\") — its name and icon can be changed to match the season without any code changes. The category itself (products, URL) is unaffected; only what's displayed here changes.",
+    seasonalCategoryNameAr: "Name (Arabic)",
+    seasonalCategoryNameEn: "Name (English)",
+    seasonalCategoryNameHe: "Name (Hebrew)",
+    seasonalCategoryIcon: "Icon",
+    seasonalCategorySaveSuccess: "Seasonal category updated successfully.",
+    seasonalCategorySaveError: "Failed to save the seasonal category. Please try again.",
   },
 };
 
@@ -544,6 +553,15 @@ const ar: AdminDictionary = {
     uploading: "جارٍ الرفع...",
     uploadSuccess: "تم تحديث البانر بنجاح.",
     uploadError: "فشل رفع البانر الجديد. يرجى المحاولة مرة أخرى.",
+    seasonalCategoryTitle: "الفئة الموسمية",
+    seasonalCategoryDescription:
+      "البطاقة الرابعة في صف الفئات الثاني بالصفحة الرئيسية (حالياً \"تشكيلة الشتاء\") — يمكن تغيير اسمها وأيقونتها بما يناسب الموسم دون أي تعديل بالكود. الفئة نفسها (المنتجات، الرابط) لا تتأثر، فقط ما يظهر هنا يتغير.",
+    seasonalCategoryNameAr: "الاسم (عربي)",
+    seasonalCategoryNameEn: "الاسم (إنجليزي)",
+    seasonalCategoryNameHe: "الاسم (عبري)",
+    seasonalCategoryIcon: "الأيقونة",
+    seasonalCategorySaveSuccess: "تم تحديث الفئة الموسمية بنجاح.",
+    seasonalCategorySaveError: "فشل حفظ الفئة الموسمية. يرجى المحاولة مرة أخرى.",
   },
 };
 

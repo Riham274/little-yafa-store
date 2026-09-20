@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { Boxes } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import CategoryCard from "@/components/product/CategoryCard";
+import { DEFAULT_SEASONAL_CATEGORY, getSeasonalCategory, type SeasonalCategorySettings } from "@/lib/firebase/siteSettings";
 
 // Below the fold and does its own Firestore fetch + loading spinner — no
 // reason its code has to be in the same chunk the browser needs for
@@ -20,7 +22,23 @@ const FeaturedProductsSection = dynamic(() => import("@/components/home/Featured
 // why: it's the LCP element, and this content all needs useLanguage(),
 // which is client-only).
 export default function HomePageBelowFold() {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
+
+  // Admin-editable via the "إعدادات الموقع" settings page (see
+  // lib/firebase/siteSettings.ts) — only the displayed name/icon are
+  // dynamic here, the "/winter" href and underlying "winter" category value
+  // stay fixed regardless of season, so product tagging/filtering is never
+  // affected by relabeling this card. Starts as the current winter content
+  // (not a blank/loading state) so there's nothing for a slow fetch to leave
+  // empty on first paint; updated in place once Firestore responds.
+  const [seasonalCategory, setSeasonalCategory] = useState<SeasonalCategorySettings>(DEFAULT_SEASONAL_CATEGORY);
+  useEffect(() => {
+    getSeasonalCategory()
+      .then(setSeasonalCategory)
+      .catch(() => {
+        // Keep the DEFAULT_SEASONAL_CATEGORY content already in state.
+      });
+  }, []);
 
   const categories = [
     { href: "/new-in", label: t.nav.newIn, icon: "/icon-new-in.png" },
@@ -32,7 +50,7 @@ export default function HomePageBelowFold() {
     { href: "/sale", label: t.home.categoryDiscounts, icon: "/icon-sale-olive.png", labelColor: "#AC7557" },
     { href: "/shoes", label: t.home.categoryShoes, icon: "/icon-shoes.png" },
     { href: "/dresses", label: t.home.categoryDresses, icon: "/icon-dresses.png" },
-    { href: "/winter", label: t.home.categoryWinter, icon: "/icon-winter.png" },
+    { href: "/winter", label: seasonalCategory.name[locale], icon: seasonalCategory.iconUrl },
   ];
   const services = [
     { href: "/bath", label: t.home.bathEssentials, icon: "/icon2-bath-essentials.png" },

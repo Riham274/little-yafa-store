@@ -89,16 +89,46 @@ export default function OrderPrintView({
           </tr>
         </thead>
         <tbody>
-          {order.items.map((item, i) => (
+          {order.items.map((item, i) => {
+            const product = productsById[item.productId];
+            const image = product?.colors[0]?.images[0]?.url;
+            // OrderItem.name is only ever the English snapshot taken at
+            // order time (see placeOrder() in lib/firebase/orders.ts) — the
+            // printed order is a physical document for the store owner's
+            // own use, so it always shows Arabic via the live product's
+            // name.ar, regardless of the admin panel's own language toggle.
+            // Falls back to that English snapshot only if the product has
+            // since been deleted (product === null), same fallback the
+            // on-screen drawer list already uses for a missing product.
+            const displayName = product?.name.ar || item.name;
+            return (
             <tr key={i} className="border-b border-black/30">
-              <td className="py-2">{item.name}</td>
-              <td className="py-2">{resolveColorLabel(productsById[item.productId], item.color, locale)}</td>
+              <td className="py-2">
+                {/* Image on the same (start) side as the product name — the
+                    first table column, which sits at the physical right
+                    under this view's dir="rtl" (the shop's primary print
+                    language), matching the image-beside-details arrangement
+                    already used on the customer-facing order-confirmation
+                    screen. Plain <img>, not next/image: this table is only
+                    ever rendered for @media print (see .print-area in
+                    globals.css), and the image is already loaded on screen
+                    in the drawer behind it by the time Print is clicked. */}
+                <div className="flex items-center gap-2">
+                  {image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={image} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
+                  ) : null}
+                  <span>{displayName}</span>
+                </div>
+              </td>
+              <td className="py-2">{resolveColorLabel(product, item.color, locale)}</td>
               <td className="py-2">{item.size}</td>
               <td className="py-2 text-end">{item.qty}</td>
               <td className="py-2 text-end">{formatPrice(item.price)}</td>
               <td className="py-2 text-end">{formatPrice(item.price * item.qty)}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
 

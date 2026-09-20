@@ -23,6 +23,34 @@ export function resolveColorLabel(product: Product | null | undefined, colorAr: 
   return match ? match.label[locale] || match.label.ar : colorAr;
 }
 
+// Fixes an intermittent bug where some orders' printed product images came
+// out blank while others printed fine: window.print() used to fire the
+// instant Print was clicked, but the print view's <img> tags depend on two
+// separate async steps — the per-item getProductByIdForAdmin() lookup below,
+// then the <img>'s own network fetch of the resolved URL — neither of which
+// had finished yet if the admin clicked Print soon after opening the drawer.
+// It was never about the product image data shape itself (plain string vs.
+// {url, focalPoint} both already normalize correctly through toProduct(), as
+// confirmed against real products of both shapes) — purely a timing race.
+// A generous timeout keeps a broken/unreachable image URL from blocking the
+// print dialog forever.
+async function waitForPrintImages(timeoutMs = 5000): Promise<void> {
+  const printArea = document.querySelector(".print-area");
+  if (!printArea) return;
+  const images = Array.from(printArea.querySelectorAll("img"));
+  const loaded = Promise.all(
+    images.map((img) =>
+      img.complete
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            img.addEventListener("load", () => resolve(), { once: true });
+            img.addEventListener("error", () => resolve(), { once: true });
+          })
+    )
+  );
+  await Promise.race([loaded, new Promise<void>((resolve) => setTimeout(resolve, timeoutMs))]);
+}
+
 export default function OrderDetailDrawer({ order, onClose }: { order: Order; onClose: () => void }) {
   const { t, locale } = useAdminLanguage();
   const [status, setStatus] = useState<OrderStatus>(order.status);
@@ -72,16 +100,56 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
   };
 
   // Always Arabic, regardless of the admin's own UI language — this message
-  // is addressed directly to the customer, not to the admin, so it doesn't
-  // follow t.orders/locale. wa.me expects digits only (no "+", no spaces),
-  // same convention as the messages page's WhatsApp links.
-  const whatsappMessage = `مرحباً ${order.customerName}، تم تأكيد طلبك رقم #${order.id.slice(0, 6).toUpperCase()} من متجر ليتل يافا. سنقوم بتجهيزه وإعلامك عند الشحن. شكراً لتسوقك معنا! 🌸`;
+  // is addressed directly to the customer, not to the admin, so neither the
+  // message text nor the product name (name.ar, same as the print view) nor
+  // the color label (resolveColorLabel(..., "ar"), hardcoded rather than
+  // `locale`) follow the admin panel's language toggle. wa.me expects digits
+  // only (no "+", no spaces), same convention as the messages page's
+  // WhatsApp links; `%0A` (an encoded "\n") is what actually gives WhatsApp
+  // real line breaks in the pre-filled message instead of one run-on line —
+  // encodeURIComponent() handles that on its own, so the template literal's
+  // real newlines below just need to survive untouched into it.
+  const whatsappItemLines = order.items
+    .map((item, i) => {
+      const product = productsById[item.productId];
+      const name = product?.name.ar || item.name;
+      const color = resolveColorLabel(product, item.color, "ar");
+      return `${i + 1}. ${name} ${color} - سايز ${item.size} × ${item.qty}`;
+    })
+    .join("\n");
+  const whatsappMessage = `مرحباً ${order.customerName}،
+تم تأكيد طلبك رقم #${order.id.slice(0, 6).toUpperCase()} بقيمة ${order.total.toFixed(2)}₪ شامل التوصيل.
+
+تفاصيل طلبك:
+${whatsappItemLines}
+
+سيصل طلبك خلال يومين عمل.
+شكراً لاختيارك Little Yafa 🌸`;
   const whatsappUrl = `https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(whatsappMessage)}`;
 
   const zoomedItem = zoomedItemIndex !== null ? order.items[zoomedItemIndex] : null;
   const zoomedProduct = zoomedItem ? productsById[zoomedItem.productId] : undefined;
   const zoomedImage = zoomedProduct?.colors[0]?.images[0]?.url;
   const zoomedDescription = zoomedProduct ? zoomedProduct.description[locale] : null;
+
+  // True once every item's product lookup (see the effect above) has
+  // resolved, product-not-found included — `in` checks key presence, not
+  // truthiness, since a deleted product legitimately resolves to `null`.
+  // Gates the print button so its click handler is never racing the async
+  // fetch its own print-view images depend on (see waitForPrintImages()).
+  const productsReady = order.items.every((item) => item.productId in productsById);
+
+  const handlePrintClick = async () => {
+    console.log("print button clicked");
+    // flushSync so the banner actually paints before window.print() runs —
+    // without it, React could batch this update to run after print()
+    // returns, and on iOS the print UI can take over the screen before the
+    // banner ever shows, making it look like it "never appeared" either way.
+    flushSync(() => setShowPrintTappedBanner(true));
+    await waitForPrintImages();
+    window.print();
+    setTimeout(() => setShowPrintTappedBanner(false), 3000);
+  };
 
   return (
     <>
@@ -101,19 +169,10 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           </h2>
           <div className="flex items-center -my-2 -me-2">
             <button
-              onClick={() => {
-                console.log("print button clicked");
-                // flushSync so the banner actually paints before
-                // window.print() runs — without it, React could batch this
-                // update to run after print() returns, and on iOS the
-                // print UI can take over the screen before the banner ever
-                // shows, making it look like it "never appeared" either way.
-                flushSync(() => setShowPrintTappedBanner(true));
-                window.print();
-                setTimeout(() => setShowPrintTappedBanner(false), 3000);
-              }}
+              onClick={handlePrintClick}
+              disabled={!productsReady}
               title={t.orders.print}
-              className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors"
+              className="flex items-center justify-center w-11 h-11 rounded-full text-on-surface-variant hover:text-primary active:bg-surface-container-low transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:text-on-surface-variant"
             >
               <span className="material-symbols-outlined">print</span>
             </button>

@@ -50,6 +50,16 @@ export async function uploadHeroBannerImage(file: File): Promise<string> {
   return getDownloadURL(storageRef);
 }
 
+/** Replaces the seasonal category card's icon (see lib/firebase/siteSettings.ts) — used
+ * from the admin settings page, same site-settings/ Storage path as the hero banner. */
+export async function uploadSeasonalCategoryIcon(file: File): Promise<string> {
+  const { blob, contentType, extension } = await compressForUpload(file);
+  const fileName = `seasonal-category-icon-${Date.now()}.${extension}`;
+  const storageRef = ref(storage, `site-settings/${fileName}`);
+  await uploadBytes(storageRef, blob, { contentType, cacheControl: LONG_CACHE_CONTROL });
+  return getDownloadURL(storageRef);
+}
+
 /** Deletes any Storage file by its download URL — generic, not tied to a
  * particular collection (used for both product images and site-settings
  * images like the hero banner). */
