@@ -129,6 +129,10 @@ export type Order = {
   id: string;
   customerName: string;
   customerPhone: string;
+  // Optional alternative contact number the customer can add at checkout, in
+  // case the main number turns out to be wrong/unreachable. Same combined
+  // "+<dial><number>" international format as customerPhone.
+  customerPhoneBackup?: string;
   customerAddress: string;
   customerNotes: string;
   shippingRegion: ShippingRegion | null;

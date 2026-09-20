@@ -71,6 +71,13 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
     }
   };
 
+  // Always Arabic, regardless of the admin's own UI language — this message
+  // is addressed directly to the customer, not to the admin, so it doesn't
+  // follow t.orders/locale. wa.me expects digits only (no "+", no spaces),
+  // same convention as the messages page's WhatsApp links.
+  const whatsappMessage = `مرحباً ${order.customerName}، تم تأكيد طلبك رقم #${order.id.slice(0, 6).toUpperCase()} من متجر ليتل يافا. سنقوم بتجهيزه وإعلامك عند الشحن. شكراً لتسوقك معنا! 🌸`;
+  const whatsappUrl = `https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(whatsappMessage)}`;
+
   const zoomedItem = zoomedItemIndex !== null ? order.items[zoomedItemIndex] : null;
   const zoomedProduct = zoomedItem ? productsById[zoomedItem.productId] : undefined;
   const zoomedImage = zoomedProduct?.colors[0]?.images[0]?.url;
@@ -130,7 +137,22 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
           <h3 className="font-label-md text-label-md text-on-surface-variant uppercase tracking-widest mb-2">{t.orders.customer}</h3>
           <p className="font-body-md text-on-surface">{order.customerName}</p>
           <p className="font-body-md text-on-surface-variant">{order.customerPhone}</p>
-          <p className="font-body-md text-on-surface-variant">{order.customerAddress}</p>
+          {order.customerPhoneBackup && (
+            <p className="font-body-md text-on-surface-variant">
+              <span className="text-on-surface-variant/70">{t.orders.phoneBackup}: </span>
+              {order.customerPhoneBackup}
+            </p>
+          )}
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#25D366] text-white px-4 py-2 font-label-md text-label-md active:scale-95 transition-transform"
+          >
+            <span className="material-symbols-outlined text-[18px]">chat</span>
+            {t.orders.confirmWhatsapp}
+          </a>
+          <p className="font-body-md text-on-surface-variant mt-2">{order.customerAddress}</p>
           {order.shippingRegion && (
             <p className="font-body-md text-on-surface-variant mt-2">
               <span className="text-on-surface-variant/70">{t.orders.deliveryRegion}: </span>

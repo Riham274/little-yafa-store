@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -9,13 +9,29 @@ import { useCart } from "@/context/CartContext";
 import { formatPrice } from "@/lib/format";
 import { getColorLabel } from "@/lib/colorLabel";
 import { placeOrder, InsufficientStockError } from "@/lib/firebase/orders";
+import { logOrderError } from "@/lib/firebase/orderErrors";
 import { SHIPPING_RATES } from "@/lib/shipping";
-import type { ShippingRegion } from "@/lib/types";
+import type { ShippingRegion, Locale } from "@/lib/types";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import PriceTag from "@/components/product/PriceTag";
 import { getCartSessionId } from "@/lib/cartSession";
 import { deleteCartSession } from "@/lib/firebase/cartSessions";
+import { getCheckoutIdempotencyKey, resetCheckoutIdempotencyKey } from "@/lib/checkoutIdempotency";
+import { CHECKOUT_DRAFT_SAVE_DEBOUNCE_MS, clearCheckoutDraft, loadCheckoutDraft, saveCheckoutDraft } from "@/lib/checkoutDraft";
+import { COUNTRY_CODES, DEFAULT_COUNTRY_DIAL, countryName } from "@/lib/countryCodes";
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
+
+// Combines a country-code select's value with the free-text local number
+// into the single "+<dial><digits>" international format used for storage
+// and everywhere else phone numbers appear (e.g. the admin WhatsApp link).
+// Strips a leading 0 from the local part — customers used to dialing
+// locally (e.g. "0599999999") often type it that way out of habit, but the
+// international form drops it (e.g. "+970599999999").
+function combinePhone(dial: string, number: string): string {
+  const digits = number.replace(/\D/g, "").replace(/^0+/, "");
+  return `+${dial}${digits}`;
+}
 
 export default function CheckoutPage() {
   const { locale, t } = useLanguage();
@@ -23,13 +39,64 @@ export default function CheckoutPage() {
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [phoneCountryCode, setPhoneCountryCode] = useState(DEFAULT_COUNTRY_DIAL);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneBackupCountryCode, setPhoneBackupCountryCode] = useState(DEFAULT_COUNTRY_DIAL);
+  const [phoneBackupNumber, setPhoneBackupNumber] = useState("");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [region, setRegion] = useState<ShippingRegion | null>(null);
   const [regionError, setRegionError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Silently pre-fills whatever was last saved — no "restore?" prompt like
+  // the admin product form's version, since this is just the customer's
+  // own contact/address details with no translation side effect to warn
+  // about. Runs once on mount.
+  useEffect(() => {
+    const draft = loadCheckoutDraft();
+    if (!draft) return;
+    setFullName(draft.fullName);
+    setPhoneCountryCode(draft.phoneCountryCode);
+    setPhoneNumber(draft.phoneNumber);
+    setPhoneBackupCountryCode(draft.phoneBackupCountryCode);
+    setPhoneBackupNumber(draft.phoneBackupNumber);
+    setAddress(draft.address);
+    setNotes(draft.notes);
+    setRegion(draft.region);
+  }, []);
+
+  // Holds the currently-pending debounced-save timer so handleSubmit's
+  // success path can cancel it explicitly (see below) — without this, a
+  // timer already scheduled from an edit made just before submitting could
+  // still be sitting there un-fired (it's only 2.5s, but placeOrder's own
+  // network round-trip can easily take that long), and would fire and
+  // silently re-write the draft AFTER clearCheckoutDraft() just cleared it
+  // — the component doesn't unmount (which would cancel it) until the
+  // router.push() navigation actually completes.
+  const draftSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Silent debounced autosave — fires a couple seconds after the customer
+  // stops typing/changing a field, so a reload or accidental navigation
+  // (that isn't a completed order — see handleSubmit's success path, the
+  // only place this draft gets cleared) doesn't lose what they've entered.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      saveCheckoutDraft({
+        fullName,
+        phoneCountryCode,
+        phoneNumber,
+        phoneBackupCountryCode,
+        phoneBackupNumber,
+        address,
+        notes,
+        region,
+      });
+    }, CHECKOUT_DRAFT_SAVE_DEBOUNCE_MS);
+    draftSaveTimer.current = timer;
+    return () => clearTimeout(timer);
+  }, [fullName, phoneCountryCode, phoneNumber, phoneBackupCountryCode, phoneBackupNumber, address, notes, region]);
 
   const REGIONS: { value: ShippingRegion; label: string }[] = [
     { value: "westBank", label: t.checkout.regionWestBank },
@@ -40,7 +107,7 @@ export default function CheckoutPage() {
 
   const shipping = region ? SHIPPING_RATES[region] : 0;
   const total = subtotal + shipping;
-  const canSubmit = Boolean(fullName.trim() && phone.trim() && address.trim() && region);
+  const canSubmit = Boolean(fullName.trim() && phoneNumber.trim() && address.trim() && region);
 
   if (items.length === 0) {
     return (
@@ -63,15 +130,22 @@ export default function CheckoutPage() {
     }
     setRegionError(null);
     setSubmitting(true);
+    const fullPhone = combinePhone(phoneCountryCode, phoneNumber);
+    const fullBackupPhone = phoneBackupNumber.trim() ? combinePhone(phoneBackupCountryCode, phoneBackupNumber) : undefined;
     try {
-      const orderId = await placeOrder(items, {
-        customerName: fullName,
-        customerPhone: phone,
-        customerAddress: address,
-        customerNotes: notes,
-        shippingRegion: region,
-        shippingCost: SHIPPING_RATES[region],
-      });
+      const orderId = await placeOrder(
+        items,
+        {
+          customerName: fullName,
+          customerPhone: fullPhone,
+          ...(fullBackupPhone ? { customerPhoneBackup: fullBackupPhone } : {}),
+          customerAddress: address,
+          customerNotes: notes,
+          shippingRegion: region,
+          shippingCost: SHIPPING_RATES[region],
+        },
+        getCheckoutIdempotencyKey()
+      );
 
       window.sessionStorage.setItem(
         LAST_ORDER_KEY,
@@ -89,19 +163,61 @@ export default function CheckoutPage() {
       // the customer is already past.
       deleteCartSession(getCartSessionId()).catch(() => {});
 
+      // Must happen before this success path is done — otherwise the NEXT
+      // real order placed in this same browser tab would reuse today's key
+      // and get silently treated as a duplicate of this one.
+      resetCheckoutIdempotencyKey();
+
+      // The order is placed — these details aren't a draft of anything
+      // pending anymore. Only cleared here (order success), never just for
+      // navigating away, so a customer who goes back to the cart mid-
+      // checkout still finds everything filled in if they return to finish.
+      // Cancelling the pending autosave timer first is required, not just
+      // tidy — otherwise a save already scheduled from an edit made right
+      // before submitting could still fire after this clear (the component
+      // hasn't unmounted yet at this point in the async handler) and
+      // silently write the draft right back.
+      if (draftSaveTimer.current) clearTimeout(draftSaveTimer.current);
+      clearCheckoutDraft();
+
       clear();
       router.push(`/order-confirmation/${orderId}`);
     } catch (err) {
+      // Always logged, even though a customer-facing message is also shown
+      // below — this is what turns a vague "it didn't work for me" report
+      // into something diagnosable, instead of a silently swallowed error
+      // with no trace once the tab closes.
+      console.error("[checkout] placeOrder failed:", err);
+
+      const errorCode = typeof (err as { code?: unknown })?.code === "string" ? (err as { code: string }).code : null;
+      const looksOffline =
+        (typeof navigator !== "undefined" && navigator.onLine === false) ||
+        errorCode === "unavailable" ||
+        errorCode === "deadline-exceeded";
+
       if (err instanceof InsufficientStockError) {
         setError(
           t.checkout.errorStock
             .replace("{name}", err.productName)
             .replace("{stock}", String(err.available))
         );
+      } else if (looksOffline) {
+        setError(t.checkout.errorOffline);
       } else {
         setError(t.checkout.errorGeneric);
       }
       setSubmitting(false);
+
+      // Best-effort, durable supplement to the console.error above — must
+      // never block or delay the customer's own error message/retry, so
+      // failures here are swallowed (after being logged themselves).
+      logOrderError({
+        items,
+        customerName: fullName,
+        customerPhone: fullPhone,
+        subtotal,
+        error: err,
+      }).catch((logErr) => console.error("[checkout] failed to log order error:", logErr));
     }
   };
 
@@ -134,20 +250,27 @@ export default function CheckoutPage() {
                 className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
               />
             </div>
-            <div>
-              <label htmlFor="phone" className="block font-label-md text-label-md text-on-surface-variant mb-2">
-                {t.checkout.phone}
-              </label>
-              <input
-                id="phone"
-                type="tel"
-                required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder={t.checkout.phonePlaceholder}
-                className="w-full bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
-              />
-            </div>
+            <PhoneNumberField
+              idPrefix="phone"
+              label={t.checkout.phone}
+              countryCode={phoneCountryCode}
+              onCountryCodeChange={setPhoneCountryCode}
+              number={phoneNumber}
+              onNumberChange={setPhoneNumber}
+              required
+              locale={locale}
+              t={t}
+            />
+            <PhoneNumberField
+              idPrefix="phoneBackup"
+              label={t.checkout.phoneBackup}
+              countryCode={phoneBackupCountryCode}
+              onCountryCodeChange={setPhoneBackupCountryCode}
+              number={phoneBackupNumber}
+              onNumberChange={setPhoneBackupNumber}
+              locale={locale}
+              t={t}
+            />
             <div>
               <label htmlFor="address" className="block font-label-md text-label-md text-on-surface-variant mb-2">
                 {t.checkout.address}
@@ -284,6 +407,69 @@ export default function CheckoutPage() {
           )}
         </button>
       </form>
+    </div>
+  );
+}
+
+// Shared by both the main and backup phone fields — a country-code <select>
+// (native type-ahead doubles as the "searchable list" the country name is
+// shown for) plus a plain local-number input, combined into one
+// international-format string right before submit (see combinePhone above).
+function PhoneNumberField({
+  idPrefix,
+  label,
+  countryCode,
+  onCountryCodeChange,
+  number,
+  onNumberChange,
+  required,
+  locale,
+  t,
+}: {
+  idPrefix: string;
+  label: string;
+  countryCode: string;
+  onCountryCodeChange: (dial: string) => void;
+  number: string;
+  onNumberChange: (value: string) => void;
+  required?: boolean;
+  locale: Locale;
+  t: Dictionary;
+}) {
+  return (
+    <div>
+      <label htmlFor={`${idPrefix}-number`} className="block font-label-md text-label-md text-on-surface-variant mb-2">
+        {label}
+      </label>
+      <div className="flex gap-2">
+        <div className="relative shrink-0 w-36">
+          <select
+            id={`${idPrefix}-country-code`}
+            aria-label={t.checkout.countryCodeLabel}
+            value={countryCode}
+            onChange={(e) => onCountryCodeChange(e.target.value)}
+            className="appearance-none w-full bg-surface rounded-xl border border-outline-variant ps-8 pe-2 py-3 font-body-md text-[14px] text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          >
+            {COUNTRY_CODES.map((c) => (
+              <option key={c.iso} value={c.dial}>
+                +{c.dial} {countryName(c, locale)}
+              </option>
+            ))}
+          </select>
+          <span className="absolute start-2 top-1/2 -translate-y-1/2 pointer-events-none">
+            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">expand_more</span>
+          </span>
+        </div>
+        <input
+          id={`${idPrefix}-number`}
+          type="tel"
+          required={required}
+          value={number}
+          onChange={(e) => onNumberChange(e.target.value)}
+          placeholder={t.checkout.phoneNumberPlaceholder}
+          className="flex-1 min-w-0 bg-surface rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+        />
+      </div>
     </div>
   );
 }

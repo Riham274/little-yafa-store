@@ -57,6 +57,11 @@ export default function OrderPrintView({
         <h2 className="text-sm font-bold uppercase tracking-wide mb-1">{t.orders.customer}</h2>
         <p>{order.customerName}</p>
         <p>{order.customerPhone}</p>
+        {order.customerPhoneBackup && (
+          <p>
+            {t.orders.phoneBackup}: {order.customerPhoneBackup}
+          </p>
+        )}
         <p>{order.customerAddress}</p>
         {regionLabel && (
           <p className="mt-1">

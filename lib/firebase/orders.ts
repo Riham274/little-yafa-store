@@ -15,6 +15,12 @@ import type { CartItem, Order, OrderStatus, ProductColor, ShippingRegion } from 
 
 const ORDERS_COLLECTION = "orders";
 const PRODUCTS_COLLECTION = "products";
+// Purpose-built, PII-free collection solely for idempotency tracking (see
+// lib/checkoutIdempotency.ts) — maps a client-generated retry key to the
+// order it produced. Deliberately separate from `orders` (which only
+// admins can read) so this check-and-set can run as an anonymous customer
+// transaction without needing to read anyone's order data.
+const ORDER_SUBMISSIONS_COLLECTION = "orderSubmissions";
 
 export class InsufficientStockError extends Error {
   productName: string;
@@ -31,6 +37,8 @@ export class InsufficientStockError extends Error {
 export type CustomerDetails = {
   customerName: string;
   customerPhone: string;
+  // Optional — see Order.customerPhoneBackup in lib/types.ts.
+  customerPhoneBackup?: string;
   customerAddress: string;
   customerNotes: string;
   shippingRegion: ShippingRegion;
@@ -45,11 +53,32 @@ export type CustomerDetails = {
  * `colors` array is rewritten in full (Firestore has no per-element array
  * update), with only the ordered color's matching size `stock` entry
  * decremented — every other color/size is carried over unchanged.
+ *
+ * `idempotencyKey` (see lib/checkoutIdempotency.ts) makes this safe to call
+ * again with the exact same key: if a prior call with that key already
+ * committed (the transaction succeeded server-side but the client never
+ * saw the response — e.g. a dropped connection right as it committed), this
+ * detects that via the orderSubmissions doc and returns the SAME order id
+ * without decrementing stock or creating a second order. Firestore's own
+ * transaction retries (on contention, e.g. two customers buying the last
+ * unit at once) are separate and automatic — this only guards against the
+ * client-level retry a customer does by clicking the button again.
  */
-export async function placeOrder(items: CartItem[], customer: CustomerDetails): Promise<string> {
+export async function placeOrder(items: CartItem[], customer: CustomerDetails, idempotencyKey: string): Promise<string> {
   const orderRef = doc(collection(db, ORDERS_COLLECTION));
+  const submissionRef = doc(db, ORDER_SUBMISSIONS_COLLECTION, idempotencyKey);
+  let resolvedOrderId = orderRef.id;
 
   await runTransaction(db, async (transaction) => {
+    // Must be the transaction's very first read — Firestore requires all
+    // reads before any write, and this one decides whether the rest of the
+    // transaction (which does both) runs at all.
+    const submissionSnap = await transaction.get(submissionRef);
+    if (submissionSnap.exists()) {
+      resolvedOrderId = submissionSnap.data().orderId as string;
+      return;
+    }
+
     // De-duplicated by product, not by line item — the same product can
     // appear twice in the cart with two different color/size combos, and
     // both decrements must land on one consolidated `colors` array before a
@@ -110,6 +139,9 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
     transaction.set(orderRef, {
       customerName: customer.customerName,
       customerPhone: customer.customerPhone,
+      // Firestore rejects `undefined` field values, so this is only
+      // included when the customer actually filled in a backup number.
+      ...(customer.customerPhoneBackup ? { customerPhoneBackup: customer.customerPhoneBackup } : {}),
       customerAddress: customer.customerAddress,
       customerNotes: customer.customerNotes,
       shippingRegion: customer.shippingRegion,
@@ -130,9 +162,14 @@ export async function placeOrder(items: CartItem[], customer: CustomerDetails): 
       archived: false,
       createdAt: serverTimestamp(),
     });
+
+    // No customer data here on purpose (see ORDER_SUBMISSIONS_COLLECTION
+    // above) — just enough to let a retried call with this same key
+    // resolve to the order it already produced.
+    transaction.set(submissionRef, { orderId: orderRef.id, createdAt: serverTimestamp() });
   });
 
-  return orderRef.id;
+  return resolvedOrderId;
 }
 
 function toOrder(id: string, data: Record<string, unknown>): Order {
@@ -141,6 +178,7 @@ function toOrder(id: string, data: Record<string, unknown>): Order {
     id,
     customerName: (data.customerName as string) ?? "",
     customerPhone: (data.customerPhone as string) ?? "",
+    customerPhoneBackup: typeof data.customerPhoneBackup === "string" && data.customerPhoneBackup ? data.customerPhoneBackup : undefined,
     customerAddress: (data.customerAddress as string) ?? "",
     customerNotes: (data.customerNotes as string) ?? "",
     shippingRegion: (data.shippingRegion as Order["shippingRegion"]) ?? null,

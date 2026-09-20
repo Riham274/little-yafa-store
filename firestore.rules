@@ -97,5 +97,37 @@ service cloud.firestore {
       allow create, update, delete: if true;
       allow read: if isAdmin();
     }
+
+    // Order submissions: idempotency tracking for placeOrder() (see
+    // lib/checkoutIdempotency.ts and lib/firebase/orders.ts) — maps a
+    // client-generated retry key to the order id it produced, so a
+    // retried checkout (after a dropped response that hid a real success)
+    // can detect "this already went through" and skip re-decrementing
+    // stock / placing a duplicate order. Holds nothing but that mapping —
+    // no customer data — so unlike `orders` (admin-only read), it's safe
+    // for anyone to read: an anonymous transaction.get() needs to check a
+    // key it's about to write before writing it, and the only thing a
+    // reader could learn is "this random id maps to this order id", which
+    // reveals nothing since `orders` itself stays unreadable to them.
+    // Never updated after creation (the same key always maps to the same
+    // order) and never deleted (harmless small documents, and there's no
+    // safe way to know a given key will never be retried again).
+    match /orderSubmissions/{key} {
+      allow create: if true;
+      allow read: if true;
+      allow update, delete: if false;
+    }
+
+    // Order errors: a diagnostic log of failed checkout attempts (see
+    // lib/firebase/orderErrors.ts) — same access pattern as
+    // `contactMessages`/`orders`: anyone can write their own failure
+    // report, only admins can read the log (it holds the same customer
+    // contact fields `orders` does, needed to trace a vague support report
+    // back to what actually happened).
+    match /orderErrors/{errorId} {
+      allow create: if true;
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
   }
 }
