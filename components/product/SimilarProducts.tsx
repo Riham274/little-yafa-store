@@ -34,7 +34,7 @@ export default function SimilarProducts({ products }: { products: Product[] }) {
           <button
             type="button"
             onClick={() => setVisibleCount((c) => Math.min(c + BATCH_SIZE, products.length))}
-            className="flex items-center gap-2 px-lg py-3 rounded-full border border-outline-variant font-label-md text-label-md text-on-surface hover:border-primary/50 transition-colors"
+            className="flex items-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
           >
             {t.category.loadMore}
           </button>

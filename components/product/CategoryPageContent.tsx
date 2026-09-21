@@ -189,7 +189,7 @@ export default function CategoryPageContent({
                   type="button"
                   onClick={handleLoadMore}
                   disabled={loadingMore}
-                  className="flex items-center gap-2 px-lg py-3 rounded-full border border-outline-variant font-label-md text-label-md text-on-surface hover:border-primary/50 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50"
                 >
                   {loadingMore && (
                     <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
