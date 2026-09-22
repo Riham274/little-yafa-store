@@ -278,7 +278,20 @@ export async function getProductsByCategoryPage(
   return { products, lastDoc, hasMore: snap.docs.length === pageSize };
 }
 
-export async function getAllProducts(): Promise<Product[]> {
+/** `skipCache` bypasses the module-level cache below entirely (no read, no
+ * write) — for the Sale page's Server Component (see app/(site)/sale/page.tsx),
+ * which needs a genuinely fresh read on every request. Without this, the
+ * cache/TTL live in the SERVER's Node process, not per-visitor, so every
+ * customer within the same 60s window would silently share one stale read —
+ * exactly what the "no caching, always fresh" SSR requirement rules out.
+ * Every existing caller (search bar, and this function's own default
+ * behavior) is unaffected — they simply never pass this option. */
+export async function getAllProducts(options?: { skipCache?: boolean }): Promise<Product[]> {
+  if (options?.skipCache) {
+    const snap = await getDocs(collection(db, PRODUCTS_COLLECTION));
+    return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+  }
+
   const now = Date.now();
   if (allProductsCache && now < allProductsCache.expiresAt) return allProductsCache.data;
 

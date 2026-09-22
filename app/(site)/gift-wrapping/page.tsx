@@ -1,14 +1,14 @@
-"use client";
+import { getProductsByCategoryPage } from "@/lib/firebase/products";
+import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
+import GiftWrappingPageClient from "./GiftWrappingPageClient";
 
-import { Suspense } from "react";
-import { useLanguage } from "@/context/LanguageContext";
-import CategoryPageContent from "@/components/product/CategoryPageContent";
+// SSR pilot, same pattern as app/(site)/shoes/page.tsx: opts OUT of static
+// rendering/the Full Route Cache entirely, so getProductsByCategoryPage()
+// below re-runs on every single request — no revalidate window, no stale
+// data risk. Deliberately NOT ISR.
+export const dynamic = "force-dynamic";
 
-export default function GiftWrappingPage() {
-  const { t } = useLanguage();
-  return (
-    <Suspense>
-      <CategoryPageContent category="gift-wrapping" title={t.category.giftWrappingTitle} showAgeFilter={false} showSizeAgeFilter />
-    </Suspense>
-  );
+export default async function GiftWrappingPage() {
+  const { products } = await getProductsByCategoryPage("gift-wrapping", CATEGORY_PAGE_SIZE, null);
+  return <GiftWrappingPageClient initialProducts={products} />;
 }

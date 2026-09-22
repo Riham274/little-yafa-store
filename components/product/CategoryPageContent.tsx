@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategoryPage } from "@/lib/firebase/products";
+import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import type { AgeGroup, Category, NewbornFabricType, Product } from "@/lib/types";
@@ -15,8 +16,6 @@ import ProductGrid from "./ProductGrid";
 import SizeAgeFilterSelect from "./SizeAgeFilterSelect";
 import SortSelect from "./SortSelect";
 
-const PAGE_SIZE = 24;
-
 export default function CategoryPageContent({
   category,
   title,
@@ -24,6 +23,7 @@ export default function CategoryPageContent({
   showSizeAgeFilter = false,
   showGenderFilter = false,
   fabricType,
+  initialProducts,
 }: {
   category: Category;
   title: string;
@@ -45,12 +45,18 @@ export default function CategoryPageContent({
   // tabs, same as newbornGender and newbornFabricType are independent of
   // each other on the product itself.
   fabricType?: NewbornFabricType;
+  // Set only by the Shoes page's Server Component, which fetches the first
+  // page itself (see app/(site)/shoes/page.tsx) so it can be in the initial
+  // HTML response instead of a client-side fetch popping it in after
+  // hydration. Every other call site leaves this undefined and keeps
+  // fetching its own first page exactly as before.
+  initialProducts?: Product[];
 }) {
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
+  const [loading, setLoading] = useState(!initialProducts);
   const [loadingMore, setLoadingMore] = useState(false);
   const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -64,17 +70,37 @@ export default function CategoryPageContent({
   const activeGender = (searchParams.get("gender") as GenderFilterValue | null) ?? null;
 
   useEffect(() => {
+    // The server already sent this page's first batch (see initialProducts
+    // above) — don't fetch-and-replace it, that would just flash the same
+    // data back in a moment after it's already showing. One background
+    // fetch is still needed, though: getProductsByCategoryPage()'s
+    // pagination cursor (lastDoc) is a raw Firestore QueryDocumentSnapshot,
+    // which can't cross the server→client boundary as a prop, so "Load
+    // More" has no cursor to page from until a real one comes from a
+    // client-side call. Its `products` result is deliberately unused —
+    // the already-displayed initial page is left untouched.
+    if (initialProducts) {
+      getProductsByCategoryPage(category, CATEGORY_PAGE_SIZE, null).then((page) => {
+        setCursor(page.lastDoc);
+        setHasMore(page.hasMore);
+      });
+      return;
+    }
     setLoading(true);
     setProducts([]);
     setCursor(null);
     setHasMore(false);
-    getProductsByCategoryPage(category, PAGE_SIZE, null)
+    getProductsByCategoryPage(category, CATEGORY_PAGE_SIZE, null)
       .then((page) => {
         setProducts(page.products);
         setCursor(page.lastDoc);
         setHasMore(page.hasMore);
       })
       .finally(() => setLoading(false));
+    // initialProducts is only ever read at mount (whether the server sent a
+    // first page or not doesn't change across this component's lifetime),
+    // so it's deliberately excluded from the dependency list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category]);
 
   // Age/gender filtering and sorting apply to whatever pages have been
@@ -143,7 +169,7 @@ export default function CategoryPageContent({
   const handleLoadMore = () => {
     if (!hasMore || loadingMore) return;
     setLoadingMore(true);
-    getProductsByCategoryPage(category, PAGE_SIZE, cursor)
+    getProductsByCategoryPage(category, CATEGORY_PAGE_SIZE, cursor)
       .then((page) => {
         setProducts((prev) => [...prev, ...page.products]);
         setCursor(page.lastDoc);
