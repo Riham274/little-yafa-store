@@ -95,7 +95,7 @@ export default function ImageGallery({
             src={(pics[active] as ProductImage).url}
             alt={alt}
             focalPoint={(pics[active] as ProductImage).focalPoint}
-            preload
+            priority
             // The 58vw share only holds up to the page's own max-width
             // (container-max: 1280px in tailwind.config.js) — past that,
             // the container itself stops growing, so a plain "58vw" would

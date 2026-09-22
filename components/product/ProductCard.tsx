@@ -8,7 +8,19 @@ import CroppedThumbnail from "./CroppedThumbnail";
 import PriceTag from "./PriceTag";
 import ProductStatusBadge from "./ProductStatusBadge";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  // Set by ProductGrid for the first handful of cards (above the fold in
+  // its 2/4-column grid) so the LCP candidate — almost always the first
+  // product image on a category page — is discovered and requested by the
+  // browser immediately instead of waiting on lazy-load's intersection
+  // check. Every other card leaves this off and keeps its existing
+  // lazy-loaded behavior.
+  priority = false,
+}: {
+  product: Product;
+  priority?: boolean;
+}) {
   const { locale } = useLanguage();
   const outOfStock = getTotalStock(product) <= 0;
   const image = product.colors[0]?.images[0];
@@ -26,6 +38,7 @@ export default function ProductCard({ product }: { product: Product }) {
             alt={product.name[locale]}
             focalPoint={image.focalPoint}
             sizes="(max-width: 768px) 50vw, 25vw"
+            priority={priority}
             // The hover-zoom effect is layered on top of the already-
             // correctly-cropped wrapper — it's a transient visual nicety,
             // not part of the saved crop, so a plain transform class here

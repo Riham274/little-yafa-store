@@ -21,7 +21,7 @@ export default function CroppedThumbnail({
   alt,
   focalPoint,
   sizes,
-  preload,
+  priority,
   className = "",
   wrapperClassName = "",
 }: {
@@ -29,7 +29,14 @@ export default function CroppedThumbnail({
   alt: string;
   focalPoint: ImageFocalPoint;
   sizes: string;
-  preload?: boolean;
+  // Forwarded straight to next/image's own `priority` prop (eager-loads,
+  // skips lazy-loading, adds a <link rel="preload">) — named to match it
+  // exactly, unlike the old `preload` prop this replaces, which silently
+  // never reached next/image at all (ImageWithSpinner spreads unrecognized
+  // props straight through, so a `preload` prop was just inert — nothing
+  // in this call chain has ever actually eager-loaded an image before this
+  // fix, including this component's one prior caller, ImageGallery.tsx).
+  priority?: boolean;
   // Applied to the <img> itself (e.g. extra filters) — rarely needed since
   // object-fit no longer does any cropping here.
   className?: string;
@@ -59,7 +66,7 @@ export default function CroppedThumbnail({
           src={src}
           alt={alt}
           fill
-          preload={preload}
+          priority={priority}
           sizes={sizes}
           className={`object-cover ${className}`}
           onLoad={handleLoad}
