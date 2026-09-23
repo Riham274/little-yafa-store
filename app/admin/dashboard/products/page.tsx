@@ -30,6 +30,10 @@ export default function AdminProductsPage() {
   const [ageGroupFilter, setAgeGroupFilter] = useState<AgeGroup | "all">("all");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
+  // Client-side only — products are already loaded for the table via
+  // subscribeToProducts() above, so this never triggers a new Firestore
+  // read, just narrows the same array the other filters already narrow.
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => subscribeToProducts(setProducts), []);
 
@@ -39,6 +43,10 @@ export default function AdminProductsPage() {
   // Age groups only apply to Boys/Girls — disabled for every other category
   // filter (but left enabled for "all", same as the admin form's behavior).
   const ageFilterDisabled = categoryFilter !== "all" && categoryFilter !== "boys" && categoryFilter !== "girls";
+
+  // Trimmed and lowercased once per render rather than per-product inside
+  // the filter below.
+  const normalizedSearch = searchQuery.trim().toLowerCase();
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -52,9 +60,16 @@ export default function AdminProductsPage() {
         visibilityFilter === "all" ||
         (visibilityFilter === "visible" && p.isVisible) ||
         (visibilityFilter === "hidden" && !p.isVisible);
-      return matchesCategory && matchesAge && matchesStock && matchesVisibility;
+      // Matches either language regardless of the admin's own UI language,
+      // so a product named in Arabic is still findable by typing its
+      // English name (or the reverse).
+      const matchesSearch =
+        normalizedSearch === "" ||
+        p.name.ar.toLowerCase().includes(normalizedSearch) ||
+        p.name.en.toLowerCase().includes(normalizedSearch);
+      return matchesCategory && matchesAge && matchesStock && matchesVisibility && matchesSearch;
     });
-  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter, visibilityFilter]);
+  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter, visibilityFilter, normalizedSearch]);
 
   const handleCategoryFilterChange = (value: Category | "all") => {
     setCategoryFilter(value);
@@ -164,6 +179,36 @@ export default function AdminProductsPage() {
           icon="payments"
           tone="primary"
         />
+      </div>
+
+      <div className="mb-md">
+        <label htmlFor="product-search" className="block font-label-sm text-label-sm text-on-surface-variant mb-1">
+          {t.products.searchProduct}
+        </label>
+        <div className="relative">
+          <span className="material-symbols-outlined absolute start-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px] pointer-events-none">
+            search
+          </span>
+          <input
+            id="product-search"
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.products.searchProductPlaceholder}
+            className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant ps-10 pe-10 py-3 font-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              title={t.products.clearSearch}
+              aria-label={t.products.clearSearch}
+              className="absolute end-2 top-1/2 -translate-y-1/2 flex items-center justify-center w-8 h-8 rounded-full text-on-surface-variant hover:text-error hover:bg-error-container/20 transition-colors"
+            >
+              <span className="material-symbols-outlined text-[20px]">close</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-sm mb-md">
