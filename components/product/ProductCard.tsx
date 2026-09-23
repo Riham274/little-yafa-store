@@ -31,7 +31,15 @@ export default function ProductCard({
       href={`/product/${product.id}`}
       className={`group flex flex-col gap-sm ${outOfStock ? "opacity-50" : ""}`}
     >
-      <div className="relative aspect-square rounded-xl overflow-hidden bg-surface-container-low cloud-shadow">
+      {/* Explicit aspect-ratio alongside the aspect-square utility — belt
+          and suspenders so this frame's height is reserved from the very
+          first paint (before any image, priority-loaded or not, has
+          finished loading), so eager-loading the first row's images can
+          never cause the rest of the grid/page to shift as they pop in. */}
+      <div
+        className="relative aspect-square rounded-xl overflow-hidden bg-surface-container-low cloud-shadow"
+        style={{ aspectRatio: "1 / 1" }}
+      >
         {image ? (
           <CroppedThumbnail
             src={image.url}

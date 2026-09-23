@@ -2,15 +2,19 @@ import { getAllProducts } from "@/lib/firebase/products";
 import { isProductOnSale } from "@/lib/sale";
 import SalePageClient from "./SalePageClient";
 
-// SSR pilot, same pattern as app/(site)/shoes/page.tsx: opts OUT of static
-// rendering/the Full Route Cache entirely, so getAllProducts() below re-runs
-// on every single request — no revalidate window, no stale data risk.
-// Deliberately NOT ISR. Also passes { skipCache: true } — getAllProducts()
-// has its own short-lived in-memory cache for client-side callers (the
-// search bar), but that cache lives in the SERVER's Node process here, not
-// per-visitor, so leaving it on would let every customer within the same
-// ~60s window silently share one stale read.
-export const dynamic = "force-dynamic";
+// ISR, same pattern as app/(site)/shoes/page.tsx's cautious pilot: this page
+// was already safe to convert as-is — SalePageClient never calls
+// useSearchParams()/useRouter() at all (sizeAge/sort are both plain
+// useState, see its own comment), so there was no Suspense-fallback-gets-
+// cached trap here to begin with. Statically generated and cached,
+// regenerating in the background at most once every 60 seconds instead of
+// re-running getAllProducts() on every request. Still passes
+// { skipCache: true } — getAllProducts() has its own short-lived in-memory
+// cache for client-side callers (the search bar), and this guarantees each
+// regeneration cycle gets a genuinely fresh Firestore read rather than
+// possibly reusing a slightly-stale entry left over from some other
+// concurrent caller within the same server process.
+export const revalidate = 60;
 
 export default async function SalePage() {
   const all = await getAllProducts({ skipCache: true });
