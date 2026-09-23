@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
+import { useGoBack } from "@/lib/useGoBack";
 
 const OLIVE = "#5A5F44";
 
@@ -12,7 +12,7 @@ const headingClass = "font-label-md text-label-md uppercase tracking-widest font
 
 export default function Footer() {
   const { t } = useLanguage();
-  const router = useRouter();
+  const goBack = useGoBack();
   return (
     <footer className="w-full pt-lg pb-lg sm:pt-xl sm:pb-xl px-gutter" style={{ backgroundColor: "#EFE5DC", color: OLIVE }}>
       <div className="max-w-container-max mx-auto">
@@ -39,7 +39,7 @@ export default function Footer() {
               (router.back()) rather than a <Link>. */}
           <button
             type="button"
-            onClick={() => router.back()}
+            onClick={goBack}
             className="inline-flex items-center gap-1.5 px-md py-2 rounded-full text-on-primary font-label-sm text-label-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
             style={{ backgroundColor: OLIVE }}
           >

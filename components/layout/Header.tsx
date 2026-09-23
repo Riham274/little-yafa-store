@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
+import { useGoBack } from "@/lib/useGoBack";
 import LanguageSwitcher from "./LanguageSwitcher";
 import SearchBar from "./SearchBar";
 
 export default function Header() {
   const { t } = useLanguage();
   const { count } = useCart();
+  const goBack = useGoBack();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -26,7 +28,20 @@ export default function Header() {
         }`}
       >
         <div className="max-w-container-max mx-auto px-gutter grid grid-cols-[1fr_auto_1fr] items-center gap-sm md:gap-md">
-          <div className="justify-self-start">
+          <div className="justify-self-start flex items-center gap-sm">
+            {/* Same reach-without-scrolling convenience as the footer's
+                "Back to Previous Page" button (components/layout/Footer.tsx)
+                — reuses the same useGoBack() hook rather than calling
+                router.back() again here, just surfaced in the header too. */}
+            <button
+              type="button"
+              onClick={goBack}
+              className="p-2 -m-2 rounded-full text-surface-bright hover:text-secondary-container transition-all active:scale-95"
+              title={t.footer.backToPrevious}
+              aria-label={t.footer.backToPrevious}
+            >
+              <span className="material-symbols-outlined rtl:rotate-180">arrow_back</span>
+            </button>
             <LanguageSwitcher />
           </div>
           <SearchBar className="justify-self-center w-[62vw] max-w-[220px] sm:w-64 md:w-72 lg:w-80" />
