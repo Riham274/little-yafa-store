@@ -8,6 +8,7 @@ import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import SizeAgeFilterSelect from "@/components/product/SizeAgeFilterSelect";
@@ -19,6 +20,7 @@ import SortSelect from "@/components/product/SortSelect";
 // in a mount effect instead, which is invisible to Next's static-generation
 // dynamic-API tracking, so the grid itself renders unconditionally.
 export default function NewInPageClient({ initialProducts }: { initialProducts: Product[] }) {
+  useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>(initialProducts);

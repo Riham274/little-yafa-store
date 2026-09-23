@@ -5,6 +5,7 @@ import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -33,6 +34,7 @@ import SortSelect from "@/components/product/SortSelect";
 // working around Suspense — is what actually lets this page be both
 // genuinely cached AND render real content in the initial HTML.
 export default function ShoesPageClient({ initialProducts }: { initialProducts: Product[] }) {
+  useScrollRestoration();
   const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loadingMore, setLoadingMore] = useState(false);

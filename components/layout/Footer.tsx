@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 
 const OLIVE = "#5A5F44";
@@ -11,6 +12,7 @@ const headingClass = "font-label-md text-label-md uppercase tracking-widest font
 
 export default function Footer() {
   const { t } = useLanguage();
+  const router = useRouter();
   return (
     <footer className="w-full pt-lg pb-lg sm:pt-xl sm:pb-xl px-gutter" style={{ backgroundColor: "#EFE5DC", color: OLIVE }}>
       <div className="max-w-container-max mx-auto">
@@ -21,14 +23,29 @@ export default function Footer() {
             the site's other primary CTAs (e.g. checkout's Confirm Order),
             since the actual "عرض المزيد"/Load More button elsewhere on the
             site is an outline style, not olive-filled. */}
-        <div className="flex justify-start mb-lg">
+        <div className="flex flex-wrap items-center gap-sm mb-lg">
           <Link
             href="/"
-            className="inline-flex items-center justify-center px-md py-2 rounded-full text-on-primary font-label-sm text-label-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
+            className="inline-flex items-center gap-1.5 px-md py-2 rounded-full text-on-primary font-label-sm text-label-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
             style={{ backgroundColor: OLIVE }}
           >
+            <span className="material-symbols-outlined text-[16px] rtl:rotate-180">arrow_back</span>
             {t.footer.backToHome}
           </Link>
+          {/* Convenience utility, not a second primary CTA — same olive
+              pill treatment as "Back to Home" right next to it so the pair
+              reads as one visually consistent group, but browser-history
+              back rather than a fixed destination, so it's a <button>
+              (router.back()) rather than a <Link>. */}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="inline-flex items-center gap-1.5 px-md py-2 rounded-full text-on-primary font-label-sm text-label-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
+            style={{ backgroundColor: OLIVE }}
+          >
+            <span className="material-symbols-outlined text-[16px] rtl:rotate-180">arrow_back</span>
+            {t.footer.backToPrevious}
+          </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-y-lg gap-x-lg md:gap-x-xl">
           {/* Brand */}

@@ -8,6 +8,7 @@ import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import SizeAgeFilterSelect from "@/components/product/SizeAgeFilterSelect";
@@ -30,6 +31,7 @@ import SortSelect from "@/components/product/SortSelect";
 // near-instant, no-network re-filter of that already-loaded data once the
 // mount effect below reads the real URL, rather than a loading state.
 export default function BathPageClient({ initialProducts }: { initialProducts: Product[] }) {
+  useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>(initialProducts);

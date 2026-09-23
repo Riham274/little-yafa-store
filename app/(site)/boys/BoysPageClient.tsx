@@ -8,6 +8,7 @@ import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { AgeGroup, Product } from "@/lib/types";
 import AgeFilterPills from "@/components/product/AgeFilterPills";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -24,6 +25,7 @@ import SortSelect from "@/components/product/SortSelect";
 // unconditionally, and both filters can be independently active at once,
 // exactly matching CategoryPageContent's existing chained-.filter() logic.
 export default function BoysPageClient({ initialProducts }: { initialProducts: Product[] }) {
+  useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>(initialProducts);

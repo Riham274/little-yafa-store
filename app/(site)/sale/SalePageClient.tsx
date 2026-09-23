@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import SizeAgeFilterSelect from "@/components/product/SizeAgeFilterSelect";
@@ -16,6 +17,7 @@ import SortSelect from "@/components/product/SortSelect";
 // before and after this change — so there's no cursor-harvesting step here,
 // unlike CategoryPageContent's paginated categories.
 export default function SalePageClient({ initialProducts }: { initialProducts: Product[] }) {
+  useScrollRestoration();
   const { t } = useLanguage();
   const [sort, setSort] = useState<SortOption | null>(null);
   // This page has no other URL params to share a query string with (unlike

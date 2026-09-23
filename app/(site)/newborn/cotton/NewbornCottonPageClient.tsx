@@ -8,6 +8,7 @@ import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
 import { sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { Product } from "@/lib/types";
 import GenderFilterPills, { type GenderFilterValue } from "@/components/product/GenderFilterPills";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -25,6 +26,7 @@ import SortSelect from "@/components/product/SortSelect";
 // narrowing below (fixed per page, never URL-driven — see fetchFabric()),
 // exactly matching CategoryPageContent's existing chained-.filter() logic.
 export default function NewbornCottonPageClient({ initialProducts }: { initialProducts: Product[] }) {
+  useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>(initialProducts);
