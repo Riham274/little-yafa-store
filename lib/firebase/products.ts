@@ -165,6 +165,7 @@ function toProduct(id: string, data: Record<string, unknown>): Product {
     price: typeof data.price === "number" ? data.price : undefined,
     salePrice: typeof data.salePrice === "number" ? data.salePrice : undefined,
     costPrice: typeof data.costPrice === "number" ? data.costPrice : undefined,
+    internalCode: typeof data.internalCode === "string" ? data.internalCode : undefined,
     // `colors` replaced the old flat `images`/`sizes` fields — see
     // deriveProductColors() for the migration fallback applied here.
     colors: deriveProductColors(data),
@@ -429,6 +430,12 @@ export async function clearProductSalePrice(id: string): Promise<void> {
 /** Mirrors clearProductPrice() for the admin-only cost-price field. */
 export async function clearProductCostPrice(id: string): Promise<void> {
   await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { costPrice: deleteField() });
+  invalidateProductCaches();
+}
+
+/** Mirrors clearProductPrice() for the admin-only internal product code. */
+export async function clearProductInternalCode(id: string): Promise<void> {
+  await updateDoc(doc(db, PRODUCTS_COLLECTION, id), { internalCode: deleteField() });
   invalidateProductCaches();
 }
 

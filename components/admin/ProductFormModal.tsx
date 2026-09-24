@@ -19,6 +19,7 @@ import { auth } from "@/lib/firebase/auth";
 import { storage, uploadProductImage } from "@/lib/firebase/storage";
 import {
   clearProductCostPrice,
+  clearProductInternalCode,
   clearProductPrice,
   clearProductSalePrice,
   createProduct,
@@ -77,6 +78,7 @@ const DRAFT_SAVE_DEBOUNCE_MS = 2500;
 type ColorDraft = Omit<ColorFormState, "newFiles">;
 
 type ProductDraft = {
+  internalCode: string;
   nameEn: string;
   nameAr: string;
   nameHe: string;
@@ -133,6 +135,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     { value: "wool", label: t.products.newbornFabricWool },
   ];
 
+  const [internalCode, setInternalCode] = useState(product?.internalCode ?? "");
   const [nameEn, setNameEn] = useState(product?.name.en ?? "");
   const [nameAr, setNameAr] = useState(product?.name.ar ?? "");
   const [nameHe, setNameHe] = useState(product?.name.he ?? "");
@@ -340,6 +343,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     if (!draftResolved) return;
     const timer = setTimeout(() => {
       const draft: ProductDraft = {
+        internalCode,
         nameEn,
         nameAr,
         nameHe,
@@ -372,6 +376,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
   }, [
     draftResolved,
     draftKey,
+    internalCode,
     nameEn,
     nameAr,
     nameHe,
@@ -404,6 +409,10 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
     // (possibly manually-corrected) English/Hebrew text.
     skipNextTranslate.current = true;
     skipNextColorTranslate.current = true;
+    // ?? "" guards a draft saved by an older version of this form before
+    // this field existed — JSON.parse leaves it simply absent, which would
+    // otherwise set this controlled input's value to undefined.
+    setInternalCode(pendingDraft.internalCode ?? "");
     setNameEn(pendingDraft.nameEn);
     setNameAr(pendingDraft.nameAr);
     setNameHe(pendingDraft.nameHe);
@@ -631,12 +640,16 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
       if (costPrice.trim()) {
         data.costPrice = Number(costPrice);
       }
+      if (internalCode.trim()) {
+        data.internalCode = internalCode.trim();
+      }
 
       if (isEdit && product) {
         await updateProduct(product.id, data);
-        // Omitting `price`/`salePrice`/`costPrice` from `data` above only
-        // skips writing them — it doesn't clear an existing value, so
-        // blanking out a previously set field needs an explicit delete.
+        // Omitting `price`/`salePrice`/`costPrice`/`internalCode` from
+        // `data` above only skips writing them — it doesn't clear an
+        // existing value, so blanking out a previously set field needs an
+        // explicit delete.
         if (!price.trim() && product.price !== undefined) {
           await clearProductPrice(product.id);
         }
@@ -645,6 +658,9 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         }
         if (!costPrice.trim() && product.costPrice !== undefined) {
           await clearProductCostPrice(product.id);
+        }
+        if (!internalCode.trim() && product.internalCode !== undefined) {
+          await clearProductInternalCode(product.id);
         }
       } else {
         await createProduct(id, data);
@@ -730,6 +746,18 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-md">
+          {/* First field in the form, ahead of name/description — this is
+              the first thing the admin cross-references against physical
+              stock, per t.products.internalCodeNote below it never reaches
+              the storefront (same admin-only convention as costPrice). */}
+          <div>
+            <Field label={t.products.internalCode} value={internalCode} onChange={setInternalCode} />
+            <p className="flex items-center gap-1 font-label-sm text-label-sm text-on-surface-variant mt-1">
+              <span className="material-symbols-outlined text-[14px]">lock</span>
+              {t.products.internalCodeNote}
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-sm">
             <Field
               label={t.products.nameEn}

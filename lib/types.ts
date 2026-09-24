@@ -93,6 +93,11 @@ export type Product = {
   // customers. Undefined/0 both mean "not set" for profit-calculation
   // purposes (see lib/finance.ts), not "sourced for free".
   costPrice?: number;
+  // A physical/factory reference code (e.g. printed on the item by a Turkish
+  // supplier) the admin uses to match stock in hand to the system — same
+  // admin-only, never-shown-to-customers rule as costPrice. Free text,
+  // optional since not every product has one.
+  internalCode?: string;
   colors: ProductColor[];
   categories: Category[];
   newbornGender?: NewbornGender;

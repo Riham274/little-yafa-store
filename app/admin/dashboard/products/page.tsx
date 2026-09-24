@@ -62,11 +62,13 @@ export default function AdminProductsPage() {
         (visibilityFilter === "hidden" && !p.isVisible);
       // Matches either language regardless of the admin's own UI language,
       // so a product named in Arabic is still findable by typing its
-      // English name (or the reverse).
+      // English name (or the reverse) — or by its internal product code,
+      // for matching physical stock that only has the code on it.
       const matchesSearch =
         normalizedSearch === "" ||
         p.name.ar.toLowerCase().includes(normalizedSearch) ||
-        p.name.en.toLowerCase().includes(normalizedSearch);
+        p.name.en.toLowerCase().includes(normalizedSearch) ||
+        (p.internalCode?.toLowerCase().includes(normalizedSearch) ?? false);
       return matchesCategory && matchesAge && matchesStock && matchesVisibility && matchesSearch;
     });
   }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter, visibilityFilter, normalizedSearch]);
@@ -311,7 +313,14 @@ export default function AdminProductsPage() {
                         <img src={product.colors[0].images[0].url} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
-                    <span className="font-body-md text-on-surface">{product.name[locale]}</span>
+                    <div className="min-w-0">
+                      <span className="block font-body-md text-on-surface">{product.name[locale]}</span>
+                      {product.internalCode && (
+                        <span className="block font-label-sm text-label-sm text-on-surface-variant">
+                          {t.products.tableCode}: {product.internalCode}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="py-3 px-md font-body-md text-on-surface-variant">
@@ -391,6 +400,11 @@ export default function AdminProductsPage() {
               </div>
               <div className="flex-1 min-w-0">
                 <h5 className="font-label-md text-label-md text-on-surface">{product.name[locale]}</h5>
+                {product.internalCode && (
+                  <p className="font-label-sm text-label-sm text-on-surface-variant">
+                    {t.products.tableCode}: {product.internalCode}
+                  </p>
+                )}
                 <p className="font-label-sm text-label-sm text-on-surface-variant">
                   {product.categories.map((c) => CATEGORY_LABELS[c]).join(", ")}
                   {product.ageGroups.length > 0
