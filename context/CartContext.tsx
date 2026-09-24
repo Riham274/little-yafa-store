@@ -5,6 +5,7 @@ import type { CartItem, Product } from "@/lib/types";
 import { isProductOnSale } from "@/lib/sale";
 import { getCartSessionId } from "@/lib/cartSession";
 import { syncCartSession } from "@/lib/firebase/cartSessions";
+import { trackPixelEvent } from "@/lib/metaPixel";
 import { useLanguage } from "@/context/LanguageContext";
 import CartAddedToast from "@/components/ui/CartAddedToast";
 
@@ -107,6 +108,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setShowAddedToast(true);
     if (addedToastTimer.current) clearTimeout(addedToastTimer.current);
     addedToastTimer.current = setTimeout(() => setShowAddedToast(false), ADDED_TOAST_MS);
+
+    const unitPrice = onSale ? product.salePrice : product.price;
+    trackPixelEvent("AddToCart", {
+      content_ids: [product.id],
+      content_type: "product",
+      value: (unitPrice ?? 0) * qty,
+      currency: "ILS",
+    });
 
     setItems((prev) => {
       const existing = prev.find(

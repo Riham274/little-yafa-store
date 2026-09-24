@@ -6,9 +6,11 @@ import Link from "next/link";
 import ImageWithSpinner from "@/components/ui/ImageWithSpinner";
 import { useLanguage } from "@/context/LanguageContext";
 import { getColorLabel } from "@/lib/colorLabel";
+import { trackPixelEvent } from "@/lib/metaPixel";
 import type { CartItem } from "@/lib/types";
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
+const PIXEL_PURCHASE_TRACKED_PREFIX = "little-yafa-pixel-purchase-";
 
 type StoredOrder = {
   id: string;
@@ -27,7 +29,18 @@ export default function OrderConfirmationPage() {
       const raw = window.sessionStorage.getItem(LAST_ORDER_KEY);
       if (raw) {
         const stored: StoredOrder = JSON.parse(raw);
-        if (stored.id === params.id) setOrder(stored);
+        if (stored.id === params.id) {
+          setOrder(stored);
+          // Guarded per order id (not just "did this effect run") — this
+          // page re-mounts this effect on every visit, including a refresh
+          // of the same confirmation URL, which must not re-report the same
+          // order as a second Purchase.
+          const trackedKey = PIXEL_PURCHASE_TRACKED_PREFIX + stored.id;
+          if (!window.sessionStorage.getItem(trackedKey)) {
+            trackPixelEvent("Purchase", { value: stored.total, currency: "ILS" });
+            window.sessionStorage.setItem(trackedKey, "1");
+          }
+        }
       }
     } catch {
       // ignore
