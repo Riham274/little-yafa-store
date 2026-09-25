@@ -46,42 +46,68 @@ export default function ShopAllPage() {
   // state each batch resolves into.
   const shownIds = useRef<Set<string>>(new Set());
   const poolLimit = useRef<CategoryMap<number>>({});
-  const categoryExhausted = useRef<CategoryMap<boolean>>({});
+  // Latest fetched pool per category, kept so a category whose Firestore
+  // results have run out can keep contributing its not-yet-shown products
+  // on later rounds without being re-queried.
+  const pools = useRef<CategoryMap<Product[]>>({});
+  // Firestore has returned every doc in this category — no point growing
+  // its pool further. NOT the same as the category being done: it's only
+  // done once its pool also has nothing left that hasn't been shown.
+  const fetchedAll = useRef<CategoryMap<boolean>>({});
+
+  const hasUnshown = (category: Category) =>
+    (pools.current[category] ?? []).some((p) => !shownIds.current.has(p.id));
+  const isDone = (category: Category) => !!fetchedAll.current[category] && !hasUnshown(category);
 
   // Exactly 2 random products per category, every round — the same rule for
   // the initial load and every "Load More" click, just against a bigger
   // pool each time. A category contributes fewer than 2 (or none) once it
   // genuinely runs out, without affecting any other category.
+  //
+  // Previously a category was dropped the moment Firestore returned fewer
+  // docs than requested, even though only 2 of its (up to POOL_STEP more)
+  // fetched products had been shown — so most of each category was never
+  // reached, and the "seen everything" message appeared after roughly a
+  // quarter of the catalog.
   const fetchBatch = useCallback(async (): Promise<{ products: Product[]; allExhausted: boolean }> => {
-    const activeCategories = ALL_CATEGORIES.filter((c) => !categoryExhausted.current[c]);
-    if (activeCategories.length === 0) return { products: [], allExhausted: true };
+    // Loops only in the rare case a round turns up nothing new (e.g. every
+    // unshown product in the pools so far was already shown via another
+    // category) while some category can still grow — so a "Load More"
+    // click never comes back empty-handed short of true exhaustion.
+    for (;;) {
+      const activeCategories = ALL_CATEGORIES.filter((c) => !isDone(c));
+      if (activeCategories.length === 0) return { products: [], allExhausted: true };
 
-    const results = await Promise.all(
-      activeCategories.map(async (category) => {
-        const nextLimit = (poolLimit.current[category] ?? 0) + POOL_STEP;
-        poolLimit.current[category] = nextLimit;
-        const pool = await getProductsByCategoryPool(category, nextLimit);
-        // Firestore returned fewer docs than asked for — this category has
-        // no more products at all, visible or not, beyond what's already
-        // been fetched.
-        if (pool.length < nextLimit) categoryExhausted.current[category] = true;
-        return { category, pool };
-      })
-    );
+      await Promise.all(
+        activeCategories
+          .filter((c) => !fetchedAll.current[c])
+          .map(async (category) => {
+            const nextLimit = (poolLimit.current[category] ?? 0) + POOL_STEP;
+            poolLimit.current[category] = nextLimit;
+            const { products: pool, reachedEnd } = await getProductsByCategoryPool(category, nextLimit);
+            pools.current[category] = pool;
+            if (reachedEnd) fetchedAll.current[category] = true;
+          })
+      );
 
-    const picked = new Map<string, Product>();
-    for (const { pool } of results) {
-      // A product can satisfy more than one category, so it may already be
-      // picked by another category this same round.
-      const fresh = pool.filter((p) => !shownIds.current.has(p.id) && !picked.has(p.id));
-      for (const product of pickRandom(fresh, PER_CATEGORY)) {
-        picked.set(product.id, product);
+      const picked = new Map<string, Product>();
+      for (const category of activeCategories) {
+        // A product can satisfy more than one category, so it may already be
+        // picked by another category this same round.
+        const fresh = (pools.current[category] ?? []).filter((p) => !shownIds.current.has(p.id) && !picked.has(p.id));
+        for (const product of pickRandom(fresh, PER_CATEGORY)) {
+          picked.set(product.id, product);
+        }
+      }
+
+      picked.forEach((_, id) => shownIds.current.add(id));
+      const allExhausted = ALL_CATEGORIES.every(isDone);
+      if (picked.size > 0 || allExhausted) {
+        return { products: pickRandom([...picked.values()], picked.size), allExhausted };
       }
     }
-
-    picked.forEach((_, id) => shownIds.current.add(id));
-    const allExhausted = ALL_CATEGORIES.every((c) => categoryExhausted.current[c]);
-    return { products: pickRandom([...picked.values()], picked.size), allExhausted };
+    // isDone/hasUnshown only read refs, so they're stable across renders.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

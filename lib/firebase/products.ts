@@ -334,14 +334,24 @@ export async function getFeaturedProductsPool(poolSize: number): Promise<Product
 // stays in the (growing) pool as a candidate for a future round's random
 // pick, matching the initial load's own "pool of N, pick 2 at random" logic
 // exactly instead of a different pagination-based one for subsequent loads.
-export async function getProductsByCategoryPool(category: Category, poolSize: number): Promise<Product[]> {
+//
+// `reachedEnd` is judged on the raw doc count, *before* hidden products are
+// filtered out — comparing the visible count against `poolSize` instead
+// made any category with a hidden product in its pool look finished early.
+export async function getProductsByCategoryPool(
+  category: Category,
+  poolSize: number
+): Promise<{ products: Product[]; reachedEnd: boolean }> {
   const q = query(
     collection(db, PRODUCTS_COLLECTION),
     where("categories", "array-contains", category),
     limit(poolSize)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
+  return {
+    products: snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible),
+    reachedEnd: snap.docs.length < poolSize,
+  };
 }
 
 export async function getProductById(id: string): Promise<Product | null> {

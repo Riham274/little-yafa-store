@@ -34,7 +34,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" dir="ltr" className="scroll-smooth">
+    // data-scroll-behavior="smooth": since Next 16, Next no longer suspends
+    // `scroll-smooth` during route changes unless this is set — without it,
+    // every navigation's scroll-to-top became an animated scroll that page
+    // content loading in could cut short, leaving the new page part-way down.
+    <html lang="en" dir="ltr" className="scroll-smooth" data-scroll-behavior="smooth">
       <head>
         {/* Opens the TLS connection to Firestore before the app's JS even
             finishes loading, so the first read doesn't also pay for DNS+TLS

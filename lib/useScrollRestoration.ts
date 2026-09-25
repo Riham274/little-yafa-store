@@ -4,6 +4,37 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 
 const STORAGE_PREFIX = "scroll:";
 
+// Whether the navigation currently rendering came from the browser's
+// history (back/forward button, swipe-back gesture, or router.back() — all
+// of which fire popstate) rather than a fresh, forward navigation (a real
+// click on a link/card, which resets it). Module-level so it's tracked
+// across route changes, not per mounted page. Registered once, as soon as
+// any page importing this module loads — which includes every category
+// page and the product page, i.e. every page a back navigation here can
+// start from or land on.
+let historyNavigation = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("popstate", () => {
+    historyNavigation = true;
+  });
+  // Capture phase, so this runs before the click triggers any navigation.
+  // The footer's "Previous Page" button is itself a click, but the
+  // popstate its router.back() fires comes after, flipping this back.
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (e.isTrusted) historyNavigation = false;
+    },
+    true
+  );
+}
+
+/** True if the page being shown was reached via back/forward rather than a
+ * fresh click-through navigation. */
+export function isHistoryNavigation(): boolean {
+  return historyNavigation;
+}
+
 function scrollKey(): string {
   return STORAGE_PREFIX + window.location.pathname + window.location.search;
 }
@@ -35,6 +66,11 @@ export function useScrollRestoration(): void {
   // browser paints the frame, avoiding a visible jump from the top down to
   // the restored position.
   useLayoutEffect(() => {
+    // Only ever restore when coming *back* to this page. A fresh visit —
+    // e.g. tapping this category in the menu after having browsed it
+    // earlier in the session — should start at the top, not jump to
+    // wherever the customer happened to leave it last time.
+    if (!isHistoryNavigation()) return;
     const saved = sessionStorage.getItem(keyRef.current);
     if (saved == null) return;
     const y = Number(saved);

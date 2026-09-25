@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCart } from "@/context/CartContext";
@@ -11,6 +11,7 @@ import SimilarProducts from "@/components/product/SimilarProducts";
 import PriceTag from "@/components/product/PriceTag";
 import ProductStatusBadge from "@/components/product/ProductStatusBadge";
 import PageLoader from "@/components/ui/PageLoader";
+import { isHistoryNavigation } from "@/lib/useScrollRestoration";
 
 export default function ProductDetailPage() {
   const params = useParams<{ id: string }>();
@@ -34,6 +35,20 @@ export default function ProductDetailPage() {
   // instead of resetting to the default first color with no size chosen.
   const requestedColor = searchParams.get("color");
   const requestedSize = searchParams.get("size");
+
+  // Always open a product at the very top on a fresh (click-through)
+  // navigation. Next's own navigation scroll can't be relied on here: it
+  // only scrolls if the new page's first element is off-screen, but at the
+  // moment it checks, this page is just the short <PageLoader />, so the
+  // browser has already clamped scroll to the bottom of that short page —
+  // leaving the loader "in view", so Next skips scrolling entirely. The
+  // real content then renders in at that clamped offset, opening the page
+  // at its description (or showing the footer while still loading).
+  // useLayoutEffect so this lands before the first paint of the new page.
+  // Back/forward navigations are left alone.
+  useLayoutEffect(() => {
+    if (!isHistoryNavigation()) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [params.id]);
 
   useEffect(() => {
     let active = true;
