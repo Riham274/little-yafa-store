@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "firebasestorage.googleapis.com" },
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
     ],
+    // Product/banner images are served through /api/image-proxy (see
+    // lib/imageProxy.ts), whose URLs carry a query string. Inert while
+    // `unoptimized` is true, but next/image's optimizer rejects local srcs
+    // with query strings unless they're listed here — so this keeps the
+    // proxy working if `unoptimized` is ever reverted. The second entry
+    // keeps every other local image (public/ files) allowed as before.
+    localPatterns: [{ pathname: "/api/image-proxy" }, { pathname: "/**", search: "" }],
     // AVIF first (smaller than WebP at equivalent quality), falling back to
     // WebP (Next's default) for browsers that don't support it — the
     // optimizer picks per-request from the browser's Accept header, so this

@@ -5,6 +5,7 @@ import type { MouseEvent as ReactMouseEvent, TouchEvent as ReactTouchEvent, Whee
 import { DEFAULT_FOCAL_POINT, type ImageFocalPoint } from "@/lib/types";
 import { getCropBox, recenterFocalPoint } from "@/lib/imageCrop";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 // CSS px side length of the interactive square viewport below — purely a
 // display size now (the crop math itself, in lib/imageCrop.ts, is
@@ -141,7 +142,7 @@ function FocalPointPad({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={src}
+          src={proxiedImageUrl(src)}
           alt=""
           draggable={false}
           onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
@@ -181,7 +182,7 @@ function CropPreview({ src, focalPoint, size }: { src: string; focalPoint: Image
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={src}
+          src={proxiedImageUrl(src)}
           alt=""
           onLoad={(e) => setNaturalSize({ w: e.currentTarget.naturalWidth, h: e.currentTarget.naturalHeight })}
           className="w-full h-full"

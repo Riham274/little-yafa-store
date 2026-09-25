@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { getHeroBannerUrl } from "@/lib/firebase/siteSettings";
 import HomePageBelowFold from "@/components/home/HomePageBelowFold";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 // Shown until an admin uploads a replacement through the admin Settings
 // page (app/admin/dashboard/settings) — kept in public/ as the permanent
@@ -62,7 +63,7 @@ export default async function HomePage() {
       {/* Hero banner */}
       <section className="w-full fade-in-up">
         <Image
-          src={heroBannerUrl}
+          src={proxiedImageUrl(heroBannerUrl)}
           alt="Little Yafa — a little touch of magic"
           width={1364}
           height={768}

@@ -36,14 +36,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" dir="ltr" className="scroll-smooth">
       <head>
-        {/* Opens the TLS connection to Firestore/Storage before the app's JS
-            even finishes loading, so the first read/image request doesn't
-            also pay for DNS+TLS handshake latency. Storage needs
-            crossOrigin since images are fetched cross-origin by next/image;
-            Firestore's WebChannel connection doesn't use CORS credentials,
-            so it's left off there. */}
+        {/* Opens the TLS connection to Firestore before the app's JS even
+            finishes loading, so the first read doesn't also pay for DNS+TLS
+            handshake latency. No Storage preconnect: images are served from
+            this site's own domain via /api/image-proxy (lib/imageProxy.ts),
+            so browsers never connect to firebasestorage.googleapis.com. */}
         <link rel="preconnect" href="https://firestore.googleapis.com" />
-        <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
         {/* Speeds up the deferred Material Symbols fetch below once it does
             fire — preconnect itself is not render-blocking. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

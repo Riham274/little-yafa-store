@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image, { type ImageProps } from "next/image";
 import Spinner from "./Spinner";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 // Drop-in replacement for a `fill` next/image inside a `relative` container:
 // shows the shared spinner over the container until the image finishes
@@ -23,6 +24,7 @@ export default function ImageWithSpinner({ className = "", onLoad, ...props }: I
       )}
       <Image
         {...props}
+        src={typeof props.src === "string" ? proxiedImageUrl(props.src) : props.src}
         className={`transition-opacity duration-300 ${loaded ? "opacity-100" : "opacity-0"} ${className}`}
         onLoad={(e) => {
           setLoadedSrcs((prev) => ({ ...prev, [srcKey]: true }));

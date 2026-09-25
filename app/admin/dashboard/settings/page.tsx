@@ -12,6 +12,7 @@ import {
 import { deleteStorageFile, uploadHeroBannerImage, uploadSeasonalCategoryIcon } from "@/lib/firebase/storage";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import Spinner from "@/components/ui/Spinner";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 // Mirrors the fallback in app/(site)/page.tsx — shown until an admin
 // uploads a replacement through this page.
@@ -154,7 +155,7 @@ export default function AdminSettingsPage() {
               <Spinner size={32} />
             </div>
           ) : (
-            <Image src={previewSrc} alt="" fill sizes="(max-width: 768px) 100vw, 700px" className="object-contain" />
+            <Image src={proxiedImageUrl(previewSrc)} alt="" fill sizes="(max-width: 768px) 100vw, 700px" className="object-contain" />
           )}
           {uploading && (
             <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
@@ -245,7 +246,7 @@ export default function AdminSettingsPage() {
             </div>
           ) : (
             <Image
-              src={stagedSeasonalIconUrl ?? seasonalIconUrl}
+              src={proxiedImageUrl(stagedSeasonalIconUrl ?? seasonalIconUrl)}
               alt=""
               fill
               sizes="112px"

@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/format";
 import type { Order, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatCard from "@/components/admin/StatCard";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 const PERIODS: FinancePeriod[] = ["today", "week", "month"];
 type SortKey = "revenue" | "profit";
@@ -135,7 +136,7 @@ export default function AdminFinancePage() {
                         <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden shrink-0">
                           {image && (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={image} alt="" className="w-full h-full object-cover" />
+                            <img src={proxiedImageUrl(image)} alt="" className="w-full h-full object-cover" />
                           )}
                         </div>
                         <span className="font-body-md text-on-surface">{name}</span>
@@ -180,7 +181,7 @@ export default function AdminFinancePage() {
                 <div className="w-10 h-10 rounded-lg bg-surface-container overflow-hidden shrink-0">
                   {image && (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt="" className="w-full h-full object-cover" />
+                    <img src={proxiedImageUrl(image)} alt="" className="w-full h-full object-cover" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { TouchEvent as ReactTouchEvent, WheelEvent as ReactWheelEvent, MouseEvent as ReactMouseEvent } from "react";
 import Image from "next/image";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -263,7 +264,7 @@ export default function ImageLightbox({
       >
         {src && (
           <Image
-            src={src}
+            src={proxiedImageUrl(src)}
             alt={alt}
             fill
             sizes="100vw"

@@ -19,6 +19,7 @@ import { deleteCartSession } from "@/lib/firebase/cartSessions";
 import { getCheckoutIdempotencyKey, resetCheckoutIdempotencyKey } from "@/lib/checkoutIdempotency";
 import { CHECKOUT_DRAFT_SAVE_DEBOUNCE_MS, clearCheckoutDraft, loadCheckoutDraft, saveCheckoutDraft } from "@/lib/checkoutDraft";
 import { COUNTRY_CODES, DEFAULT_COUNTRY_DIAL, countryName } from "@/lib/countryCodes";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 const LAST_ORDER_KEY = "little-yafa-last-order";
 
@@ -392,7 +393,7 @@ export default function CheckoutPage() {
               <div key={`${item.productId}-${item.color}-${item.size}`} className="flex items-center gap-4">
                 <div className="relative w-16 h-16 rounded-lg bg-surface-container-lowest overflow-hidden shrink-0">
                   {item.image && (
-                    <Image src={item.image} alt={item.name[locale]} fill sizes="64px" className="object-cover" />
+                    <Image src={proxiedImageUrl(item.image)} alt={item.name[locale]} fill sizes="64px" className="object-cover" />
                   )}
                 </div>
                 <div className="flex-1">

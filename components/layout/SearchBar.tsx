@@ -9,6 +9,7 @@ import { getAllProducts } from "@/lib/firebase/products";
 import { searchProducts } from "@/lib/searchProducts";
 import type { Product } from "@/lib/types";
 import PriceTag from "@/components/product/PriceTag";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 const DEBOUNCE_MS = 300;
 const MAX_RESULTS = 6;
@@ -115,7 +116,7 @@ export default function SearchBar({ className = "" }: { className?: string }) {
                     <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-surface-container-low shrink-0">
                       {product.colors[0]?.images[0] ? (
                         <Image
-                          src={product.colors[0].images[0].url}
+                          src={proxiedImageUrl(product.colors[0].images[0].url)}
                           alt=""
                           fill
                           sizes="40px"

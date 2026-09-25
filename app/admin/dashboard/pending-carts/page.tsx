@@ -8,6 +8,7 @@ import { formatRelativeTime } from "@/lib/relativeTime";
 import type { Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatCard from "@/components/admin/StatCard";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 // undefined = still loading, null = deleted/not found — same convention as
 // OrderDetailDrawer's ProductLookup.
@@ -116,7 +117,7 @@ export default function PendingCartsPage() {
                         <div className="w-11 h-11 rounded-lg bg-surface-container overflow-hidden shrink-0">
                           {image ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={image} alt="" className="w-full h-full object-cover" />
+                            <img src={proxiedImageUrl(image)} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
                               <span className="material-symbols-outlined text-[18px]">image_not_supported</span>
@@ -160,7 +161,7 @@ export default function PendingCartsPage() {
             <div className="w-11 h-11 rounded-lg bg-surface-container overflow-hidden shrink-0">
               {image ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={image} alt="" className="w-full h-full object-cover" />
+                <img src={proxiedImageUrl(image)} alt="" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
                   <span className="material-symbols-outlined text-[18px]">image_not_supported</span>
@@ -229,7 +230,7 @@ export default function PendingCartsPage() {
                   <div className="w-11 h-11 rounded-lg bg-surface-container overflow-hidden shrink-0">
                     {image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={image} alt="" className="w-full h-full object-cover" />
+                      <img src={proxiedImageUrl(image)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
                         <span className="material-symbols-outlined text-[18px]">image_not_supported</span>

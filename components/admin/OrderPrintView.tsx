@@ -2,6 +2,7 @@ import { formatPrice } from "@/lib/format";
 import type { Order, OrderStatus, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import { resolveColorLabel } from "./OrderDetailDrawer";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 type ProductLookup = Record<string, Product | null | undefined>;
 
@@ -116,7 +117,7 @@ export default function OrderPrintView({
                 <div className="flex items-center gap-2">
                   {image ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
+                    <img src={proxiedImageUrl(image)} alt="" className="w-10 h-10 object-cover rounded shrink-0" />
                   ) : null}
                   <span>{displayName}</span>
                 </div>

@@ -9,6 +9,7 @@ import type { Order, OrderStatus, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatusBadge from "./StatusBadge";
 import OrderPrintView from "./OrderPrintView";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 // undefined = still loading, null = deleted/not found
 type ProductLookup = Record<string, Product | null | undefined>;
@@ -243,7 +244,7 @@ ${whatsappItemLines}
                   <div className="w-14 h-14 rounded-lg bg-surface-container overflow-hidden shrink-0">
                     {image ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={image} alt="" className="w-full h-full object-cover" />
+                      <img src={proxiedImageUrl(image)} alt="" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
                         <span className="material-symbols-outlined">image_not_supported</span>
@@ -320,7 +321,7 @@ ${whatsappItemLines}
           <div className="w-full aspect-square rounded-2xl bg-surface-container overflow-hidden mb-md">
             {zoomedImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={zoomedImage} alt="" className="w-full h-full object-cover" />
+              <img src={proxiedImageUrl(zoomedImage)} alt="" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-on-surface-variant">
                 <span className="material-symbols-outlined text-[64px]">image_not_supported</span>

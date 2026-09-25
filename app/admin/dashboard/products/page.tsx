@@ -15,6 +15,7 @@ import type { AgeGroup, Category, Product } from "@/lib/types";
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatCard from "@/components/admin/StatCard";
 import ProductFormModal from "@/components/admin/ProductFormModal";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 const LOW_STOCK_THRESHOLD = 10;
 
@@ -310,7 +311,7 @@ export default function AdminProductsPage() {
                     <div className="w-12 h-12 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
                       {product.colors[0]?.images[0] && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={product.colors[0].images[0].url} alt="" className="w-full h-full object-cover" />
+                        <img src={proxiedImageUrl(product.colors[0].images[0].url)} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
                     <div className="min-w-0">
@@ -395,7 +396,7 @@ export default function AdminProductsPage() {
               <div className="w-16 h-16 rounded-lg bg-surface-container-low overflow-hidden shrink-0">
                 {product.colors[0]?.images[0] && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={product.colors[0].images[0].url} alt="" className="w-full h-full object-cover" />
+                  <img src={proxiedImageUrl(product.colors[0].images[0].url)} alt="" className="w-full h-full object-cover" />
                 )}
               </div>
               <div className="flex-1 min-w-0">

@@ -29,6 +29,7 @@ import {
 import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import Spinner from "@/components/ui/Spinner";
 import FocalPointPickerModal from "@/components/admin/FocalPointPickerModal";
+import { proxiedImageUrl } from "@/lib/imageProxy";
 
 const TRANSLATE_DEBOUNCE_MS = 800;
 type TranslateTarget = "en" | "he";
@@ -865,7 +866,7 @@ export default function ProductFormModal({ product, onClose, onSaved }: Props) {
                         <div key={img.url} className="relative w-20 h-20 rounded-lg overflow-hidden bg-surface-container">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
-                            src={img.url}
+                            src={proxiedImageUrl(img.url)}
                             alt=""
                             className="w-full h-full object-cover"
                             style={{ objectPosition: `${img.focalPoint.x}% ${img.focalPoint.y}%` }}
