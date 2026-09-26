@@ -98,7 +98,7 @@ export default function GirlsPageClient({ initialProducts }: { initialProducts: 
         {t.category.girlsTitle}
       </h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-sm flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-sm sm:flex-wrap">
         <div className="min-w-0 sm:flex-1">
           <AgeFilterPills active={activeAge} onChange={handleAgeChange} />
         </div>

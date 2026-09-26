@@ -81,7 +81,7 @@ export default function DressesPageClient({ initialProducts }: { initialProducts
         {t.category.dressesTitle}
       </h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-sm flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-sm sm:flex-wrap">
         <div className="flex items-center gap-sm sm:ms-auto">
           <SizeAgeFilterSelect active={activeSizeAge} onChange={handleSizeAgeChange} />
           <SortSelect value={sort} onChange={setSort} className="self-end sm:self-auto" />

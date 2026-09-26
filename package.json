@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "migrate:colors": "node scripts/migrate-colors.mjs",
-    "migrate:color-labels": "node scripts/migrate-color-labels.mjs"
+    "migrate:color-labels": "node scripts/migrate-color-labels.mjs",
+    "recompress:images": "node scripts/recompress-product-images.mjs"
   },
   "dependencies": {
     "browser-image-compression": "^2.0.2",

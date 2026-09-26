@@ -104,7 +104,7 @@ export default function NewbornWoolPageClient({ initialProducts }: { initialProd
         {t.category.newbornWoolTitle}
       </h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-sm flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-sm sm:flex-wrap">
         <div className="min-w-0 sm:flex-1">
           <GenderFilterPills active={activeGender} onChange={handleGenderChange} />
         </div>

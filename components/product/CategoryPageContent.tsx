@@ -182,7 +182,7 @@ export default function CategoryPageContent({
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
       <h1 className="font-headline-md text-headline-md md:text-display-lg-mobile text-on-surface mb-md">{title}</h1>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-sm flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-sm sm:flex-wrap">
         {(showAgeFilter || showGenderFilter) && (
           <div className="min-w-0 sm:flex-1">
             {showAgeFilter && <AgeFilterPills active={activeAge} onChange={handleAgeChange} />}
