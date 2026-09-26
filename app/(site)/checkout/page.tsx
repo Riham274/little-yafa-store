@@ -115,6 +115,7 @@ export default function CheckoutPage() {
   const REGIONS: { value: ShippingRegion; label: string }[] = [
     { value: "westBank", label: t.checkout.regionWestBank },
     { value: "jerusalem", label: t.checkout.regionJerusalem },
+    { value: "abuGhosh", label: t.checkout.regionAbuGhosh },
     { value: "inside", label: t.checkout.regionInside },
     { value: "pickup", label: t.checkout.regionPickup },
   ];

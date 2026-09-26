@@ -9,6 +9,7 @@ type ProductLookup = Record<string, Product | null | undefined>;
 const REGION_KEYS = {
   westBank: "regionWestBank",
   jerusalem: "regionJerusalem",
+  abuGhosh: "regionAbuGhosh",
   inside: "regionInside",
   pickup: "regionPickup",
 } as const;

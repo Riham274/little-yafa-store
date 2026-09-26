@@ -114,7 +114,7 @@ export type ProductInput = Omit<Product, "id" | "createdAt">;
 
 export type OrderStatus = "new" | "processing" | "delivered";
 
-export type ShippingRegion = "westBank" | "jerusalem" | "inside" | "pickup";
+export type ShippingRegion = "westBank" | "jerusalem" | "abuGhosh" | "inside" | "pickup";
 
 export type OrderItem = {
   productId: string;

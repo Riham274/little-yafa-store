@@ -88,6 +88,7 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
   const regionLabels: Record<string, string> = {
     westBank: t.orders.regionWestBank,
     jerusalem: t.orders.regionJerusalem,
+    abuGhosh: t.orders.regionAbuGhosh,
     inside: t.orders.regionInside,
     pickup: t.orders.regionPickup,
   };
