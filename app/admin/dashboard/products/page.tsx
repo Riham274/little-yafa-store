@@ -16,6 +16,9 @@ import { useAdminLanguage } from "@/context/AdminLanguageContext";
 import StatCard from "@/components/admin/StatCard";
 import ProductFormModal from "@/components/admin/ProductFormModal";
 import { proxiedImageUrl } from "@/lib/imageProxy";
+import { dictionaries } from "@/lib/i18n/dictionaries";
+import { SIZE_AGE_FILTERS, productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
+import { sizeAgeLabels } from "@/components/product/SizeAgeFilterSelect";
 
 const LOW_STOCK_THRESHOLD = 10;
 
@@ -29,6 +32,10 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<Category | "all">("all");
   const [ageGroupFilter, setAgeGroupFilter] = useState<AgeGroup | "all">("all");
+  // Fine-grained age parsed from each product's actual size labels (same
+  // logic as the storefront's size-age filter, lib/sizeAge.ts) — separate
+  // from, and combinable with, the broad admin-tagged ageGroups filter above.
+  const [sizeAgeFilter, setSizeAgeFilter] = useState<SizeAgeFilter | null>(null);
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
   const [visibilityFilter, setVisibilityFilter] = useState<VisibilityFilter>("all");
   // Client-side only — products are already loaded for the table via
@@ -53,6 +60,10 @@ export default function AdminProductsPage() {
     return products.filter((p) => {
       const matchesCategory = categoryFilter === "all" || p.categories.includes(categoryFilter);
       const matchesAge = ageFilterDisabled || ageGroupFilter === "all" || p.ageGroups.includes(ageGroupFilter);
+      // Sold-out sizes still count here (unlike the storefront), so an
+      // out-of-stock product stays findable by size — e.g. alongside the
+      // "Out of Stock" filter to see what needs restocking.
+      const matchesSizeAge = productMatchesSizeAgeFilter(p, sizeAgeFilter, { includeSoldOut: true });
       const matchesStock =
         stockFilter === "all" ||
         (stockFilter === "low" && isProductLowStock(p)) ||
@@ -70,9 +81,13 @@ export default function AdminProductsPage() {
         p.name.ar.toLowerCase().includes(normalizedSearch) ||
         p.name.en.toLowerCase().includes(normalizedSearch) ||
         (p.internalCode?.toLowerCase().includes(normalizedSearch) ?? false);
-      return matchesCategory && matchesAge && matchesStock && matchesVisibility && matchesSearch;
+      return matchesCategory && matchesAge && matchesSizeAge && matchesStock && matchesVisibility && matchesSearch;
     });
-  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, stockFilter, visibilityFilter, normalizedSearch]);
+  }, [products, categoryFilter, ageGroupFilter, ageFilterDisabled, sizeAgeFilter, stockFilter, visibilityFilter, normalizedSearch]);
+
+  // Option names come from the storefront dictionary for the same locale,
+  // so they read exactly as customers see them on the category pages.
+  const sizeAgeOptionLabels = sizeAgeLabels(dictionaries[locale].category);
 
   const handleCategoryFilterChange = (value: Category | "all") => {
     setCategoryFilter(value);
@@ -242,6 +257,21 @@ export default function AdminProductsPage() {
             {AGE_GROUPS.map(({ value, label }) => (
               <option key={value} value={value}>
                 {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1">
+          <label className="block font-label-sm text-label-sm text-on-surface-variant mb-1">{t.products.filterSizeAge}</label>
+          <select
+            value={sizeAgeFilter ?? ""}
+            onChange={(e) => setSizeAgeFilter((e.target.value || null) as SizeAgeFilter | null)}
+            className="w-full bg-surface-container-lowest rounded-xl border border-outline-variant px-4 py-3 font-body-md text-on-surface"
+          >
+            <option value="">{t.products.filterAllSizeAges}</option>
+            {SIZE_AGE_FILTERS.map((age) => (
+              <option key={age} value={age}>
+                {sizeAgeOptionLabels[age]}
               </option>
             ))}
           </select>

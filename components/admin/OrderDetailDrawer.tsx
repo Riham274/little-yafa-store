@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { formatPrice } from "@/lib/format";
 import { updateOrderStatus } from "@/lib/firebase/orders";
@@ -58,6 +58,9 @@ export default function OrderDetailDrawer({ order, onClose }: { order: Order; on
   const [saving, setSaving] = useState(false);
   const [productsById, setProductsById] = useState<ProductLookup>({});
   const [zoomedItemIndex, setZoomedItemIndex] = useState<number | null>(null);
+  const [messageOpen, setMessageOpen] = useState(false);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const messageTextRef = useRef<HTMLDivElement>(null);
   // TEMPORARY diagnostic for a real-device bug report (print button silently
   // unresponsive on iPhone Safari): console.log isn't reachable without a
   // Mac + cable, so this on-screen banner proves whether the tap is even
@@ -127,6 +130,26 @@ ${whatsappItemLines}
 سيصل طلبك خلال يومين عمل.
 شكراً لاختيارك Little Yafa 🌸`;
   const whatsappUrl = `https://wa.me/${order.customerPhone.replace(/\D/g, "")}?text=${encodeURIComponent(whatsappMessage)}`;
+
+  // "View Message" shows this exact same whatsappMessage text, for pasting
+  // into another app (SMS, a different messenger) instead of WhatsApp.
+  const openMessage = () => {
+    setCopyState("idle");
+    setMessageOpen(true);
+  };
+
+  const handleCopyMessage = async () => {
+    try {
+      await navigator.clipboard.writeText(whatsappMessage);
+      setCopyState("copied");
+      setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      // Clipboard API unavailable/blocked (e.g. a non-HTTPS origin) — select
+      // the text instead so it can still be copied by hand.
+      if (messageTextRef.current) window.getSelection()?.selectAllChildren(messageTextRef.current);
+      setCopyState("failed");
+    }
+  };
 
   const zoomedItem = zoomedItemIndex !== null ? order.items[zoomedItemIndex] : null;
   const zoomedProduct = zoomedItem ? productsById[zoomedItem.productId] : undefined;
@@ -203,15 +226,25 @@ ${whatsappItemLines}
               {order.customerPhoneBackup}
             </p>
           )}
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-2 inline-flex items-center gap-2 rounded-full bg-[#25D366] text-white px-4 py-2 font-label-md text-label-md active:scale-95 transition-transform"
-          >
-            <span className="material-symbols-outlined text-[18px]">chat</span>
-            {t.orders.confirmWhatsapp}
-          </a>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full bg-[#25D366] text-white px-4 py-2 font-label-md text-label-md active:scale-95 transition-transform"
+            >
+              <span className="material-symbols-outlined text-[18px]">chat</span>
+              {t.orders.confirmWhatsapp}
+            </a>
+            <button
+              type="button"
+              onClick={openMessage}
+              className="inline-flex items-center gap-2 rounded-full border border-outline-variant bg-surface text-on-surface px-4 py-2 font-label-md text-label-md active:scale-95 transition-transform hover:bg-surface-container"
+            >
+              <span className="material-symbols-outlined text-[18px]">visibility</span>
+              {t.orders.viewMessage}
+            </button>
+          </div>
           <p className="font-body-md text-on-surface-variant mt-2">{order.customerAddress}</p>
           {order.shippingRegion && (
             <p className="font-body-md text-on-surface-variant mt-2">
@@ -353,6 +386,59 @@ ${whatsappItemLines}
               <span className="text-secondary font-semibold">{formatPrice(zoomedItem.price * zoomedItem.qty)}</span>
             </div>
           </div>
+        </div>
+      </div>
+    )}
+
+    {messageOpen && (
+      <div
+        className="fixed inset-0 z-[80] bg-black/60 backdrop-blur-sm flex items-center justify-center p-gutter"
+        onClick={() => setMessageOpen(false)}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="order-message-title"
+          className="bg-surface rounded-[2rem] cloud-shadow w-full max-w-md max-h-[90vh] overflow-y-auto p-lg"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-md">
+            <h2 id="order-message-title" className="font-headline-sm text-headline-sm text-on-surface">
+              {t.orders.messageTitle}
+            </h2>
+            <button
+              onClick={() => setMessageOpen(false)}
+              className="flex items-center justify-center w-11 h-11 -my-2 -me-2 rounded-full text-on-surface-variant hover:text-error active:bg-error-container/20 transition-colors shrink-0"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          {/* Always Arabic, like the message itself — so dir="rtl" even
+              when the admin panel is in English. A pre-wrap block (not a
+              textarea) so it grows to fit however the lines wrap on a
+              narrow screen, instead of cutting off the last lines. */}
+          <div
+            ref={messageTextRef}
+            dir="rtl"
+            className="whitespace-pre-wrap select-text bg-surface-container-low rounded-2xl border border-outline-variant p-md font-body-md text-on-surface mb-md"
+          >
+            {whatsappMessage}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleCopyMessage}
+            className="w-full flex items-center justify-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md active:scale-95 transition-transform"
+          >
+            <span className="material-symbols-outlined text-[18px]">
+              {copyState === "copied" ? "check" : "content_copy"}
+            </span>
+            {copyState === "copied" ? t.orders.messageCopied : t.orders.copyMessage}
+          </button>
+          {copyState === "failed" && (
+            <p className="font-label-sm text-label-sm text-error mt-2 text-center">{t.orders.copyFailed}</p>
+          )}
         </div>
       </div>
     )}

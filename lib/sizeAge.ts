@@ -97,13 +97,17 @@ export function rangesOverlap(a: MonthRange, b: MonthRange): boolean {
  * Boys/Girls age filter (productMatchesSizeAgeFilter below) and the
  * "Similar Products" age-overlap score (see getSimilarProducts() in
  * lib/firebase/products.ts). Deduped so a product with several colors all
- * carrying the same size list doesn't inflate an overlap count. */
-export function getProductAgeRanges(product: Product): MonthRange[] {
+ * carrying the same size list doesn't inflate an overlap count.
+ *
+ * `includeSoldOut` counts sizes with no stock too — for the admin Products
+ * page, where an out-of-stock product still needs to be findable by size
+ * (e.g. combined with the "Out of Stock" filter to see what to restock). */
+export function getProductAgeRanges(product: Product, { includeSoldOut = false } = {}): MonthRange[] {
   const seen = new Set<string>();
   const ranges: MonthRange[] = [];
   for (const color of product.colors) {
     for (const size of color.sizes) {
-      if (size.stock <= 0) continue;
+      if (size.stock <= 0 && !includeSoldOut) continue;
       const range = parseSizeLabelAgeRange(size.label);
       if (!range) continue;
       const key = `${range.min}-${range.max}`;
@@ -142,9 +146,13 @@ export function ageRangeOverlapScore(a: Product, b: Product): number {
  *
  * Sold-out sizes (stock <= 0) are skipped entirely — consistent with
  * getAvailableSizeLabels()/the product card, which already hides sold-out
- * sizes from its badge list. */
-export function productMatchesSizeAgeFilter(product: Product, filter: SizeAgeFilter | null): boolean {
+ * sizes from its badge list — unless `includeSoldOut` is set (admin). */
+export function productMatchesSizeAgeFilter(
+  product: Product,
+  filter: SizeAgeFilter | null,
+  options: { includeSoldOut?: boolean } = {}
+): boolean {
   if (!filter) return true;
   const filterRange = FILTER_RANGES[filter];
-  return getProductAgeRanges(product).some((range) => rangesOverlap(range, filterRange));
+  return getProductAgeRanges(product, options).some((range) => rangesOverlap(range, filterRange));
 }

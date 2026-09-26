@@ -1,7 +1,27 @@
 "use client";
 
 import { useLanguage } from "@/context/LanguageContext";
+import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { SIZE_AGE_FILTERS, type SizeAgeFilter } from "@/lib/sizeAge";
+
+/** Display label for each size-age option, from a locale's storefront
+ * dictionary — also used by the admin Products page's size-age filter, so
+ * both show identical option names. */
+export function sizeAgeLabels(category: Dictionary["category"]): Record<SizeAgeFilter, string> {
+  return {
+    "0-3m": category.sizeAge0to3m,
+    "3-6m": category.sizeAge3to6m,
+    "6-9m": category.sizeAge6to9m,
+    "9-12m": category.sizeAge9to12m,
+    "12-18m": category.sizeAge12to18m,
+    "18-24m": category.sizeAge18to24m,
+    "1-2y": category.sizeAge1to2y,
+    "2-3y": category.sizeAge2to3y,
+    "3-4y": category.sizeAge3to4y,
+    "4-5y": category.sizeAge4to5y,
+    "5-6y": category.sizeAge5to6y,
+  };
+}
 
 // A separate, additional filter next to AgeFilterPills' original 3 tabs
 // (which read the admin-tagged Product.ageGroups field) — this one is
@@ -19,19 +39,7 @@ export default function SizeAgeFilterSelect({
 }) {
   const { t } = useLanguage();
 
-  const labels: Record<SizeAgeFilter, string> = {
-    "0-3m": t.category.sizeAge0to3m,
-    "3-6m": t.category.sizeAge3to6m,
-    "6-9m": t.category.sizeAge6to9m,
-    "9-12m": t.category.sizeAge9to12m,
-    "12-18m": t.category.sizeAge12to18m,
-    "18-24m": t.category.sizeAge18to24m,
-    "1-2y": t.category.sizeAge1to2y,
-    "2-3y": t.category.sizeAge2to3y,
-    "3-4y": t.category.sizeAge3to4y,
-    "4-5y": t.category.sizeAge4to5y,
-    "5-6y": t.category.sizeAge5to6y,
-  };
+  const labels = sizeAgeLabels(t.category);
 
   return (
     // Same appearance-none + custom icon fix as SortSelect/CartItemRow —
