@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAllProducts } from "@/lib/firebase/products";
 import { searchProducts } from "@/lib/searchProducts";
-import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { inStockFirst, sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import ProductGrid from "@/components/product/ProductGrid";
@@ -24,7 +24,7 @@ function SearchResults() {
   }, []);
 
   const results = useMemo(
-    () => (allProducts ? sortProducts(searchProducts(allProducts, query, locale), sort ?? "newest") : []),
+    () => (allProducts ? inStockFirst(sortProducts(searchProducts(allProducts, query, locale), sort ?? "newest")) : []),
     [allProducts, query, locale, sort]
   );
 

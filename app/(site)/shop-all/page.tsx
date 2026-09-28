@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategoryPool } from "@/lib/firebase/products";
 import { pickRandom } from "@/lib/random";
-import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { orderBatch, type SortOption } from "@/lib/sortProducts";
 import type { Category, Product } from "@/lib/types";
+import LoadMoreButton from "@/components/product/LoadMoreButton";
 import ProductGrid from "@/components/product/ProductGrid";
 import SortSelect from "@/components/product/SortSelect";
 import PageLoader from "@/components/ui/PageLoader";
@@ -110,9 +111,16 @@ export default function ShopAllPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // `products` is kept in display order: each batch is ordered on its own
+  // (the chosen sort, then out-of-stock last — see orderBatch) and appended
+  // after what's already shown, so "Load More" never moves products already
+  // on screen. Only picking a sort re-orders the whole list. Same approach
+  // as the category pages (lib/useCategoryProducts.ts).
+  const sortRef = useRef<SortOption | null>(null);
+
   useEffect(() => {
     fetchBatch().then(({ products: batch, allExhausted }) => {
-      setProducts(batch);
+      setProducts(orderBatch(batch, sortRef.current));
       setExhausted(allExhausted);
     });
   }, [fetchBatch]);
@@ -122,20 +130,17 @@ export default function ShopAllPage() {
     setLoadingMore(true);
     fetchBatch()
       .then(({ products: batch, allExhausted }) => {
-        setProducts((prev) => [...(prev ?? []), ...batch]);
+        setProducts((prev) => [...(prev ?? []), ...orderBatch(batch, sortRef.current)]);
         setExhausted(allExhausted);
       })
       .finally(() => setLoadingMore(false));
   };
 
-  // Only re-sort once the customer has actually picked a sort option —
-  // otherwise each "Load More" batch must simply stay appended at the end
-  // in fetch order. Defaulting to a "newest" sort here used to re-sort the
-  // whole accumulated list by createdAt on every append, which could move
-  // newly-loaded items above ones already on screen (whichever had the
-  // more recent createdAt), reading as a scroll jump/reorder bug even
-  // though nothing about the scroll position itself changed.
-  const sorted = useMemo(() => (!products ? [] : sort ? sortProducts(products, sort) : products), [products, sort]);
+  const handleSortChange = (next: SortOption) => {
+    sortRef.current = next;
+    setSort(next);
+    setProducts((prev) => (prev ? orderBatch(prev, next) : prev));
+  };
 
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
@@ -145,34 +150,22 @@ export default function ShopAllPage() {
 
       {products !== null && products.length > 0 && (
         <div className="flex justify-end mb-lg">
-          <SortSelect value={sort} onChange={setSort} />
+          <SortSelect value={sort} onChange={handleSortChange} />
         </div>
       )}
 
       {products === null ? (
         <PageLoader />
-      ) : sorted.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="py-xl text-center text-on-surface-variant font-body-md">{t.category.noProducts}</div>
       ) : (
         <>
-          <ProductGrid products={sorted} />
-          <div className="flex justify-center mt-lg">
-            {exhausted ? (
-              <p className="font-body-md text-on-surface-variant text-center">{t.category.allProductsSeen}</p>
-            ) : (
-              <button
-                type="button"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="flex items-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50"
-              >
-                {loadingMore && (
-                  <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                )}
-                {t.category.loadMore}
-              </button>
-            )}
-          </div>
+          <ProductGrid products={products} />
+          {exhausted ? (
+            <p className="font-body-md text-on-surface-variant text-center mt-lg">{t.category.allProductsSeen}</p>
+          ) : (
+            <LoadMoreButton onClick={handleLoadMore} loading={loadingMore} />
+          )}
         </>
       )}
     </div>

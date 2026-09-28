@@ -3,10 +3,12 @@ import {
   deleteDoc,
   deleteField,
   doc,
+  documentId,
   getDoc,
   getDocs,
   limit,
   onSnapshot,
+  orderBy,
   query,
   serverTimestamp,
   setDoc,
@@ -14,9 +16,7 @@ import {
   updateDoc,
   where,
   writeBatch,
-  type DocumentData,
   type QueryConstraint,
-  type QueryDocumentSnapshot,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./config";
@@ -243,9 +243,9 @@ function invalidateProductCaches(): void {
 
 export type ProductPage = {
   products: Product[];
-  /** Opaque cursor for the next page — pass to the next call's `cursor`
-   * param. Null once there's nothing left to page through. */
-  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  /** ID of the last document this page read (hidden products included) —
+   * pass it as the next call's `afterId`. */
+  lastId: string | null;
   hasMore: boolean;
 };
 
@@ -254,29 +254,38 @@ export type ProductPage = {
  * category in one unbounded query, so a listing page stays cheap and fast
  * to first-render even once the catalog grows to hundreds of products.
  *
- * Deliberately has no `orderBy` (falls back to Firestore's implicit
- * document-ID ordering for the `startAfter` cursor): ordering by a field
- * like `createdAt` would need a composite index AND would silently exclude
- * any product missing that field from the results entirely (Firestore's
- * behavior for docs missing the ordered-by field), which matters here since
- * plenty of products predate that field.
+ * Ordered by document ID — the same order Firestore uses implicitly for
+ * this query, made explicit so the cursor can be a plain product ID
+ * (`afterId`) rather than a QueryDocumentSnapshot. That matters because the
+ * first page comes from the server (ISR, cached up to a minute), while
+ * "Load More" runs in the browser: with an ID, page 2 continues from the
+ * last product actually on screen, instead of from a separately re-fetched
+ * page 1 that may no longer match the cached one (which could skip or
+ * repeat products). Ordering by a field like `createdAt` instead would need
+ * a composite index AND would silently exclude any product missing that
+ * field (Firestore's behavior for docs missing the ordered-by field), which
+ * matters here since plenty of products predate that field.
  *
  * Not cached — pagination's own boundedness is the main win; caching a
  * cursor-keyed sequence of pages isn't worth the complexity here. */
 export async function getProductsByCategoryPage(
   category: Category,
   pageSize: number,
-  cursor: QueryDocumentSnapshot<DocumentData> | null
+  afterId: string | null
 ): Promise<ProductPage> {
-  const constraints: QueryConstraint[] = [where("categories", "array-contains", category), limit(pageSize)];
-  if (cursor) constraints.push(startAfter(cursor));
+  const constraints: QueryConstraint[] = [
+    where("categories", "array-contains", category),
+    orderBy(documentId()),
+    limit(pageSize),
+  ];
+  if (afterId) constraints.push(startAfter(afterId));
 
   const q = query(collection(db, PRODUCTS_COLLECTION), ...constraints);
   const snap = await getDocs(q);
   const products = snap.docs.map((d) => toProduct(d.id, d.data())).filter((p) => p.isVisible);
-  const lastDoc = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : cursor;
+  const lastId = snap.docs.length > 0 ? snap.docs[snap.docs.length - 1].id : afterId;
 
-  return { products, lastDoc, hasMore: snap.docs.length === pageSize };
+  return { products, lastId, hasMore: snap.docs.length === pageSize };
 }
 
 /** `skipCache` bypasses the module-level cache below entirely (no read, no

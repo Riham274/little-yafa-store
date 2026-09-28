@@ -2,15 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
-import { getProductsByCategoryPage } from "@/lib/firebase/products";
-import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
-import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { useCategoryProducts } from "@/lib/useCategoryProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { AgeGroup, Product } from "@/lib/types";
 import AgeFilterPills from "@/components/product/AgeFilterPills";
+import LoadMoreButton from "@/components/product/LoadMoreButton";
 import ProductGrid from "@/components/product/ProductGrid";
 import SizeAgeFilterSelect from "@/components/product/SizeAgeFilterSelect";
 import SortSelect from "@/components/product/SortSelect";
@@ -28,11 +26,9 @@ export default function BoysPageClient({ initialProducts }: { initialProducts: P
   useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [sort, setSort] = useState<SortOption | null>(null);
+  // Load More appends each new batch after what's already shown — see
+  // lib/useCategoryProducts.ts.
+  const { products, loadingMore, hasMore, loadMore, sort, setSort } = useCategoryProducts("boys", initialProducts);
   // Both start null — matching what the cached HTML always shows, since the
   // real URL's query string can't be known at build/cache time — and are
   // corrected from the actual URL immediately on mount below.
@@ -52,18 +48,6 @@ export default function BoysPageClient({ initialProducts }: { initialProducts: P
     return () => window.removeEventListener("popstate", readFiltersFromUrl);
   }, []);
 
-  useEffect(() => {
-    // The server already sent this page's first batch (initialProducts,
-    // rendered directly into the cached HTML) — this fetch exists purely to
-    // get a real pagination cursor for "Load More". Its `products` result is
-    // deliberately unused — the already-displayed initial page is left
-    // untouched.
-    getProductsByCategoryPage("boys", CATEGORY_PAGE_SIZE, null).then((page) => {
-      setCursor(page.lastDoc);
-      setHasMore(page.hasMore);
-    });
-  }, []);
-
   // Both filters apply together (ANDed), same as CategoryPageContent's
   // identical chained-.filter() logic — see its comment for why this only
   // ever narrows whatever pages have been loaded so far, not the whole
@@ -72,8 +56,8 @@ export default function BoysPageClient({ initialProducts }: { initialProducts: P
     let result = products;
     if (activeAge) result = result.filter((p) => p.ageGroups.includes(activeAge));
     if (activeSizeAge) result = result.filter((p) => productMatchesSizeAgeFilter(p, activeSizeAge));
-    return sort ? sortProducts(result, sort) : result;
-  }, [products, activeAge, activeSizeAge, sort]);
+    return result;
+  }, [products, activeAge, activeSizeAge]);
 
   // Both handlers update local state immediately (drives the re-render
   // right away, without waiting on the router) and push a merged URL — each
@@ -93,18 +77,6 @@ export default function BoysPageClient({ initialProducts }: { initialProducts: P
     if (age) params.set("sizeAge", age);
     else params.delete("sizeAge");
     router.push(`?${params.toString()}`, { scroll: false });
-  };
-
-  const handleLoadMore = () => {
-    if (!hasMore || loadingMore) return;
-    setLoadingMore(true);
-    getProductsByCategoryPage("boys", CATEGORY_PAGE_SIZE, cursor)
-      .then((page) => {
-        setProducts((prev) => [...prev, ...page.products]);
-        setCursor(page.lastDoc);
-        setHasMore(page.hasMore);
-      })
-      .finally(() => setLoadingMore(false));
   };
 
   return (
@@ -129,21 +101,7 @@ export default function BoysPageClient({ initialProducts }: { initialProducts: P
         ) : (
           <ProductGrid products={filtered} />
         )}
-        {hasMore && (
-          <div className="flex justify-center mt-lg">
-            <button
-              type="button"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="flex items-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50"
-            >
-              {loadingMore && (
-                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-              )}
-              {t.category.loadMore}
-            </button>
-          </div>
-        )}
+        {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
       </div>
     </div>
   );

@@ -20,3 +20,23 @@ export function sortProducts(products: Product[], sort: SortOption): Product[] {
   priced.sort((a, b) => (effectivePrice(a) - effectivePrice(b)) * direction);
   return [...priced, ...priceless];
 }
+
+const isOutOfStock = (product: Product) =>
+  product.colors.every((c) => c.sizes.every((s) => s.stock <= 0));
+
+/** Moves out-of-stock products after in-stock ones, otherwise keeping the
+ * given order (stable). Apply it to a whole list shown at once, or to each
+ * "Load More" batch on its own (see orderBatch) — never to an
+ * already-displayed list that's being appended to, or products already on
+ * screen get pushed down below newly loaded ones. */
+export function inStockFirst(products: Product[]): Product[] {
+  return [...products.filter((p) => !isOutOfStock(p)), ...products.filter(isOutOfStock)];
+}
+
+/** Display order for one batch of products: the chosen sort (if any), then
+ * out-of-stock last. Paginated lists order each batch this way and append
+ * it after what's already shown, so loading more never reshuffles the
+ * products already on screen. */
+export function orderBatch(products: Product[], sort: SortOption | null): Product[] {
+  return inStockFirst(sort ? sortProducts(products, sort) : products);
+}

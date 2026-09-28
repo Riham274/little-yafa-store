@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
-import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { inStockFirst, sortProducts, type SortOption } from "@/lib/sortProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { Product } from "@/lib/types";
@@ -30,7 +30,7 @@ export default function SalePageClient({ initialProducts }: { initialProducts: P
     [sizeAge, initialProducts]
   );
 
-  const sorted = useMemo(() => sortProducts(filtered, sort ?? "newest"), [filtered, sort]);
+  const sorted = useMemo(() => inStockFirst(sortProducts(filtered, sort ?? "newest")), [filtered, sort]);
 
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">

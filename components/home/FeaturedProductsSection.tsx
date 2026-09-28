@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLanguage } from "@/context/LanguageContext";
 import { getFeaturedProductsPool } from "@/lib/firebase/products";
 import { pickRandom } from "@/lib/random";
+import { inStockFirst } from "@/lib/sortProducts";
 import type { Product } from "@/lib/types";
 import ProductGrid from "@/components/product/ProductGrid";
 import Spinner from "@/components/ui/Spinner";
@@ -25,7 +26,7 @@ export default function FeaturedProductsSection() {
 
   useEffect(() => {
     getFeaturedProductsPool(POOL_SIZE).then((pool) => {
-      setFeatured(pickRandom(pool, FEATURED_COUNT));
+      setFeatured(inStockFirst(pickRandom(pool, FEATURED_COUNT)));
       setLoaded(true);
     });
   }, []);

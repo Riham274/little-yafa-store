@@ -1,17 +1,15 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
-import { getProductsByCategoryPage } from "@/lib/firebase/products";
-import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
-import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { useCategoryProducts } from "@/lib/useCategoryProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import type { AgeGroup, Category, NewbornFabricType, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
 import AgeFilterPills from "./AgeFilterPills";
 import GenderFilterPills, { type GenderFilterValue } from "./GenderFilterPills";
+import LoadMoreButton from "./LoadMoreButton";
 import ProductGrid from "./ProductGrid";
 import SizeAgeFilterSelect from "./SizeAgeFilterSelect";
 import SortSelect from "./SortSelect";
@@ -55,12 +53,13 @@ export default function CategoryPageContent({
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [products, setProducts] = useState<Product[]>(initialProducts ?? []);
-  const [loading, setLoading] = useState(!initialProducts);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [sort, setSort] = useState<SortOption | null>(null);
+  // Fetches the first page itself when initialProducts isn't given (and
+  // again if `category` changes); Load More appends each new batch after
+  // what's already shown — see lib/useCategoryProducts.ts.
+  const { products, loading, loadingMore, hasMore, loadMore, sort, setSort } = useCategoryProducts(
+    category,
+    initialProducts
+  );
 
   const activeAge = (searchParams.get("age") as AgeGroup | null) ?? null;
   // Independent of activeAge above (the original admin-tagged ageGroups
@@ -68,40 +67,6 @@ export default function CategoryPageContent({
   // both be active at once. See lib/sizeAge.ts.
   const activeSizeAge = (searchParams.get("sizeAge") as SizeAgeFilter | null) ?? null;
   const activeGender = (searchParams.get("gender") as GenderFilterValue | null) ?? null;
-
-  useEffect(() => {
-    // The server already sent this page's first batch (see initialProducts
-    // above) — don't fetch-and-replace it, that would just flash the same
-    // data back in a moment after it's already showing. One background
-    // fetch is still needed, though: getProductsByCategoryPage()'s
-    // pagination cursor (lastDoc) is a raw Firestore QueryDocumentSnapshot,
-    // which can't cross the server→client boundary as a prop, so "Load
-    // More" has no cursor to page from until a real one comes from a
-    // client-side call. Its `products` result is deliberately unused —
-    // the already-displayed initial page is left untouched.
-    if (initialProducts) {
-      getProductsByCategoryPage(category, CATEGORY_PAGE_SIZE, null).then((page) => {
-        setCursor(page.lastDoc);
-        setHasMore(page.hasMore);
-      });
-      return;
-    }
-    setLoading(true);
-    setProducts([]);
-    setCursor(null);
-    setHasMore(false);
-    getProductsByCategoryPage(category, CATEGORY_PAGE_SIZE, null)
-      .then((page) => {
-        setProducts(page.products);
-        setCursor(page.lastDoc);
-        setHasMore(page.hasMore);
-      })
-      .finally(() => setLoading(false));
-    // initialProducts is only ever read at mount (whether the server sent a
-    // first page or not doesn't change across this component's lifetime),
-    // so it's deliberately excluded from the dependency list.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category]);
 
   // Age/gender filtering and sorting apply to whatever pages have been
   // loaded so far, not the whole category — a filter can show fewer results
@@ -133,17 +98,11 @@ export default function CategoryPageContent({
     if (fabricType) {
       result = result.filter((p) => p.newbornFabricType === fabricType);
     }
-    // Only re-sort when the admin has actually picked a sort option —
-    // otherwise (the default state) the list must stay in whatever order
-    // it was fetched/appended in. Falling back to a "newest" sort here
-    // unconditionally used to re-sort the *entire* accumulated list by
-    // createdAt on every render, including right after "Load More"
-    // appended a page — which could reshuffle products already on screen
-    // (a newly-fetched item with a more recent createdAt would jump above
-    // ones the customer had already scrolled past), reading as a scroll
-    // jump even though the actual scroll offset never changed.
-    return sort ? sortProducts(result, sort) : result;
-  }, [products, activeAge, activeSizeAge, showAgeFilter, showSizeAgeFilter, activeGender, showGenderFilter, fabricType, sort]);
+    // No sorting here: the hook keeps `products` in display order (sorted
+    // per Load More batch), so filtering just narrows it without moving
+    // anything already on screen.
+    return result;
+  }, [products, activeAge, activeSizeAge, showAgeFilter, showSizeAgeFilter, activeGender, showGenderFilter, fabricType]);
 
   const handleAgeChange = (age: AgeGroup | null) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -166,17 +125,6 @@ export default function CategoryPageContent({
     router.push(`?${params.toString()}`, { scroll: false });
   };
 
-  const handleLoadMore = () => {
-    if (!hasMore || loadingMore) return;
-    setLoadingMore(true);
-    getProductsByCategoryPage(category, CATEGORY_PAGE_SIZE, cursor)
-      .then((page) => {
-        setProducts((prev) => [...prev, ...page.products]);
-        setCursor(page.lastDoc);
-        setHasMore(page.hasMore);
-      })
-      .finally(() => setLoadingMore(false));
-  };
 
   return (
     <div className="max-w-container-max mx-auto px-gutter pb-xl">
@@ -209,21 +157,7 @@ export default function CategoryPageContent({
             ) : (
               <ProductGrid products={filtered} />
             )}
-            {hasMore && (
-              <div className="flex justify-center mt-lg">
-                <button
-                  type="button"
-                  onClick={handleLoadMore}
-                  disabled={loadingMore}
-                  className="flex items-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50"
-                >
-                  {loadingMore && (
-                    <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-                  )}
-                  {t.category.loadMore}
-                </button>
-              </div>
-            )}
+            {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
           </>
         )}
       </div>

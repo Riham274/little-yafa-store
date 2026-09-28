@@ -2,15 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { DocumentData, QueryDocumentSnapshot } from "firebase/firestore";
 import { useLanguage } from "@/context/LanguageContext";
-import { getProductsByCategoryPage } from "@/lib/firebase/products";
-import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
-import { sortProducts, type SortOption } from "@/lib/sortProducts";
+import { useCategoryProducts } from "@/lib/useCategoryProducts";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import type { Product } from "@/lib/types";
 import GenderFilterPills, { type GenderFilterValue } from "@/components/product/GenderFilterPills";
+import LoadMoreButton from "@/components/product/LoadMoreButton";
 import ProductGrid from "@/components/product/ProductGrid";
 import SizeAgeFilterSelect from "@/components/product/SizeAgeFilterSelect";
 import SortSelect from "@/components/product/SortSelect";
@@ -29,11 +27,9 @@ export default function NewbornCottonPageClient({ initialProducts }: { initialPr
   useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [cursor, setCursor] = useState<QueryDocumentSnapshot<DocumentData> | null>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const [sort, setSort] = useState<SortOption | null>(null);
+  // Load More appends each new batch after what's already shown — see
+  // lib/useCategoryProducts.ts.
+  const { products, loadingMore, hasMore, loadMore, sort, setSort } = useCategoryProducts("newborn", initialProducts);
   // Both start null — matching what the cached HTML always shows, since the
   // real URL's query string can't be known at build/cache time — and are
   // corrected from the actual URL immediately on mount below.
@@ -51,13 +47,6 @@ export default function NewbornCottonPageClient({ initialProducts }: { initialPr
     return () => window.removeEventListener("popstate", readFiltersFromUrl);
   }, []);
 
-  useEffect(() => {
-    getProductsByCategoryPage("newborn", CATEGORY_PAGE_SIZE, null).then((page) => {
-      setCursor(page.lastDoc);
-      setHasMore(page.hasMore);
-    });
-  }, []);
-
   // fabricType="cotton" is a fixed narrowing (this page's whole reason for
   // existing), unrelated to the two URL-driven filters — all three chain
   // together (ANDed), same as CategoryPageContent's identical logic.
@@ -67,8 +56,8 @@ export default function NewbornCottonPageClient({ initialProducts }: { initialPr
       result = result.filter((p) => p.newbornGender === activeGender || p.newbornGender === "unisex");
     }
     if (activeSizeAge) result = result.filter((p) => productMatchesSizeAgeFilter(p, activeSizeAge));
-    return sort ? sortProducts(result, sort) : result;
-  }, [products, activeGender, activeSizeAge, sort]);
+    return result;
+  }, [products, activeGender, activeSizeAge]);
 
   const handleGenderChange = (gender: GenderFilterValue | null) => {
     setActiveGender(gender);
@@ -84,18 +73,6 @@ export default function NewbornCottonPageClient({ initialProducts }: { initialPr
     if (age) params.set("sizeAge", age);
     else params.delete("sizeAge");
     router.push(`?${params.toString()}`, { scroll: false });
-  };
-
-  const handleLoadMore = () => {
-    if (!hasMore || loadingMore) return;
-    setLoadingMore(true);
-    getProductsByCategoryPage("newborn", CATEGORY_PAGE_SIZE, cursor)
-      .then((page) => {
-        setProducts((prev) => [...prev, ...page.products]);
-        setCursor(page.lastDoc);
-        setHasMore(page.hasMore);
-      })
-      .finally(() => setLoadingMore(false));
   };
 
   return (
@@ -120,21 +97,7 @@ export default function NewbornCottonPageClient({ initialProducts }: { initialPr
         ) : (
           <ProductGrid products={filtered} />
         )}
-        {hasMore && (
-          <div className="flex justify-center mt-lg">
-            <button
-              type="button"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="flex items-center gap-2 px-lg py-3 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95 disabled:opacity-50"
-            >
-              {loadingMore && (
-                <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
-              )}
-              {t.category.loadMore}
-            </button>
-          </div>
-        )}
+        {hasMore && <LoadMoreButton onClick={loadMore} loading={loadingMore} />}
       </div>
     </div>
   );
