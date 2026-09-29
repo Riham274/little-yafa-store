@@ -27,7 +27,9 @@ const DEFAULT_HERO_BANNER = "/new-hero-banner.png";
 // apply here: this section has no translated text at all to render in the
 // wrong language, so there's nothing for a stale cache to get wrong beyond
 // the banner image itself, which is already the intentional tradeoff below.
-export const revalidate = 60;
+// 3 minutes, not 60s: every regeneration is a billed Vercel ISR write, and
+// 60s across these pages used up the free plan's ISR write quota.
+export const revalidate = 180;
 
 export default async function HomePage() {
   let heroBannerUrl = DEFAULT_HERO_BANNER;
