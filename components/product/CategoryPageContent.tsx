@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { useCategoryProducts } from "@/lib/useCategoryProducts";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import { productMatchesSizeAgeFilter, type SizeAgeFilter } from "@/lib/sizeAge";
 import type { AgeGroup, Category, NewbornFabricType, Product } from "@/lib/types";
 import PageLoader from "@/components/ui/PageLoader";
@@ -50,6 +51,9 @@ export default function CategoryPageContent({
   // fetching its own first page exactly as before.
   initialProducts?: Product[];
 }) {
+  // Returns to the same spot on Back — works together with the Back cache in
+  // useCategoryProducts, which rebuilds every page that had been loaded.
+  useScrollRestoration();
   const { t } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();

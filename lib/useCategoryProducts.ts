@@ -3,8 +3,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getProductsByCategoryPage } from "@/lib/firebase/products";
 import { CATEGORY_PAGE_SIZE } from "@/lib/categoryPageSize";
+import { useListingCache } from "@/lib/listingCache";
 import { orderBatch, type SortOption } from "@/lib/sortProducts";
 import type { Category, Product } from "@/lib/types";
+
+type SavedListing = {
+  products: Product[];
+  hasMore: boolean;
+  sort: SortOption | null;
+  lastId: string | null;
+};
 
 // A page of only hidden products yields nothing to show; keep reading ahead
 // (up to this many pages) so one "Load More" click always adds something
@@ -25,26 +33,52 @@ const MAX_EMPTY_PAGES = 5;
  * Filters stay with the page: they're applied to `products` for display
  * (in this same order), not baked into it. */
 export function useCategoryProducts(category: Category, initialProducts?: Product[]) {
-  const [products, setProducts] = useState<Product[]>(() => orderBatch(initialProducts ?? [], null));
-  const [loading, setLoading] = useState(!initialProducts);
+  // Coming BACK to this listing (e.g. from a product page): rebuild exactly
+  // what was loaded before — every "Load More" page, in the same order, with
+  // the same sort — on this very first render, so useScrollRestoration can
+  // scroll the customer back to the product they came from. See
+  // lib/listingCache.ts. Any other visit starts at page 1 as usual.
+  const { restored, save: saveToCache } = useListingCache<SavedListing>(`category:${category}`);
+
+  const [products, setProducts] = useState<Product[]>(() => restored?.products ?? orderBatch(initialProducts ?? [], null));
+  const [loading, setLoading] = useState(!restored && !initialProducts);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
-  const [sort, setSortState] = useState<SortOption | null>(null);
+  const [hasMore, setHasMore] = useState(restored?.hasMore ?? false);
+  const [sort, setSortState] = useState<SortOption | null>(restored?.sort ?? null);
 
   // Cursor = the last product ID read so far, in Firestore's (document-ID)
   // order — NOT the last product in display order, which a sort changes.
   // Starting from the server page's own last product means page 2 always
   // continues from exactly what's on screen.
   const lastIdRef = useRef<string | null>(
-    initialProducts && initialProducts.length > 0 ? initialProducts[initialProducts.length - 1].id : null
+    restored
+      ? restored.lastId
+      : initialProducts && initialProducts.length > 0
+        ? initialProducts[initialProducts.length - 1].id
+        : null
   );
-  const sortRef = useRef<SortOption | null>(null);
+  const sortRef = useRef<SortOption | null>(restored?.sort ?? null);
   // Bumped whenever the list is reset (category change), so a response for
   // the previous category arriving late is ignored.
   const generationRef = useRef(0);
+  // The category whose list came from the Back cache, if any — its first
+  // load is skipped. Compared by category (not a one-shot flag) so React's
+  // development double-run of effects doesn't refetch and wipe it.
+  const restoredCategoryRef = useRef<Category | null>(restored ? category : null);
+
+  // Keep the saved copy current, so Back always finds the latest state.
+  useEffect(() => {
+    saveToCache({ products, hasMore, sort, lastId: lastIdRef.current });
+  }, [saveToCache, products, hasMore, sort]);
 
   useEffect(() => {
     const generation = ++generationRef.current;
+    if (restoredCategoryRef.current === category) {
+      // Restored from the Back cache: the list, cursor and hasMore are all
+      // already known — nothing to fetch.
+      return;
+    }
+    restoredCategoryRef.current = null;
     if (initialProducts) {
       // The first page is already on screen; one single-document read after
       // its last product is enough to know whether "Load More" should show.

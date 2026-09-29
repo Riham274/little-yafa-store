@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLanguage } from "@/context/LanguageContext";
 import { getProductsByCategoryPool } from "@/lib/firebase/products";
+import { useListingCache } from "@/lib/listingCache";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import { pickRandom } from "@/lib/random";
 import { orderBatch, type SortOption } from "@/lib/sortProducts";
 import type { Category, Product } from "@/lib/types";
@@ -35,26 +37,55 @@ const POOL_STEP = 6;
 
 type CategoryMap<T> = Partial<Record<Category, T>>;
 
+type SavedShopAll = {
+  products: Product[];
+  sort: SortOption | null;
+  exhausted: boolean;
+  shownIds: Set<string>;
+  poolLimit: CategoryMap<number>;
+  pools: CategoryMap<Product[]>;
+  fetchedAll: CategoryMap<boolean>;
+};
+
 export default function ShopAllPage() {
+  useScrollRestoration();
   const { t } = useLanguage();
-  const [products, setProducts] = useState<Product[] | null>(null);
-  const [sort, setSort] = useState<SortOption | null>(null);
+  // Coming BACK here from a product: rebuild exactly the products that had
+  // been loaded (and where the random picking had got to), on this first
+  // render, so scroll restoration can return to the same spot — see
+  // lib/listingCache.ts. Any other visit starts a fresh random selection.
+  const { restored, save: saveToCache } = useListingCache<SavedShopAll>("shop-all");
+  const [products, setProducts] = useState<Product[] | null>(restored?.products ?? null);
+  const [sort, setSort] = useState<SortOption | null>(restored?.sort ?? null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [exhausted, setExhausted] = useState(false);
+  const [exhausted, setExhausted] = useState(restored?.exhausted ?? false);
 
   // Session-scoped, not reactive state — only ever read/written from within
   // fetchBatch; the actual re-render happens via the products/exhausted
   // state each batch resolves into.
-  const shownIds = useRef<Set<string>>(new Set());
-  const poolLimit = useRef<CategoryMap<number>>({});
+  const shownIds = useRef<Set<string>>(restored?.shownIds ?? new Set());
+  const poolLimit = useRef<CategoryMap<number>>(restored?.poolLimit ?? {});
   // Latest fetched pool per category, kept so a category whose Firestore
   // results have run out can keep contributing its not-yet-shown products
   // on later rounds without being re-queried.
-  const pools = useRef<CategoryMap<Product[]>>({});
+  const pools = useRef<CategoryMap<Product[]>>(restored?.pools ?? {});
   // Firestore has returned every doc in this category — no point growing
   // its pool further. NOT the same as the category being done: it's only
   // done once its pool also has nothing left that hasn't been shown.
-  const fetchedAll = useRef<CategoryMap<boolean>>({});
+  const fetchedAll = useRef<CategoryMap<boolean>>(restored?.fetchedAll ?? {});
+
+  useEffect(() => {
+    if (products === null) return;
+    saveToCache({
+      products,
+      sort,
+      exhausted,
+      shownIds: shownIds.current,
+      poolLimit: poolLimit.current,
+      pools: pools.current,
+      fetchedAll: fetchedAll.current,
+    });
+  }, [saveToCache, products, sort, exhausted]);
 
   const hasUnshown = (category: Category) =>
     (pools.current[category] ?? []).some((p) => !shownIds.current.has(p.id));
@@ -116,14 +147,17 @@ export default function ShopAllPage() {
   // after what's already shown, so "Load More" never moves products already
   // on screen. Only picking a sort re-orders the whole list. Same approach
   // as the category pages (lib/useCategoryProducts.ts).
-  const sortRef = useRef<SortOption | null>(null);
+  const sortRef = useRef<SortOption | null>(restored?.sort ?? null);
 
   useEffect(() => {
+    // Restored from the Back cache — the first batch (and any more) is
+    // already on screen.
+    if (restored) return;
     fetchBatch().then(({ products: batch, allExhausted }) => {
       setProducts(orderBatch(batch, sortRef.current));
       setExhausted(allExhausted);
     });
-  }, [fetchBatch]);
+  }, [fetchBatch, restored]);
 
   const handleLoadMore = () => {
     if (loadingMore || exhausted) return;

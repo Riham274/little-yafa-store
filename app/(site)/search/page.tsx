@@ -4,6 +4,8 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLanguage } from "@/context/LanguageContext";
 import { getAllProducts } from "@/lib/firebase/products";
+import { useListingCache } from "@/lib/listingCache";
+import { useScrollRestoration } from "@/lib/useScrollRestoration";
 import { searchProducts } from "@/lib/searchProducts";
 import { inStockFirst, sortProducts, type SortOption } from "@/lib/sortProducts";
 import type { Product } from "@/lib/types";
@@ -11,17 +13,29 @@ import PageLoader from "@/components/ui/PageLoader";
 import ProductGrid from "@/components/product/ProductGrid";
 import SortSelect from "@/components/product/SortSelect";
 
+type SavedSearch = { allProducts: Product[]; sort: SortOption | null };
+
 function SearchResults() {
+  useScrollRestoration();
   const { t, locale } = useLanguage();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
 
-  const [allProducts, setAllProducts] = useState<Product[] | null>(null);
-  const [sort, setSort] = useState<SortOption | null>(null);
+  // Coming BACK from a product: show the same results immediately (they'd
+  // otherwise load after a spinner, too late for scroll restoration to
+  // return to the product) — see lib/listingCache.ts.
+  const { restored, save: saveToCache } = useListingCache<SavedSearch>("search", query);
+  const [allProducts, setAllProducts] = useState<Product[] | null>(restored?.allProducts ?? null);
+  const [sort, setSort] = useState<SortOption | null>(restored?.sort ?? null);
 
   useEffect(() => {
+    if (restored) return;
     getAllProducts().then(setAllProducts);
-  }, []);
+  }, [restored]);
+
+  useEffect(() => {
+    if (allProducts) saveToCache({ allProducts, sort });
+  }, [saveToCache, allProducts, sort]);
 
   const results = useMemo(
     () => (allProducts ? inStockFirst(sortProducts(searchProducts(allProducts, query, locale), sort ?? "newest")) : []),

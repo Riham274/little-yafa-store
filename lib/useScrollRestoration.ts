@@ -14,9 +14,19 @@ const STORAGE_PREFIX = "scroll:";
 // start from or land on.
 let historyNavigation = false;
 if (typeof window !== "undefined") {
-  window.addEventListener("popstate", () => {
-    historyNavigation = true;
-  });
+  // Capture phase: Next's router listens for popstate too, and renders the
+  // page it's going back to right away — a plain listener registered after
+  // it would flip this flag only once that render had already happened, too
+  // late for anything reading it during render (lib/listingCache.ts restores
+  // "Load More" pages in a useState initializer). Capture listeners on the
+  // window run before regular ones, whatever order they were added in.
+  window.addEventListener(
+    "popstate",
+    () => {
+      historyNavigation = true;
+    },
+    true
+  );
   // Capture phase, so this runs before the click triggers any navigation.
   // The footer's "Previous Page" button is itself a click, but the
   // popstate its router.back() fires comes after, flipping this back.
