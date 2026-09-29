@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from "react";
+
+const subscribeToNothing = () => () => {};
 
 const STORAGE_PREFIX = "scroll:";
 
@@ -72,6 +74,12 @@ export function useScrollRestoration(): void {
   const keyRef = useRef("");
   if (typeof window !== "undefined") keyRef.current = scrollKey();
 
+  // True when this page was mounted by hydrating server HTML (a first load
+  // or a reload) rather than by a client-side navigation: React renders
+  // useSyncExternalStore with its server snapshot during hydration only.
+  // Captured by the mount-only layout effect below.
+  const mountedByHydration = useSyncExternalStore(subscribeToNothing, () => false, () => true);
+
   // useLayoutEffect (not useEffect) so the restore happens before the
   // browser paints the frame, avoiding a visible jump from the top down to
   // the restored position.
@@ -80,7 +88,16 @@ export function useScrollRestoration(): void {
     // e.g. tapping this category in the menu after having browsed it
     // earlier in the session — should start at the top, not jump to
     // wherever the customer happened to leave it last time.
-    if (!isHistoryNavigation()) return;
+    if (!isHistoryNavigation()) {
+      // …and it actually has to be MOVED to the top: Next only scrolls a
+      // new page up if its first element is off-screen, and after leaving a
+      // scrolled-down home page it often isn't, so the category page opened
+      // at the home page's scroll offset (seen on desktop). Same fix as the
+      // product page's. Skipped when hydrating a first load/reload, where
+      // the browser's own reload position (or the top) is already right.
+      if (!mountedByHydration) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
     const saved = sessionStorage.getItem(keyRef.current);
     if (saved == null) return;
     const y = Number(saved);

@@ -29,7 +29,10 @@ export default function Footer() {
             className="inline-flex items-center gap-1.5 px-md py-2 rounded-full text-on-primary font-label-sm text-label-sm shadow-lg hover:shadow-xl transition-all duration-300 active:scale-95"
             style={{ backgroundColor: OLIVE }}
           >
-            <span className="material-symbols-outlined text-[16px] rtl:rotate-180">arrow_back</span>
+            {/* House, not an arrow: the arrow is reserved for "Previous
+                Page" next to it (browser back). No RTL flip — a house isn't
+                directional. */}
+            <span className="material-symbols-outlined text-[16px]">home</span>
             {t.footer.backToHome}
           </Link>
           {/* Convenience utility, not a second primary CTA — same olive
