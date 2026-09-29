@@ -1,84 +1,110 @@
-# Little Yafa — Baby Boutique E-Commerce
+# Little Yafa — Baby & Kids Store
 
-Real Next.js + Firebase e-commerce app built on top of the Little Yafa Stitch
-design export (see `../stitch_little_yafa_boutique_e_commerce`). Firestore for
-data, Firebase Authentication for the admin panel, Firebase Storage for
-product images. Supports English, Arabic, and Hebrew with full RTL/LTR
-switching.
+A modern, multilingual e-commerce platform for a boutique baby and kids 
+clothing brand based in Palestine. Built with Next.js and Firebase, with 
+full Arabic/English/Hebrew support and RTL/LTR layout switching.
 
-## Setup
+**Live site:** [littleyafa.com](https://www.littleyafa.com)
 
-1. **Install dependencies**
+## Overview
 
-   ```bash
-   npm install
-   ```
+Little Yafa is a full-stack storefront + admin system for a real, operating 
+retail business. It handles the complete customer journey — browsing by 
+category and age group, product discovery, cart, and checkout — alongside 
+an internal admin dashboard for inventory and order management, all backed 
+by real-time Firestore data with transaction-safe stock control.
 
-2. **Firebase config**
+## Features
 
-   Copy `.env.local.example` to `.env.local` and fill in the six
-   `NEXT_PUBLIC_FIREBASE_*` values from Firebase Console → Project Settings →
-   General → "Your apps" → your Web app's SDK config. If no Web app exists
-   yet in the project, create one there first (registering a web client does
-   not affect the existing Firestore/Auth/Storage setup or the existing admin
-   account).
+**Storefront**
+- Multilingual UI (Arabic, English, Hebrew) with automatic RTL/LTR layout 
+  mirroring
+- Category browsing (Boys, Girls, Hospital Bag) with age-group filtering 
+  (0–12m, 1–3y, 4–6y, 7–12y)
+- Product detail pages with image galleries and related/similar product 
+  recommendations (matched by category and tags)
+- Cart and a lightweight checkout flow (name, phone, delivery address — no 
+  account required)
+- Paginated product listings with scroll-position and list-state 
+  preservation across navigation
+- Fully responsive, mobile-first design
 
-   ```bash
-   cp .env.local.example .env.local
-   ```
+**Admin dashboard**
+- Firebase Authentication–gated admin access (role-based, checked against 
+  Firestore)
+- Full product CRUD with image upload to Firebase Storage
+- Real-time order management with status tracking (new / processing / 
+  delivered)
+- Stock-safe order processing via Firestore transactions, preventing 
+  overselling under concurrent orders
 
-3. **Deploy security rules** (from the Firebase CLI, or paste into the
-   Console's Rules editors)
+## Tech stack
 
-   ```bash
-   firebase deploy --only firestore:rules,storage:rules
-   ```
+| Layer          | Technology                                 |
+|----------------|---------------------------------------------|
+| Framework      | Next.js (App Router)                        |
+| Database       | Firebase Firestore                          |
+| Auth           | Firebase Authentication                     |
+| Storage        | Firebase Storage                            |
+| Styling        | Tailwind CSS                                |
+| Language       | TypeScript                                  |
+| i18n           | Custom Arabic / English / Hebrew, RTL-aware |
 
-   `firestore.rules` and `storage.rules` are at the project root.
+## Data model (Firestore)
 
-4. **Run the dev server**
+```
+products/{productId}
+  name, description        // multilingual: { ar, en, he }
+  price, images[], stock
+  section: "boys" | "girls" | "hospital"
+  ageGroup: "0-12m" | "1-3y" | "4-6y" | "7-12y" | null
+  category, tags[]
 
-   ```bash
-   npm run dev
-   ```
+orders/{orderId}
+  customerName, customerPhone, customerAddress
+  items[], total, status, createdAt
 
-   App runs at http://localhost:3000.
+admins/{uid}
+  role: "admin"
+```
 
-## Adding your first products
+## Getting started
 
-There's no seed script — add products through the admin panel:
+```bash
+# install dependencies
+npm install
 
-1. Go to `/admin/login` and sign in with the existing admin account.
-2. Go to `/admin/dashboard/products` → "New Product" and fill in the form
-   (name/description in EN/AR/HE, price, section, age group, category, tags,
-   stock, images).
+# set up environment variables
+cp .env.local.example .env.local
+# fill in your Firebase project config
 
-Admin routes (`/admin/login`, `/admin/dashboard/*`) are intentionally not
-linked from any public page — reachable only by typing the URL.
+# run the dev server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to view the storefront.
+
+## Firestore security
+
+Security rules enforce:
+- Public read access to `products`
+- Write access to `products` restricted to authenticated admins
+- Public create access to `orders` (placing an order), with read/update 
+  restricted to admins
+
+See `firestore.rules` for the full rule set.
 
 ## Project structure
 
-- `app/(site)/` — public storefront pages, wrapped in the shared header/
-  footer/mobile-nav shell (`app/(site)/layout.tsx`).
-- `app/admin/` — admin login (no shell) + dashboard (own `AdminShell`,
-  guarded by `app/admin/dashboard/layout.tsx`).
-- `components/` — `layout/`, `product/`, `cart/`, `checkout/`, `admin/`.
-- `context/` — `CartContext` (localStorage-persisted cart) and
-  `LanguageContext` (locale + RTL/LTR, localStorage-persisted).
-- `lib/firebase/` — `config.ts`, `products.ts`, `orders.ts`, `auth.ts`,
-  `storage.ts`. `orders.ts` has the stock-safe `placeOrder` transaction.
-- `lib/i18n/dictionaries.ts` — EN/AR/HE UI strings.
-- `firestore.rules`, `storage.rules` — security rules matching the spec
-  (public product reads, public order creation, admin-only everything else).
+```
+app/(site)/        # customer-facing storefront pages
+app/admin/          # admin dashboard (not linked in public navigation)
+components/         # shared UI components
+lib/                # Firebase config, hooks, data helpers
+```
 
-## Notes / known simplifications
+## License
 
-- Data fetching is client-side (Firestore Web SDK in Client Components) —
-  no Admin SDK/service account is used or required.
-- The order confirmation page reads the just-placed order from
-  `sessionStorage` (set at checkout time) rather than re-fetching it from
-  Firestore, since orders are admin-read-only per the security rules —
-  refreshing that page directly (without having just checked out) shows a
-  generic thank-you without order details.
-- The Contact page is visual only (client-side validation, no Firestore
-  write) — not part of the original spec's data model.
+Proprietary — All rights reserved. This is a commercial project built for a 
+real, operating retail business (Little Yafa). The code is not licensed for 
+reuse, redistribution, or commercial use by third parties.
